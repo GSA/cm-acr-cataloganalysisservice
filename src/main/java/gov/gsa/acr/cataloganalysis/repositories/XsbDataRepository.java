@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integer> {
 
     @Query(
-            "SELECT * FROM xsb_data x WHERE x.contract_number = :contractNumber LIMIT :limit OFFSET :offset"
+            value = "SELECT * FROM xsb_data x WHERE x.contract_number = :contractNumber LIMIT :limit OFFSET :offset"
     )
     Flux<XsbData> findAllByContractNumber(String contractNumber, Integer limit, Integer offset);
 
