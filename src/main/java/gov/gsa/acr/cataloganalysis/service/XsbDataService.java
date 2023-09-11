@@ -25,6 +25,14 @@ public class XsbDataService {
         return xsbDataRepository.deleteAllByContractNumber(contractNumber);
     }
 
+    public Flux<Enrichment> getEnrichment(Integer transaction_id) {
+        return enrichmentRepository
+                .findAllByTransactionId(transaction_id, null, 0)
+                .doOnNext(e -> {
+                    log.info("Found - {}", e.toString());
+                });
+    }
+
 
     @Transactional
     public Flux<XsbData> saveXSBData(Integer transaction_id, String contractNumber) {
@@ -38,16 +46,27 @@ public class XsbDataService {
                         .findAllByTransactionId(transaction_id, null, 0)
                         .doFirst(() -> counter.set(0))
                         .doOnNext(e -> {
-                            if (counter.incrementAndGet() % 1000 == 0) log.info("Processed {} records", counter.get());
+                            log.info("Processed {} records", counter.incrementAndGet());
+                            //if (counter.incrementAndGet() % 100 == 0) log.info("Processed {} records", counter.get());
                         })
                         .map(Enrichment::toXsbData)
-                        .buffer(1000)
-                        .flatMap(xsbDataRepository::saveAll)
+                        .onBackpressureBuffer()
+                        //.buffer(1000)
+                        .concatMap(xsbDataRepository::save, 100)
                         .doFirst(() -> dbCounter.set(0))
-                        .doOnNext(e -> {if (dbCounter.incrementAndGet() % 1000 == 0) log.info("Saved {} records", dbCounter.get());})
+                        //.doOnNext(xsbDataRepository::save)
+                        .doOnNext(e -> {
+                            /*xsbDataRepository.save(e)
+                                    .retry(5)
+                                    .doOnSuccess(x -> log.info("Saved {} reeords", dbCounter.incrementAndGet()))
+                                    .subscribe();*/
+                            log.info("Saved {} reeords", dbCounter.incrementAndGet());
+                            //if (dbCounter.incrementAndGet() % 100 == 0) log.info("Saved {} records", dbCounter.get());
+                        })
                         .doOnError(e -> {
+                            log.error("Error while saving to DB", e);
                             throw new RuntimeException(e);
                         }) //Rethrow as a RuntimeException to make the transaction fail
-                        .doOnComplete(() -> log.info("Saved {} records", counter.get())));
+                        .doOnComplete(() -> log.info("Completed saving {} records", dbCounter.get())));
     }
 }
