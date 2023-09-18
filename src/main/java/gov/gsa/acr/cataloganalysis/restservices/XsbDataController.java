@@ -8,12 +8,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 @Slf4j
 @RestController
@@ -26,8 +25,8 @@ public class XsbDataController extends BaseController{
         this.xsbDataService = xsbDataService;
     }
 
-    @Operation(summary = "Move products from enrichment table to xsb_data table.",
-            description = "This operation moves data from enrichment to the xsb_data table given a transaction ID and contract number."
+    @Operation(summary = "Read products from enrichment table and save it to xsb_data table.",
+            description = "This operation reads data from the  enrichment table and saves ti to the xsb_data table given a transaction ID and contract number."
     )
     @GetMapping(value ="/xsb-data/{txnId}/{contractNumber}", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<XsbData> xsb(@Parameter(description = "The transaction ID")
@@ -35,6 +34,34 @@ public class XsbDataController extends BaseController{
                              @Parameter(description = "The Contract Number") @PathVariable String contractNumber){
         return xsbDataService.saveXSBData(txnId, contractNumber);
     }
+
+    @Operation(summary = "Read products from enrichment table and save it to xsb_data table.",
+            description = "This operation reads data from the  enrichment table and saves ti to the xsb_data table given a transaction ID and contract number."
+    )
+    @GetMapping(value ="/xsb-data-temp/{txnId}/{contractNumber}")
+    public Flux<String> xsbDataTemp(@Parameter(description = "The transaction ID")
+                             @PathVariable Integer txnId,
+                             @Parameter(description = "The Contract Number") @PathVariable String contractNumber){
+        Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();
+        Flux<String> statusNotifier = statusNotifierSource.asFlux();
+        return statusNotifier
+                .doOnSubscribe(s-> {
+                    log.info("Someone subscribed to me");
+                    xsbDataService
+                            .saveXSBDataTemp (txnId, statusNotifierSource)
+                            .then(xsbDataService.bulkSaveXsbData(statusNotifierSource))
+                            .then(xsbDataService.cleanXsbDataTemp(statusNotifierSource))
+                            .doOnSuccess(x -> {
+                                log.info("Completed the entire data save pipeline");
+                                statusNotifierSource.tryEmitNext("Completed the entire data save pipeline");
+                                statusNotifierSource.tryEmitComplete();
+                            })
+                            .subscribe();
+                });
+    }
+
+
+
 
 
     @Operation(summary = "Get Enriched records.",
