@@ -121,7 +121,7 @@ public class XsbDataService {
 
 
     @Transactional
-    public Mono<Void> bulkSaveXsbData(Sinks.Many<String> statusNotifier) {
+    public Mono<Void> moveXsbData(Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
                     statusNotifier.tryEmitNext("Moving data in bulk from enrichment table to the xsb_data table using transaction ID\n");

@@ -13,6 +13,7 @@ import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
+import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SpringBootApplication
@@ -41,6 +42,8 @@ public class CmAcrCataloganalysisserviceApplication {
 
             log.info("XSB Data  found with findAllByContractorNumber: ");
             log.info("=================================================");
+            log.info("PWD1 = " + System.getProperty("user.dir"));
+            log.info("PWD2 = " + Paths.get("").toAbsolutePath().toString());
             /*xsbDataRepository.findAllByContractNumber("GS-35F-0119Y", null, 0)
                     .doFirst(() -> counter.set(0))
                     .doOnNext(x -> {if(counter.incrementAndGet() % 1000 ==0) log.info(x.toString());})

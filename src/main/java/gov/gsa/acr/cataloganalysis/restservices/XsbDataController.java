@@ -38,19 +38,15 @@ public class XsbDataController extends BaseController{
     @Operation(summary = "Read products from enrichment table and save it to xsb_data table.",
             description = "This operation reads data from the  enrichment table and saves ti to the xsb_data table given a transaction ID and contract number."
     )
-    @GetMapping(value ="/xsb-data-temp/{txnId}/{contractNumber}")
-    public Flux<String> xsbDataTemp(@Parameter(description = "The transaction ID")
-                             @PathVariable Integer txnId,
-                             @Parameter(description = "The Contract Number") @PathVariable String contractNumber){
+    @GetMapping(value ="/xsb-data-temp/{txnId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> xsbDataTemp(@Parameter(description = "The transaction ID") @PathVariable Integer txnId){
         Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();
         Flux<String> statusNotifier = statusNotifierSource.asFlux();
         return statusNotifier
                 .doOnSubscribe(s-> {
-                    log.info("Someone subscribed to me");
                     xsbDataService
                             .saveXSBDataTemp (txnId, statusNotifierSource)
-                            .then(xsbDataService.bulkSaveXsbData(statusNotifierSource))
-                            .then(xsbDataService.cleanXsbDataTemp(statusNotifierSource))
+                            .then(xsbDataService.moveXsbData(statusNotifierSource))
                             .doOnSuccess(x -> {
                                 log.info("Completed the entire data save pipeline");
                                 statusNotifierSource.tryEmitNext("Completed the entire data save pipeline");
@@ -59,9 +55,6 @@ public class XsbDataController extends BaseController{
                             .subscribe();
                 });
     }
-
-
-
 
 
     @Operation(summary = "Get Enriched records.",
