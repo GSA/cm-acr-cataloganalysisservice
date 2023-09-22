@@ -25,6 +25,7 @@ public class XsbDataController extends BaseController{
         this.xsbDataService = xsbDataService;
     }
 
+    // TBD: Mark for Deletion
     @Operation(summary = "Read products from enrichment table and save it to xsb_data table.",
             description = "This operation reads data from the  enrichment table and saves ti to the xsb_data table given a transaction ID and contract number."
     )

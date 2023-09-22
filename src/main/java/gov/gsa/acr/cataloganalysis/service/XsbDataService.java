@@ -12,7 +12,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class XsbDataService {
     private final EnrichmentRepository enrichmentRepository;
     private final XsbDataRepository xsbDataRepository;
+    private final XsbReportHandler xsbReportHandler;
+
 
     @Transactional
     public Mono<Integer> deleteContract(String contractNumber){
@@ -35,6 +47,7 @@ public class XsbDataService {
     }
 
 
+    // TBD Mark for deletion
     @Transactional
     public Flux<XsbData> saveXSBData(Integer txnId, String contractNumber) {
         AtomicInteger counter = new AtomicInteger(0);
@@ -80,15 +93,18 @@ public class XsbDataService {
                         .findAllByTransactionId(txnId, null, 0)
                         .doFirst(() -> {
                             counter.set(0);
-                            statusNotifier.tryEmitNext("Processing XSB Data\n");
-                            statusNotifier.tryEmitNext("-------------------\n");
+                            if (statusNotifier != null) {
+                                statusNotifier.tryEmitNext("Processing XSB Data\n");
+                                statusNotifier.tryEmitNext("-------------------\n");
+                            }
                             log.info("Processing XSB Data");
                             log.info("-------------------");
                         })
                         .doOnNext(e -> {
                             if (counter.incrementAndGet() % 1000 == 0) {
                                 log.info("Processed {} records", counter.get());
-                                statusNotifier.tryEmitNext("Processed "+ counter.get() +" records\n");
+                                if (statusNotifier != null)
+                                    statusNotifier.tryEmitNext("Processed "+ counter.get() +" records\n");
                             }
                         })
                         .map(Enrichment::toXsbData)
@@ -97,15 +113,18 @@ public class XsbDataService {
                         .flatMap( x -> xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData()))
                         .doFirst(() -> {
                             dbCounter.set(0);
-                            statusNotifier.tryEmitNext("Saving XSB Data to Temp\n");
-                            statusNotifier.tryEmitNext("-----------------------\n");
+                            if (statusNotifier != null) {
+                                statusNotifier.tryEmitNext("Saving XSB Data to Temp\n");
+                                statusNotifier.tryEmitNext("-----------------------\n");
+                            }
                             log.info("Saving XSB Data to Temp");
                             log.info("-----------------------");
                         })
                         .doOnNext(e -> {
                             if (dbCounter.incrementAndGet() % 1000 == 0) {
                                 log.info("Saved {} records", dbCounter.get());
-                                statusNotifier.tryEmitNext("Saved "+ dbCounter.get() +" records\n");
+                                if (statusNotifier != null)
+                                    statusNotifier.tryEmitNext("Saved "+ dbCounter.get() +" records\n");
                             }
                         })
                         .doOnError(e -> {
@@ -114,9 +133,22 @@ public class XsbDataService {
                         }) //Rethrow as a RuntimeException to make the transaction fail
                         .doOnComplete(() -> {
                             log.info("Completed saving {} records", dbCounter.get());
-                            statusNotifier.tryEmitNext("Completed saving "+ dbCounter.get() +" records\n");
+                            if (statusNotifier != null)
+                                statusNotifier.tryEmitNext("Completed saving "+ dbCounter.get() +" records\n");
                         })
                 );
+    }
+
+
+    public Mono<Integer> saveXsbDataRecord(XsbData x, PrintWriter pw) {
+        return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
+                .onErrorResume(e -> {
+                        log.error("Error saving record to DB. " + e.getMessage() + " " + x, e);
+                        // Possibly a recoverable Error
+                        pw.println ("Error saving to DB: " + e.getMessage() + x);
+                        return Mono.empty();
+                });
+
     }
 
 
@@ -124,8 +156,10 @@ public class XsbDataService {
     public Mono<Void> moveXsbData(Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
-                    statusNotifier.tryEmitNext("Moving data in bulk from enrichment table to the xsb_data table using transaction ID\n");
-                    statusNotifier.tryEmitNext("------------------------------------------------------------------------------------\n");
+                    if (statusNotifier != null) {
+                        statusNotifier.tryEmitNext("Moving data in bulk from enrichment table to the xsb_data table using transaction ID\n");
+                        statusNotifier.tryEmitNext("------------------------------------------------------------------------------------\n");
+                    }
                     log.info("Moving data in bulk from enrichment table to the xsb_data table using transaction ID ");
                     log.info("----------------------------------------------");
                 })
@@ -134,10 +168,78 @@ public class XsbDataService {
 
     public Mono<Void> cleanXsbDataTemp(Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAllXsbDataTemp().doFirst(() -> {
-            statusNotifier.tryEmitNext("Cleaning up temporary data from xsb_data_temp\n");
-            statusNotifier.tryEmitNext("---------------------------------------------\n");
+            if (statusNotifier != null) {
+                statusNotifier.tryEmitNext("Cleaning up temporary data from xsb_data_temp\n");
+                statusNotifier.tryEmitNext("---------------------------------------------\n");
+            }
             log.info("Cleaning up temporary data from xsb_data_temp");
             log.info("----------------------------------------------");
         });
+    }
+
+    private static void close(Closeable closeable){
+        try {
+            closeable.close();
+            log.info("Closed the resource");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+
+    public static Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
+        return Flux.using(
+                () ->  Files.walk(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
+                Flux::fromStream,
+                Stream::close
+        );
+    }
+
+    public static Flux<Path> xsbResponseFiles(List<String> fileNames){
+        return Flux.fromIterable(fileNames).map(f -> Paths.get(f));
+    }
+
+    public static Flux<String> xsbResponseData(Path anXsbResponseFile) {
+        final String MN = "xsbResponseData: ";
+
+        try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
+            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
+            String header = mayBeHeader.get();
+            rawProductsFromXSB.close();
+            XsbReportHandler.setHeader(header);
+        } catch (Exception e) {
+            log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
+            return Flux.empty();
+        }
+
+        return Flux.using(
+                () -> Files.lines(anXsbResponseFile).skip(1),
+                Flux::fromStream,
+                Stream::close
+        ).onErrorResume(e -> {
+            log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
+            return Flux.empty();
+        });
+    }
+
+    public static Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, PrintWriter pw){
+        final String MN = "processXSBFiles: ";
+        return xsbResponseFiles
+                .doOnNext(p -> log.info("Processing file: " + String.valueOf(p)))
+                .doOnError(e -> {log.error("error: " + e.getMessage(), e);})
+                .doOnComplete(() -> {log.info("Got all files");})
+                .flatMap(XsbDataService::xsbResponseData)
+                .flatMap(x -> jsonProductFromXSBEnrichedData(x, pw));
+    }
+
+    public static Mono<XsbData> jsonProductFromXSBEnrichedData(String xsbEnrichedRecord, PrintWriter printWriter) {
+        try {
+             return Mono.just(XsbReportHandler.mapRawXsbResponseToXsbDataPojo(xsbEnrichedRecord));
+        }
+        catch (Exception e){
+            // Case of error, move to error file
+            printWriter.println (e.getMessage() + " " + xsbEnrichedRecord);
+            return Mono.empty();
+        }
     }
 }
