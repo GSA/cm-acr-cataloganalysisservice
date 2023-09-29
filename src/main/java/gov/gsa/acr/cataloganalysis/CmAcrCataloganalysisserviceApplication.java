@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -108,16 +110,45 @@ public class CmAcrCataloganalysisserviceApplication {
                 log.error("Map to JSON Error",  e);
             }
 
+            Flux.just(1,2,3,4,5,6,7,8)
+                    //.publishOn(Schedulers.parallel()) // <- Each flux can be published in a different thread
+                    .flatMap(integer -> {
+                        return Mono.fromCallable(() -> {
+                            log.info("val:" + integer + ", thread:" + Thread.currentThread().getId() + ", name:" +Thread.currentThread().getName());
+                            return integer;
+                        })
+                        .publishOn(Schedulers.parallel()); // <- Each Mono processing every integer can be processed in a different thread
+                    })
+                    //.repeat()
+                    .subscribe();
 
-            String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa", "orange"};
 
-            Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Arrays.asList(fileNames));
+
+
+//            String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
+//                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
+//                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
+
+            String[] fileNames = { "banana", "testData/z1.gsa", "testData/z2.gsa"};
+
+
+            AtomicInteger dbCounter = new AtomicInteger(0);
+
+            //Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Arrays.asList(fileNames));
+            Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Paths.get("testData"), "gsa");
 
             xsbDataService.cleanXsbDataTemp(null)
                     .then(
                             xsbDataService.processXSBFiles(filesFromList, pw)
                                     .onBackpressureBuffer()
                                     .flatMap( x -> xsbDataService.saveXsbDataRecord(x, pw))
+                                    .doFirst(() -> dbCounter.set(0))
+                                    .doOnNext(e -> {
+                                        if (dbCounter.incrementAndGet() % 1000 == 0) {
+                                            log.info("Saved {} records", dbCounter.get());
+                                        }
+                                    })
+                                    .doOnComplete(() -> log.info("Finished. Saved a total of {} records", dbCounter.get()))
                                     .then(xsbDataService.moveXsbData(null))
                                     .doFinally(s -> close(pw))
                     )
@@ -125,6 +156,30 @@ public class CmAcrCataloganalysisserviceApplication {
                             s -> log.info("subscribe: " + s.toString()),
                             e -> log.error("Umexpected Error", e)
                     );
+
+
+//            xsbDataService.cleanXsbDataTemp(null)
+//                    .thenMany(
+//                            xsbDataService.xsbResponseFiles(Arrays.asList(fileNames))
+//                                    /*.flatMap(path -> {
+//                                        return Mono.fromCallable(() -> {
+//                                                    log.info("val:" + path.toString() + ", thread:" + Thread.currentThread().getId() + ", name:" +Thread.currentThread().getName());
+//                                                    return xsbDataService.processXSBFile(path, pw);
+//                                                })
+//                                                .publishOn(Schedulers.parallel());// <- Each Mono processing every integer can be processed in a different thread
+//                                    })*/
+//                                    .flatMap(path -> xsbDataService.processXSBFile(path, pw).publishOn(Schedulers.parallel()))
+//                                    .doOnNext(n ->  {dbCounter.addAndGet(n); log.info("n = {}, dbcount = {}", n, dbCounter.get());})
+//                    )
+//                    .then(xsbDataService.moveXsbData(null))
+//                    .doFinally(n -> {
+//                        close(pw);
+//                        log.info("Completed moving {} records to the DB", dbCounter.get());
+//                    })
+//                    .subscribe(
+//                            s -> log.info("subscribe: " + s.toString()),
+//                            e -> log.error("Umexpected Error", e)
+//                    );
 
             //close(pw);
             /*xsbDataRepository.findAllByContractNumber("GS-35F-0119Y", null, 0)

@@ -211,9 +211,9 @@ public class XsbDataJsonRecord {
     private Double transactionMaxPrice;
 
     public XsbDataJsonRecord(Map<String, String> xsbDataAsAMap) {
-        String ls = System.getProperty("line.separator");
         // Refer: See https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbDataAsAMap == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
+        String ls = System.getProperty("line.separator");
         StringBuffer sb = new StringBuffer();
 
         this.setModificationNumber(xsbDataAsAMap.get("modificationNumber")); //modificationNumber

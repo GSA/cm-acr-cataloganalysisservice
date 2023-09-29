@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -142,9 +143,11 @@ public class XsbDataService {
 
     public Mono<Integer> saveXsbDataRecord(XsbData x, PrintWriter pw) {
         return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
+                // TBD: Retry logic here
+                //.retry(5)
                 .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + e.getMessage() + " " + x, e);
-                        // Possibly a recoverable Error
+                        // TBD Error Handler: Possibly a recoverable Error
                         pw.println ("Error saving to DB: " + e.getMessage() + x);
                         return Mono.empty();
                 });
@@ -189,7 +192,7 @@ public class XsbDataService {
 
     public static Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
         return Flux.using(
-                () ->  Files.walk(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
+                () ->  Files.list(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
                 Flux::fromStream,
                 Stream::close
         );
@@ -201,45 +204,77 @@ public class XsbDataService {
 
     public static Flux<String> xsbResponseData(Path anXsbResponseFile) {
         final String MN = "xsbResponseData: ";
+        AtomicInteger counter = new AtomicInteger(0);
 
+        // First read the header row (First row of the File)
         try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
             Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
             String header = mayBeHeader.get();
             rawProductsFromXSB.close();
-            XsbReportHandler.setHeader(header);
+            XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
         } catch (Exception e) {
             log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
             return Flux.empty();
         }
 
+        // Now create a Flux of all the lines from the file.
         return Flux.using(
                 () -> Files.lines(anXsbResponseFile).skip(1),
                 Flux::fromStream,
                 Stream::close
-        ).onErrorResume(e -> {
+                )
+                .publishOn(Schedulers.parallel())
+                .onErrorResume(e -> {
+                    log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
+                    return Flux.empty();
+                });
+    }
+
+    public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, PrintWriter pw) {
+        final String MN = "parseXsbResponseFile: ";
+        AtomicInteger counter = new AtomicInteger(0);
+
+        // First read the header row (First row of the File)
+        try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
+            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
+            String header = mayBeHeader.get();
+            XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
+        } catch (Exception e) {
             log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
             return Flux.empty();
-        });
+        }
+
+        // Now create a Flux of all the lines from the file.
+        return Flux.using(
+                        () -> Files.lines(anXsbResponseFile).skip(1),
+                        Flux::fromStream,
+                        Stream::close
+                )
+                .map(s -> XsbReportHandler.mapRawXsbResponseToXsbDataPojo(String.valueOf(anXsbResponseFile), s))
+                .publishOn(Schedulers.parallel())
+                .onErrorContinue((e, s) -> {
+                    pw.println (s + " has following errors: ");
+                    pw.println(e.getMessage());
+                    pw.println("---------------------------");
+                });
     }
+
 
     public static Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, PrintWriter pw){
         final String MN = "processXSBFiles: ";
+        AtomicInteger counter = new AtomicInteger(0);
         return xsbResponseFiles
-                .doOnNext(p -> log.info("Processing file: " + String.valueOf(p)))
-                .doOnError(e -> {log.error("error: " + e.getMessage(), e);})
-                .doOnComplete(() -> {log.info("Got all files");})
-                .flatMap(XsbDataService::xsbResponseData)
-                .flatMap(x -> jsonProductFromXSBEnrichedData(x, pw));
+                .doOnNext(p -> log.info(MN + "Processing file: " + String.valueOf(p)))
+                .doOnError(e -> {log.error(MN + "error: " + e.getMessage(), e);})
+                .doOnComplete(() -> {log.info(MN + "Got all files");})
+                .flatMap(p -> parseXsbResponseFile(p, pw))
+                .doFirst(() -> counter.set(0))
+                .doOnNext(xsbData -> {
+                    if (counter.incrementAndGet() % 1000 == 0) {
+                        log.info(MN + "Processing file {} ... Processed {} records", xsbData.getSourceXsbDataFileName(), counter.get());
+                    }
+                })
+                .doOnComplete(() -> log.info(MN + "Finished. Processed a total of {} records", counter.get()));
     }
 
-    public static Mono<XsbData> jsonProductFromXSBEnrichedData(String xsbEnrichedRecord, PrintWriter printWriter) {
-        try {
-             return Mono.just(XsbReportHandler.mapRawXsbResponseToXsbDataPojo(xsbEnrichedRecord));
-        }
-        catch (Exception e){
-            // Case of error, move to error file
-            printWriter.println (e.getMessage() + " " + xsbEnrichedRecord);
-            return Mono.empty();
-        }
-    }
 }
