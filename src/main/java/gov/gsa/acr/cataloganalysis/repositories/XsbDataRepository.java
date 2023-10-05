@@ -56,4 +56,7 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     Mono<Void> deleteAllXsbDataTemp();
 
     Mono<Integer> deleteAllByContractNumber(String contractNumber);
+
+    @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'T'")
+    Flux<String> findTaaCompliantCountries();
 }

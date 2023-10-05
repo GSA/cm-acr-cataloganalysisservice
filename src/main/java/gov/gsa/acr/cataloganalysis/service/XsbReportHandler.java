@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -46,7 +46,7 @@ public class XsbReportHandler {
         }
     }
 
-    public static XsbData mapRawXsbResponseToXsbDataPojo(String sourceFileName, String rawXsbResponseString){
+    public static XsbData mapRawXsbResponseToXsbDataPojo(String sourceFileName, String rawXsbResponseString, List<String> taaCountryCodes){
         if (sourceFileName == null) throw new IllegalArgumentException("A Null source file name.");
         if (rawXsbResponseString == null || rawXsbResponseString.isBlank()) throw new IllegalArgumentException("A Blank XSB data row.");
         if (!rawXsbResponseString.contains(DELIM))
@@ -60,7 +60,7 @@ public class XsbReportHandler {
                 .boxed()
                 .collect(Collectors.toMap(k -> header[k], v -> xsbResponseAsArray[v]));
 
-        XsbData xsbData = new XsbData(xsbResponseAsAMap);
+        XsbData xsbData = new XsbData(xsbResponseAsAMap, taaCountryCodes);
         xsbData.setSourceXsbDataString(rawXsbResponseString);
         xsbData.setSourceXsbDataFileName(sourceFileName);
         return xsbData;

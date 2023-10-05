@@ -11,6 +11,7 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -42,12 +43,13 @@ public class XsbData {
     private String sourceXsbDataFileName;
 
 
-    public XsbData(Map<String, String> xsbDataAsAMap) {
+    public XsbData(Map<String, String> xsbDataAsAMap, List<String> taaCountryCodes) {
         // Refer: See https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbDataAsAMap == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
         String ls = System.getProperty("line.separator");
         StringBuffer sb = new StringBuffer();
 
+        // contractNumber
         String contractNumber = xsbDataAsAMap.get("contractNumber");
         if (contractNumber == null || contractNumber.isBlank() ) {
             sb.append("Invalid data, contract number cannot be NULL or Blank.");
@@ -55,6 +57,7 @@ public class XsbData {
         }
         else this.setContractNumber(contractNumber);
 
+        // manufacturerName
         String manufacturerName = xsbDataAsAMap.get("manufacturerName");
         if ( manufacturerName == null || manufacturerName.isBlank()) {
             sb.append("Invalid data, Manufacturer Name cannot be NULL or Blank.");
@@ -62,6 +65,7 @@ public class XsbData {
         }
         else this.setManufacturer(manufacturerName);
 
+        // manufacturerPartNumber
         String manufacturerPartNumber = xsbDataAsAMap.get("manufacturerPartNumber");
         if (manufacturerPartNumber == null || manufacturerPartNumber.isBlank()) {
             sb.append("Invalid data, manufacturer Part Number cannot be NULL or Blank.");
@@ -69,8 +73,9 @@ public class XsbData {
         }
         else this.setPartNumber(manufacturerPartNumber);
 
+        // JSON record
         try {
-            XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap);
+            XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap, taaCountryCodes);
             ObjectMapper objectMapper = new ObjectMapper();
             this.setXsbData(Json.of(objectMapper.writeValueAsString(xsbDataJsonRecord)));
         } catch (JsonProcessingException e) {
