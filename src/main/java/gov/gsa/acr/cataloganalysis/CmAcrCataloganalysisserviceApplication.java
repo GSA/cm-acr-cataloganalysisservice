@@ -4,8 +4,10 @@ import gov.gsa.acr.cataloganalysis.model.Enrichment;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.EnrichmentRepository;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,11 +33,15 @@ public class CmAcrCataloganalysisserviceApplication {
 
     final XsbDataService xsbDataService;
 
+    final
+    ErrorHandler errorHandler;
+
     public CmAcrCataloganalysisserviceApplication(EnrichmentRepository enrichmentRepository,
-                                                  XsbDataRepository xsbDataRepository, XsbDataService xsbDataService) {
+                                                  XsbDataRepository xsbDataRepository, XsbDataService xsbDataService, ErrorHandler errorHandler) {
         this.enrichmentRepository = enrichmentRepository;
         this.xsbDataRepository = xsbDataRepository;
         this.xsbDataService = xsbDataService;
+        this.errorHandler = errorHandler;
     }
 
     public static void main(String[] args) {
@@ -58,6 +64,7 @@ public class CmAcrCataloganalysisserviceApplication {
             Path opPath = Paths.get("testData/errorFile.txt");
             BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             PrintWriter pw = new PrintWriter(bw);
+            errorHandler.init();
 
 
 //            String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
@@ -77,8 +84,10 @@ public class CmAcrCataloganalysisserviceApplication {
                             xsbDataRepository
                                     .findTaaCompliantCountries()
                                     .collectList()
+                                    .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
+                                    .onErrorStop()
                                     .flatMapMany(taaCountryCodes ->
-                                                    xsbDataService.processXSBFiles(filesFromList, pw, taaCountryCodes)
+                                                    xsbDataService.processXSBFiles(filesFromList, errorHandler, taaCountryCodes)
                                     )
                                     .onBackpressureBuffer()
                                     .flatMap( x -> xsbDataService.saveXsbDataRecord(x, pw))

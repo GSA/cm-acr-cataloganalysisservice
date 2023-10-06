@@ -230,7 +230,7 @@ public class XsbDataService {
                 });
     }
 
-    public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, PrintWriter pw, List<String> taaCountryCodes) {
+    public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
         final String MN = "parseXsbResponseFile: ";
         AtomicInteger counter = new AtomicInteger(0);
 
@@ -252,22 +252,19 @@ public class XsbDataService {
                 )
                 .map(s -> XsbReportHandler.mapRawXsbResponseToXsbDataPojo(String.valueOf(anXsbResponseFile), s, taaCountryCodes))
                 .publishOn(Schedulers.parallel())
-                .onErrorContinue((e, s) -> {
-                    pw.println (s + " has following errors: ");
-                    pw.println(e.getMessage());
-                    pw.println("---------------------------");
-                });
+                .onErrorContinue((e, s) -> eh.handleParsingError(String.valueOf(s), String.valueOf(anXsbResponseFile), e.getMessage())
+                );
     }
 
 
-    public static Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, PrintWriter pw, List<String> taaCountryCodes){
+    public static Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes){
         final String MN = "processXSBFiles: ";
         AtomicInteger counter = new AtomicInteger(0);
         return xsbResponseFiles
                 .doOnNext(p -> log.info(MN + "Processing file: " + String.valueOf(p)))
                 .doOnError(e -> {log.error(MN + "error: " + e.getMessage(), e);})
                 .doOnComplete(() -> {log.info(MN + "Got all files");})
-                .flatMap(p -> parseXsbResponseFile(p, pw, taaCountryCodes))
+                .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     if (counter.incrementAndGet() % 1000 == 0) {
