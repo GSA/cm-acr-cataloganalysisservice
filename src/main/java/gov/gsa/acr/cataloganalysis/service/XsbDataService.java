@@ -15,7 +15,6 @@ import reactor.core.scheduler.Schedulers;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -141,14 +140,14 @@ public class XsbDataService {
     }
 
 
-    public Mono<Integer> saveXsbDataRecord(XsbData x, PrintWriter pw) {
+    public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
         return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
                 // TBD: Retry logic here
                 //.retry(5)
                 .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + e.getMessage() + " " + x, e);
                         // TBD Error Handler: Possibly a recoverable Error
-                        pw.println ("Error saving to DB: " + e.getMessage() + x);
+                        errorHandler.handleDBError (x, e.getMessage());
                         return Mono.empty();
                 });
 
@@ -240,6 +239,7 @@ public class XsbDataService {
             String header = mayBeHeader.get();
             XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
         } catch (Exception e) {
+            eh.handleFileError(String.valueOf(anXsbResponseFile), "Ignoring File. " + e.getMessage(), e);
             log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
             return Flux.empty();
         }
@@ -262,13 +262,16 @@ public class XsbDataService {
         AtomicInteger counter = new AtomicInteger(0);
         return xsbResponseFiles
                 .doOnNext(p -> log.info(MN + "Processing file: " + String.valueOf(p)))
-                .doOnError(e -> {log.error(MN + "error: " + e.getMessage(), e);})
+                .doOnError(e -> {
+                    errorHandler.handleFileError("", e.getMessage(), e);
+                    log.error(MN + "error: " + e.getMessage(), e);
+                })
                 .doOnComplete(() -> {log.info(MN + "Got all files");})
                 .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     if (counter.incrementAndGet() % 1000 == 0) {
-                        log.info(MN + "Processing file {} ... Processed {} records", xsbData.getSourceXsbDataFileName(), counter.get());
+                        log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
                     }
                 })
                 .doOnComplete(() -> log.info(MN + "Finished. Processed a total of {} records", counter.get()));

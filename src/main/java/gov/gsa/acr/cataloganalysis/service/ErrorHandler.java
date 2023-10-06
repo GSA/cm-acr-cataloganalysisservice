@@ -1,11 +1,11 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.model.XsbData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -69,33 +69,73 @@ public class ErrorHandler {
 
     private BoundedPrintWriter errorMsgWriter;
     private BoundedPrintWriter parseErrorWriter;
+    private BoundedPrintWriter dbErrorWriter;
     private int errorMsgChunk;
     private int parseErrorChunk;
+    private int dbErrorChunk;
     private String errorMsgSuffix = ".txt";
     private String parseErrorSuffix = ".gsa";
+    private String dbErrorSuffix = ".gsa";
     private String timeStamp;
     private String ls = System.getProperty("line.separator");
     private AtomicInteger numParsingErrors;
+    private AtomicInteger numDbErrors;
+    private AtomicInteger numFileErrors;
 
     public void init(){
         numParsingErrors = new AtomicInteger(0);
+        numDbErrors = new AtomicInteger(0);
+        numFileErrors = new AtomicInteger(0);
         errorMsgChunk = 0;
         parseErrorChunk = 0;
         errorMsgWriter = null;
         parseErrorWriter = null;
-        timeStamp = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+        dbErrorWriter = null;
+        timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+    }
+
+    public void close(){
+        if (errorMsgWriter != null) {
+            errorMsgWriter.close();
+            errorMsgWriter = null;
+        }
+        if (parseErrorWriter != null) {
+            parseErrorWriter.close();
+            parseErrorWriter = null;
+        }
+        if(dbErrorWriter != null){
+            dbErrorWriter.close();
+            dbErrorWriter = null;
+        }
     }
 
     public void handleParsingError(String xsbRecord, String srcFileName, String error){
+        handleError(xsbRecord, srcFileName, error, "PARSE");
+    }
+
+    public void handleDBError(XsbData xsbRecord, String error){
+        handleError(xsbRecord.getSourceXsbDataString(), xsbRecord.getSourceXsbDataFileName(), error, "DB");
+    }
+
+    public void handleFileError(String srcFileName, String error, Throwable t){
+        handleError(error, srcFileName, t.getClass().getSimpleName(), "FILE");
+    }
+
+    public void handleError(String xsbRecord, String srcFileName, String error, String errorType){
         boolean tryAgain = false;
         try {
             if (errorMsgWriter == null) {
-                Path opPath = Paths.get(getFullErrorMessageFileName());
+                Path opPath = Paths.get(getErrorMessageFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 errorMsgWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
             }
-            if (parseErrorWriter == null) {
-                Path opPath = Paths.get(getFullParseErrorRecordsFileName());
+            if (errorType.equals("DB") && dbErrorWriter == null) {
+                Path opPath = Paths.get(getDBErrorFileName());
+                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                dbErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
+            }
+            else if (errorType.equals("PARSE") && parseErrorWriter == null) {
+                Path opPath = Paths.get(getParseErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
             }
@@ -109,6 +149,7 @@ public class ErrorHandler {
                     .append("Error (s):")
                     .append(ls)
                     .append(error)
+                    .append(ls)
                     .append("------------------------------");
 
             // Check if this file has reached its max limit, if so then the number of allowed bytes will be zero.
@@ -120,33 +161,73 @@ public class ErrorHandler {
                 tryAgain = true;
             }
 
-            long numAllowedParseErrorBytes = parseErrorWriter.numBytesAllowed(xsbRecord);
-            if (numAllowedParseErrorBytes == 0) {
-                parseErrorWriter.close();
-                parseErrorWriter = null;
-                tryAgain = true;
+            long numAllowedDbErrorBytes = 0;
+            long numAllowedParseErrorBytes = 0;
+            if (errorType.equals("DB")) {
+                numAllowedDbErrorBytes = dbErrorWriter.numBytesAllowed(xsbRecord);
+                if (numAllowedDbErrorBytes == 0) {
+                    dbErrorWriter.close();
+                    dbErrorWriter = null;
+                    tryAgain = true;
+                }
+            }
+            else if (errorType.equals("PARSE")){
+                numAllowedParseErrorBytes = parseErrorWriter.numBytesAllowed(xsbRecord);
+                if (numAllowedParseErrorBytes == 0) {
+                    parseErrorWriter.close();
+                    parseErrorWriter = null;
+                    tryAgain = true;
+                }
             }
 
             if (tryAgain) {
-                handleParsingError(xsbRecord, srcFileName, error);
+                handleError(xsbRecord, srcFileName, error, errorType);
             }
             else {
                 errorMsgWriter.println(sb.toString(), numAllowedErrorMessageBytes);
-                parseErrorWriter.println(xsbRecord, numAllowedParseErrorBytes);
-                numParsingErrors.incrementAndGet();
+                if (errorType.equals("DB") && numAllowedDbErrorBytes > 0) {
+                    dbErrorWriter.println(xsbRecord, numAllowedDbErrorBytes);
+                    numDbErrors.incrementAndGet();
+                }
+                else if (errorType.equals("PARSE") && numAllowedParseErrorBytes > 0) {
+                    parseErrorWriter.println(xsbRecord, numAllowedParseErrorBytes);
+                    numParsingErrors.incrementAndGet();
+                }
+                else if (errorType.equals("FILE") ) {
+                    numFileErrors.incrementAndGet();
+                }
             }
 
         } catch (Exception e) {
-            log.error("Error while handling parse error messages. " + xsbRecord + " " + error, e);
+            log.error("Error while handling "+ errorType +" error messages. " + xsbRecord + " " + error, e);
         }
 
     }
 
-    private String getFullErrorMessageFileName(){
+
+
+
+    private String getErrorMessageFileName(){
         return errorDirectory + "/xsb_error_msg_" + timeStamp + "_" + errorMsgChunk++ + errorMsgSuffix;
     }
 
-    private String getFullParseErrorRecordsFileName(){
+    private String getParseErrorFileName(){
         return errorDirectory + "/xsb_parse_error_" + timeStamp + "_" + parseErrorChunk++ + parseErrorSuffix;
+    }
+
+    private String getDBErrorFileName(){
+        return errorDirectory + "/xsb_db_error_" + timeStamp + "_" + dbErrorChunk++ + dbErrorSuffix;
+    }
+
+    public AtomicInteger getNumParsingErrors() {
+        return numParsingErrors;
+    }
+
+    public AtomicInteger getNumDbErrors() {
+        return numDbErrors;
+    }
+
+    public AtomicInteger getNumFileErrors() {
+        return numFileErrors;
     }
 }

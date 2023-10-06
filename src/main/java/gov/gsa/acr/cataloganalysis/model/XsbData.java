@@ -84,7 +84,6 @@ public class XsbData {
         }
         catch (Exception e){
             sb.append(e.getMessage());
-            sb.append(ls);
         }
 
         if (sb.length() > 0) throw new IllegalArgumentException(sb.toString());

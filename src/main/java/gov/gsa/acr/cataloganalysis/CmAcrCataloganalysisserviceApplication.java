@@ -7,7 +7,6 @@ import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SpringBootApplication
@@ -48,22 +48,10 @@ public class CmAcrCataloganalysisserviceApplication {
         SpringApplication.run(CmAcrCataloganalysisserviceApplication.class, args);
     }
 
-    private void close(Closeable closeable){
-        try {
-            closeable.close();
-            log.info("Closed the resource");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
 
     @Bean
     public CommandLineRunner demo() {
         return (args) -> {
-
-            Path opPath = Paths.get("testData/errorFile.txt");
-            BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            PrintWriter pw = new PrintWriter(bw);
             errorHandler.init();
 
 
@@ -71,13 +59,13 @@ public class CmAcrCataloganalysisserviceApplication {
 //                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
 //                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
 
-            String[] fileNames = { "banana", "testData/z1.gsa", "testData/z2.gsa"};
+            String[] fileNames = { "testData/testFileWithErrors.gsa", "banana", "testData/z1.gsa", "testData/z2.gsa"};
 
 
             AtomicInteger dbCounter = new AtomicInteger(0);
 
-            //Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Arrays.asList(fileNames));
-            Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Paths.get("testData"), "gsa");
+            Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Arrays.asList(fileNames));
+            //Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Paths.get("testData1"), "gsa");
 
             xsbDataService.cleanXsbDataTemp(null)
                     .then(
@@ -90,44 +78,28 @@ public class CmAcrCataloganalysisserviceApplication {
                                                     xsbDataService.processXSBFiles(filesFromList, errorHandler, taaCountryCodes)
                                     )
                                     .onBackpressureBuffer()
-                                    .flatMap( x -> xsbDataService.saveXsbDataRecord(x, pw))
+                                    .flatMap( x -> xsbDataService.saveXsbDataRecord(x, errorHandler))
                                     .doFirst(() -> dbCounter.set(0))
                                     .doOnNext(e -> {
                                         if (dbCounter.incrementAndGet() % 1000 == 0) {
                                             log.info("Saved {} records", dbCounter.get());
                                         }
                                     })
-                                    .doOnComplete(() -> log.info("Finished. Saved a total of {} records", dbCounter.get()))
+                                    .doOnComplete(() -> {
+                                        log.info("Finished. Saved a total of {} records", dbCounter.get());
+                                        log.info("Number of parsing errors: " +errorHandler.getNumParsingErrors().get());
+                                        log.info("Number of db errors: " +errorHandler.getNumDbErrors().get());
+                                        log.info("Number of file errors: " +errorHandler.getNumFileErrors().get());
+                                    })
                                     .then(xsbDataService.moveXsbData(null))
-                                    .doFinally(s -> close(pw))
+                                    .doFinally(s -> errorHandler.close())
                     )
                     .subscribe(
                             s -> log.info("subscribe: " + s.toString()),
-                            e -> log.error("Umexpected Error", e)
+                            e -> log.error("Unexpected Error", e)
                     );
 
         };
-    }
-
-
-    @Transactional
-    public Flux<XsbData> saveXSBData(Integer transaction_id, String contractNumber) {
-        AtomicInteger counter = new AtomicInteger(0);
-
-        xsbDataRepository.deleteAllByContractNumber(contractNumber).block();
-
-        log.info("Enrichment found with findAllByTransactionId: ");
-        log.info("----------------------------------------------");
-        return enrichmentRepository
-                .findAllByTransactionId(transaction_id, null, 0)
-                .doFirst(() -> counter.set(0))
-                .doOnNext(e -> {
-                    if(counter.incrementAndGet() % 1000 ==0) log.info("Processed {} records", counter.get());
-                })
-                .map(Enrichment::toXsbData)
-                .flatMap(xsbDataRepository::save)
-                .doOnError(e -> {throw new RuntimeException(e);}) //Rethrow as a RuntimeException to make the transaction fail
-                .doOnComplete(()->log.info("Saved {} records", counter.get()));
     }
 
 }
