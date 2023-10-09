@@ -54,7 +54,6 @@ public class CmAcrCataloganalysisserviceApplication {
         return (args) -> {
             errorHandler.init();
 
-
 //            String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
 //                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
 //                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
@@ -65,8 +64,9 @@ public class CmAcrCataloganalysisserviceApplication {
             AtomicInteger dbCounter = new AtomicInteger(0);
 
             Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Arrays.asList(fileNames));
-            //Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Paths.get("testData1"), "gsa");
+            //Flux<Path> filesFromList = xsbDataService.xsbResponseFiles(Paths.get("testData"), "gsa");
 
+            /*
             xsbDataService.cleanXsbDataTemp(null)
                     .then(
                             xsbDataRepository
@@ -92,12 +92,15 @@ public class CmAcrCataloganalysisserviceApplication {
                                         log.info("Number of file errors: " +errorHandler.getNumFileErrors().get());
                                     })
                                     .then(xsbDataService.moveXsbData(null))
+                                    .doOnSuccess(s -> log.info("All Done!!"))
                                     .doFinally(s -> errorHandler.close())
                     )
                     .subscribe(
                             s -> log.info("subscribe: " + s.toString()),
                             e -> log.error("Unexpected Error", e)
                     );
+
+             */
 
         };
     }

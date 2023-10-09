@@ -1,6 +1,7 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
 import gov.gsa.acr.cataloganalysis.model.Enrichment;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,11 +9,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+
+import java.util.ConcurrentModificationException;
 
 @Slf4j
 @RestController
@@ -67,5 +69,19 @@ public class XsbDataController extends BaseController{
         return xsbDataService.getEnrichment(txnId)
                 .doOnNext(e->log.info("here"))
                 .doOnComplete(() -> log.info("yay"));
+    }
+
+
+    @PostMapping(value="/trigger", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<String> trigger(@RequestBody Trigger trigger){
+        log.info("Triggered " + trigger);
+        try {
+            xsbDataService.trigger(trigger);
+            return Mono.just("Triggered");
+        }
+        catch (ConcurrentModificationException e){
+            return Mono.just(e.getMessage());
+        }
+
     }
 }

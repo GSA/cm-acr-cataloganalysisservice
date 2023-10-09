@@ -1,11 +1,13 @@
 package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.model.Enrichment;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.EnrichmentRepository;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -13,14 +15,14 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -28,10 +30,10 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class XsbDataService {
+    private AtomicBoolean executing = new AtomicBoolean();
     private final EnrichmentRepository enrichmentRepository;
     private final XsbDataRepository xsbDataRepository;
-    private final XsbReportHandler xsbReportHandler;
-
+    private final ErrorHandler errorHandler;
 
     @Transactional
     public Mono<Integer> deleteContract(String contractNumber){
@@ -179,15 +181,6 @@ public class XsbDataService {
         });
     }
 
-    private static void close(Closeable closeable){
-        try {
-            closeable.close();
-            log.info("Closed the resource");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
 
     public static Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
         return Flux.using(
@@ -201,33 +194,6 @@ public class XsbDataService {
         return Flux.fromIterable(fileNames).map(f -> Paths.get(f));
     }
 
-    public static Flux<String> xsbResponseData(Path anXsbResponseFile) {
-        final String MN = "xsbResponseData: ";
-        AtomicInteger counter = new AtomicInteger(0);
-
-        // First read the header row (First row of the File)
-        try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
-            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
-            String header = mayBeHeader.get();
-            rawProductsFromXSB.close();
-            XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
-        } catch (Exception e) {
-            log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
-            return Flux.empty();
-        }
-
-        // Now create a Flux of all the lines from the file.
-        return Flux.using(
-                () -> Files.lines(anXsbResponseFile).skip(1),
-                Flux::fromStream,
-                Stream::close
-                )
-                .publishOn(Schedulers.parallel())
-                .onErrorResume(e -> {
-                    log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
-                    return Flux.empty();
-                });
-    }
 
     public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
         final String MN = "parseXsbResponseFile: ";
@@ -275,6 +241,61 @@ public class XsbDataService {
                     }
                 })
                 .doOnComplete(() -> log.info(MN + "Finished. Processed a total of {} records", counter.get()));
+    }
+
+
+    public void trigger(Trigger trigger) {
+        if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
+        errorHandler.init();
+        AtomicInteger dbCounter = new AtomicInteger(0);
+
+//        String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
+//                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
+//                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
+
+        String[] fileNames = {"testData/testFileWithErrors.gsa", "banana", "testData/z1.gsa", "testData/z2.gsa"};
+
+
+        //Flux<Path> filesFromList = xsbResponseFiles(Arrays.asList(fileNames));
+        Flux<Path> filesFromList = xsbResponseFiles(Paths.get("testData"), "gsa");
+
+
+        executing.compareAndSet(false, true);
+
+        cleanXsbDataTemp(null)
+                .then(
+                        xsbDataRepository
+                                .findTaaCompliantCountries()
+                                .collectList()
+                                .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
+                                .onErrorStop()
+                                .flatMapMany(taaCountryCodes ->
+                                        processXSBFiles(filesFromList, errorHandler, taaCountryCodes)
+                                )
+                                .onBackpressureBuffer()
+                                .flatMap(x -> saveXsbDataRecord(x, errorHandler))
+                                .doFirst(() -> dbCounter.set(0))
+                                .doOnNext(e -> {
+                                    if (dbCounter.incrementAndGet() % 1000 == 0) {
+                                        log.info("Saved {} records", dbCounter.get());
+                                    }
+                                })
+                                .doOnComplete(() -> {
+                                    log.info("Finished. Saved a total of {} records", dbCounter.get());
+                                    log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
+                                    log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
+                                    log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
+                                })
+                                .then(moveXsbData(null))
+                                .doOnSuccess(s -> log.info("All Done!!"))
+                                .doFinally(s -> errorHandler.close())
+                )
+                .doFinally(s -> executing.compareAndSet(true, false))
+                .subscribe(
+                        s -> log.info("subscribe: " + s.toString()),
+                        e -> log.error("Unexpected Error", e)
+                );
+
     }
 
 }
