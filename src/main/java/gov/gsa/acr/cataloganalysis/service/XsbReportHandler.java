@@ -53,7 +53,10 @@ public class XsbReportHandler {
             throw new IllegalArgumentException("Input string is not formatted correctly. it is not delimited with expected delimiter, " + DELIM);
         String [] xsbResponseAsArray = rawXsbResponseString.split(DELIM_REGEX, -1);
 
-        if (header == null || xsbResponseAsArray.length != header.length)
+        if (header == null)
+            throw new IllegalArgumentException("Null Header");
+
+        if (xsbResponseAsArray.length != header.length)
             throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + header.length + ", found " + xsbResponseAsArray.length);
 
         Map<String, String> xsbResponseAsAMap = IntStream.range(0, header.length)

@@ -223,7 +223,7 @@ public class XsbDataJsonRecord {
         String v = null; // temporary value holder from the map passed in as the argument
         String v1 = null; // temporary value holder from the map passed in as the argument
         String ls = System.getProperty("line.separator");
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         this.setModificationNumber(x.get("modificationNumber"));
         this.setSolicitationNumber(x.get("solicitationNumber"));
@@ -233,8 +233,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setQuantityPerUnit(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Quantity Per Unit. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Quantity Per Unit. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setAbilityOneItem(x.get("abilityOneItem"));
         this.setGlobalPackagingIdentifier(x.get("globalPackagingIdentifier"));
@@ -250,8 +249,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setFinalPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Final Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Final Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setFsc(x.get("fsc"));
         try {
@@ -259,8 +257,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setCatalogPriceStandardDeviation(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setUniqueItemIdentifier(x.get("uniqueItemIdentifier"));
         this.setEts(Boolean.valueOf(x.get("ets")));
@@ -275,32 +272,28 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setCatalogMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setCatalogMedianPriceSupplier(x.get("catalogMedianPriceSupplier"));
         try {
             v = x.get("catalogMedianPrice");
             if (v != null && !v.isBlank()) this.setCatalogMinPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Min Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Min Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setCatalogMinPriceSupplier(x.get("catalogMinPriceSupplier"));
         try {
             v = x.get("commercialCatalogMedianPrice");
             if (v != null && !v.isBlank()) this.setCommercialCatalogMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Commercial catalog median price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Commercial catalog median price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setCommercialCatalogMedianPriceSupplier(x.get("commercialCatalogMedianPriceSupplier"));
         try {
             v = x.get("commercialCatalogMinPrice");
             if (v != null && !v.isBlank()) this.setCommercialCatalogMinPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Commercial catalog min price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Commercial catalog min price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setCommercialCatalogMinPriceSupplier(x.get("commercialCatalogMinPriceSupplier"));
         this.setCountryOriginInference(x.get("countryOriginInference"));
@@ -308,25 +301,22 @@ public class XsbDataJsonRecord {
             v = x.get("catalogMedianPrice");
             if (v != null && !v.isBlank()) this.setHighPriceTarget(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setInvalidReason(x.get("invalidReason"));
         try {
             v = x.get("catalogMedianPrice");
             if (v != null && !v.isBlank())
-                this.setIsMarketResearchFound((Double.valueOf(v)) > 0.0);
+                this.setIsMarketResearchFound((Double.parseDouble(v)) > 0.0);
             else this.setIsMarketResearchFound(false);
         } catch (Exception e) {
-            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("lowPriceTarget");
             if (v != null && !v.isBlank()) this.setLowPriceTarget(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Low Price Target. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Low Price Target. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setNsn(x.get("nsn"));
         this.setStandardizedProductDescription(x.get("standardizedProductDescription"));
@@ -334,29 +324,25 @@ public class XsbDataJsonRecord {
             v = x.get("tdrMedianPrice");
             if (v != null && !v.isBlank()) this.setTdrMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Tdr Median Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Tdr Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("tdrMinPrice");
             if (v != null && !v.isBlank()) this.setTdrMinPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("tdrMaxPrice");
             if (v != null && !v.isBlank()) this.setTdrMaxPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("vppIndicator");
             if (v != null && !v.isBlank()) this.setVppIndicator(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, VPP Indicator. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, VPP Indicator. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setProhibitionComment(x.get("prohibitionComment"));
         // End ACREPO-2432
@@ -367,16 +353,14 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setAnnualDemandQuantity(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Annual Demand Quantity. Must be a valid integer. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Annual Demand Quantity. Must be a valid integer. Value encountered: ").append(v).append(ls);
         }
 
         try {
             v = x.get("catalogAvgPrice");
             if (v != null && !v.isBlank()) this.setCatalogAvgPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Average Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Average Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -384,16 +368,14 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setCatalogMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
             v = x.get("catalogMaxPrice");
             if (v != null && !v.isBlank()) this.setCatalogMaxPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Max Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Max Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -401,8 +383,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setCatalogPriceStandardDeviation(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -410,8 +391,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setTransactionMinPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Transaction Minimum Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Transaction Minimum Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -419,8 +399,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setTransactionAvgPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Transaction Average Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Transaction Average Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -428,8 +407,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setTransactionMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Transaction Median Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Transaction Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {
@@ -437,8 +415,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setTransactionMaxPrice(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Transaction Maximum Price. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Transaction Maximum Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         // End ACREPO-3215
 
@@ -447,22 +424,19 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setIsAuthorizedVendor(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Authorized vendor. Must be a valid integer. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Authorized vendor. Must be a valid integer. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("hits");
             if (v != null && !v.isBlank()) this.setHits(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, for hits. Must be a valid integer. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, for hits. Must be a valid integer. Value encountered: ").append(v).append(ls);
         }
         try {
             v = x.get("selfHits");
             if (v != null && !v.isBlank()) this.setSelfHits(Integer.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, for Self hits. Must be a valid integer. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, for Self hits. Must be a valid integer. Value encountered: ").append(v).append(ls);
         }
         this.setRankCategory(x.get("rankCategory"));
         this.setSalesLikelihood(x.get("salesLikelihood"));
@@ -471,8 +445,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank())
                 this.setDemandWeightedIndexScore(Double.valueOf(v));
         } catch (Exception e) {
-            sb.append("Invalid data, Demand Weighted Index Score. Must be a valid number. Value encountered: " + v);
-            sb.append(ls);
+            sb.append("Invalid data, Demand Weighted Index Score. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         //Calculated fields.
@@ -483,8 +456,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank() && v1 != null && !v1.isBlank())
                 this.setEnrichmentLowerBound(Double.parseDouble(v) - Double.parseDouble(v1));
         } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: " + v + ", " + v1);
-            sb.append(ls);
+            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(v).append(", ").append(v1).append(ls);
         }
         try {
             v1 = x.get("catalogPriceStandardDeviation");
@@ -492,8 +464,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank() && v1 != null && !v1.isBlank())
                 this.setEnrichmentUpperBound(Double.parseDouble(v) + Double.parseDouble(v1));
         } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: " + v + ", " + v1);
-            sb.append(ls);
+            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(v).append(", ").append(v1).append(ls);
         }
         try {
             v1 = x.get("highPriceTarget");
@@ -501,9 +472,7 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank() && v1 != null && !v1.isBlank())
                 this.setExceedsMarketThreshold(Double.parseDouble(v) > Double.parseDouble(v1));
         } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: "
-                    + v + ", " + v1);
-            sb.append(ls);
+            sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: ").append(v).append(", ").append(v1).append(ls);
         }
         this.setIsTaaRisk(isTradeAgreementViolated(x.get("countryOriginInference"), taaCountryCodes)); //ACREPO-2143
         this.setIsMiaRisk(isMiaMisrepresented(x.get("countryOriginInference"), x.get("countryOfOrigin")));
@@ -519,12 +488,10 @@ public class XsbDataJsonRecord {
             }
             this.setIsLowOutlier(isLowOutlier);
         } catch (Exception e) {
-            sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: "
-                    + v1 + ", " + v);
-            sb.append(ls);
+            sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(v1).append(", ").append(v).append(ls);
         }
 
-        if (sb.length() > 0) throw new IllegalArgumentException(sb.toString());
+        if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
 
     private Boolean isTradeAgreementViolated(String countryOriginInference, List<String> taaCompliantCountryCodes){

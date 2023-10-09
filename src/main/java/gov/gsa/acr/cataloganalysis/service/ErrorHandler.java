@@ -1,6 +1,7 @@
 package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -22,9 +23,9 @@ public class ErrorHandler {
     /**
      * A BoundedPrintWriter bounds the file it is writing in to a given size. This is needed since these error files
      * will have to be stored in S3 bucket and there is a 5GB transfer limit on the files. So each error file will be
-     * limited to a 5 GB size limit. A new chunk will be created if a file reaches it's size limit.
+     * limited to a 5 GB size limit. A new chunk will be created if a file reaches its size limit.
      */
-    private final class BoundedPrintWriter extends PrintWriter {
+    private static final class BoundedPrintWriter extends PrintWriter {
         private final long maxBytes;
         private long currentFileSizeInBytes;
         private final int lsBytes = System.getProperty("line.separator").getBytes().length;
@@ -73,13 +74,13 @@ public class ErrorHandler {
     private int errorMsgChunk;
     private int parseErrorChunk;
     private int dbErrorChunk;
-    private String errorMsgSuffix = ".txt";
-    private String parseErrorSuffix = ".gsa";
-    private String dbErrorSuffix = ".gsa";
     private String timeStamp;
-    private String ls = System.getProperty("line.separator");
+    private final String ls = System.getProperty("line.separator");
+    @Getter
     private AtomicInteger numParsingErrors;
+    @Getter
     private AtomicInteger numDbErrors;
+    @Getter
     private AtomicInteger numFileErrors;
 
     public void init(){
@@ -140,7 +141,7 @@ public class ErrorHandler {
                 parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
             }
 
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append(xsbRecord)
                     .append(ls)
                     .append("Source File: ")
@@ -208,26 +209,18 @@ public class ErrorHandler {
 
 
     private String getErrorMessageFileName(){
+        String errorMsgSuffix = ".txt";
         return errorDirectory + "/xsb_error_msg_" + timeStamp + "_" + errorMsgChunk++ + errorMsgSuffix;
     }
 
     private String getParseErrorFileName(){
+        String parseErrorSuffix = ".gsa";
         return errorDirectory + "/xsb_parse_error_" + timeStamp + "_" + parseErrorChunk++ + parseErrorSuffix;
     }
 
     private String getDBErrorFileName(){
+        String dbErrorSuffix = ".gsa";
         return errorDirectory + "/xsb_db_error_" + timeStamp + "_" + dbErrorChunk++ + dbErrorSuffix;
     }
 
-    public AtomicInteger getNumParsingErrors() {
-        return numParsingErrors;
-    }
-
-    public AtomicInteger getNumDbErrors() {
-        return numDbErrors;
-    }
-
-    public AtomicInteger getNumFileErrors() {
-        return numFileErrors;
-    }
 }

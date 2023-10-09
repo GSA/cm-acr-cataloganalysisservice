@@ -9,14 +9,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integer> {
-
-    String INSERT_INTO_XSB_DATA_QUERY = """
-            INSERT INTO xsb_data (contract_number, manufacturer, part_number, xsb_data) 
-            SELECT contract_number, manufacturer, part_number, enrichment_record as "xsb_data"
-            FROM enrichment 
-            WHERE transaction_id = :txnId
-            """;
-
     String MOVE_XSB_DATA_QUERY = """
             WITH moved_rows AS (
             	DELETE FROM xsb_data_temp
@@ -24,12 +16,12 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
             )
             INSERT INTO xsb_data (contract_number, manufacturer, part_number, xsb_data, created_date, modified_date)
             SELECT * FROM moved_rows
-            ON CONFLICT (contract_number, manufacturer, part_number) 
+            ON CONFLICT (contract_number, manufacturer, part_number)
             DO UPDATE SET xsb_data=EXCLUDED.xsb_data, modified_date=EXCLUDED.modified_date
             """;
 
     String INSERT_INTO_XSB_DATA_TEMP = """
-            INSERT INTO xsb_data_temp (contract_number, manufacturer, part_number, xsb_data) 
+            INSERT INTO xsb_data_temp (contract_number, manufacturer, part_number, xsb_data)
             VALUES (:contractNumber, :manufacturer, :partNumber, :xsbData)
             ON CONFLICT (contract_number, manufacturer, part_number) DO NOTHING
             RETURNING id
@@ -42,9 +34,6 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     Flux<XsbData> findAllByContractNumber(String contractNumber, Integer limit, Integer offset);
 
 
-    @Query(value = INSERT_INTO_XSB_DATA_QUERY)
-    Flux<XsbData> bulkSave(Integer txnId);
-
     @Query(value = MOVE_XSB_DATA_QUERY)
     Mono<Void> moveXsbData();
 
@@ -54,8 +43,6 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     @Modifying
     @Query(value = "DELETE FROM xsb_data_temp")
     Mono<Void> deleteAllXsbDataTemp();
-
-    Mono<Integer> deleteAllByContractNumber(String contractNumber);
 
     @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'T'")
     Flux<String> findTaaCompliantCountries();

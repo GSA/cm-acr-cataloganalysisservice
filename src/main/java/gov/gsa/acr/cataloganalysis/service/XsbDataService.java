@@ -1,13 +1,10 @@
 package gov.gsa.acr.cataloganalysis.service;
 
-import gov.gsa.acr.cataloganalysis.model.Enrichment;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.repositories.EnrichmentRepository;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -18,7 +15,6 @@ import reactor.core.scheduler.Schedulers;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
@@ -31,117 +27,10 @@ import java.util.stream.Stream;
 @Slf4j
 public class XsbDataService {
     private AtomicBoolean executing = new AtomicBoolean();
-    private final EnrichmentRepository enrichmentRepository;
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
 
-    @Transactional
-    public Mono<Integer> deleteContract(String contractNumber){
-        return xsbDataRepository.deleteAllByContractNumber(contractNumber);
-    }
-
-    public Flux<Enrichment> getEnrichment(Integer transaction_id) {
-        return enrichmentRepository
-                .findAllByTransactionId(transaction_id, null, 0)
-                .doOnNext(e -> {
-                    log.info("Found - {}", e.toString());
-                });
-    }
-
-
-    // TBD Mark for deletion
-    @Transactional
-    public Flux<XsbData> saveXSBData(Integer txnId, String contractNumber) {
-        AtomicInteger counter = new AtomicInteger(0);
-        AtomicInteger dbCounter = new AtomicInteger(0);
-        log.info("Enrichment found with findAllByTransactionId: ");
-        log.info("----------------------------------------------");
-        return xsbDataRepository
-                .deleteAllByContractNumber(contractNumber)
-                .flatMapMany(n -> enrichmentRepository
-                        .findAllByTransactionId(txnId, null, 0)
-                        .doFirst(() -> counter.set(0))
-                        .doOnNext(e -> {
-                            log.info("Processed {} records", counter.incrementAndGet());
-                            //if (counter.incrementAndGet() % 100 == 0) log.info("Processed {} records", counter.get());
-                        })
-                        .map(Enrichment::toXsbData)
-                        .onBackpressureBuffer()
-                        //.buffer(1000)
-                        .concatMap(xsbDataRepository::save, 100)
-                        .doFirst(() -> dbCounter.set(0))
-                        //.doOnNext(xsbDataRepository::save)
-                        .doOnNext(e -> {
-                            /*xsbDataRepository.save(e)
-                                    .retry(5)
-                                    .doOnSuccess(x -> log.info("Saved {} reeords", dbCounter.incrementAndGet()))
-                                    .subscribe();*/
-                            log.info("Saved {} reeords", dbCounter.incrementAndGet());
-                            //if (dbCounter.incrementAndGet() % 100 == 0) log.info("Saved {} records", dbCounter.get());
-                        })
-                        .doOnError(e -> {
-                            log.error("Error while saving to DB", e);
-                            throw new RuntimeException(e);
-                        }) //Rethrow as a RuntimeException to make the transaction fail
-                        .doOnComplete(() -> log.info("Completed saving {} records", dbCounter.get())));
-    }
-
-
-    public Flux<Integer> saveXSBDataTemp(Integer txnId, Sinks.Many<String> statusNotifier) {
-        AtomicInteger counter = new AtomicInteger(0);
-        AtomicInteger dbCounter = new AtomicInteger(0);
-        return cleanXsbDataTemp(statusNotifier)
-                .thenMany(enrichmentRepository
-                        .findAllByTransactionId(txnId, null, 0)
-                        .doFirst(() -> {
-                            counter.set(0);
-                            if (statusNotifier != null) {
-                                statusNotifier.tryEmitNext("Processing XSB Data\n");
-                                statusNotifier.tryEmitNext("-------------------\n");
-                            }
-                            log.info("Processing XSB Data");
-                            log.info("-------------------");
-                        })
-                        .doOnNext(e -> {
-                            if (counter.incrementAndGet() % 1000 == 0) {
-                                log.info("Processed {} records", counter.get());
-                                if (statusNotifier != null)
-                                    statusNotifier.tryEmitNext("Processed "+ counter.get() +" records\n");
-                            }
-                        })
-                        .map(Enrichment::toXsbData)
-                        .onBackpressureBuffer()
-                        //.buffer(1000)
-                        .flatMap( x -> xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData()))
-                        .doFirst(() -> {
-                            dbCounter.set(0);
-                            if (statusNotifier != null) {
-                                statusNotifier.tryEmitNext("Saving XSB Data to Temp\n");
-                                statusNotifier.tryEmitNext("-----------------------\n");
-                            }
-                            log.info("Saving XSB Data to Temp");
-                            log.info("-----------------------");
-                        })
-                        .doOnNext(e -> {
-                            if (dbCounter.incrementAndGet() % 1000 == 0) {
-                                log.info("Saved {} records", dbCounter.get());
-                                if (statusNotifier != null)
-                                    statusNotifier.tryEmitNext("Saved "+ dbCounter.get() +" records\n");
-                            }
-                        })
-                        .doOnError(e -> {
-                            log.error("Error while saving to DB", e);
-                            throw new RuntimeException(e);
-                        }) //Rethrow as a RuntimeException to make the transaction fail
-                        .doOnComplete(() -> {
-                            log.info("Completed saving {} records", dbCounter.get());
-                            if (statusNotifier != null)
-                                statusNotifier.tryEmitNext("Completed saving "+ dbCounter.get() +" records\n");
-                        })
-                );
-    }
-
-
+    private final String ls = System.getProperty("line.separator");
     public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
         return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
                 // TBD: Retry logic here
@@ -191,19 +80,21 @@ public class XsbDataService {
     }
 
     public static Flux<Path> xsbResponseFiles(List<String> fileNames){
-        return Flux.fromIterable(fileNames).map(f -> Paths.get(f));
+        return Flux.fromIterable(fileNames).map(Paths::get);
     }
 
 
     public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
         final String MN = "parseXsbResponseFile: ";
-        AtomicInteger counter = new AtomicInteger(0);
 
         // First read the header row (First row of the File)
         try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
             Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
-            String header = mayBeHeader.get();
-            XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
+            if (mayBeHeader.isPresent()) {
+                String header = mayBeHeader.get();
+                XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
+            }
+            else throw new Exception("Missing header row from file, " + anXsbResponseFile + ". Possibly an empty file.");
         } catch (Exception e) {
             eh.handleFileError(String.valueOf(anXsbResponseFile), "Ignoring File. " + e.getMessage(), e);
             log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
@@ -223,28 +114,44 @@ public class XsbDataService {
     }
 
 
-    public static Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes){
+    public Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes, Sinks.Many<String> statusNotifier){
         final String MN = "processXSBFiles: ";
         AtomicInteger counter = new AtomicInteger(0);
         return xsbResponseFiles
-                .doOnNext(p -> log.info(MN + "Processing file: " + String.valueOf(p)))
+                .doOnNext(p -> {
+                    log.info(MN + "Processing file: " + p);
+                    if (statusNotifier != null)
+                        statusNotifier.tryEmitNext("Processing file: " + p + ls);
+                })
                 .doOnError(e -> {
                     errorHandler.handleFileError("", e.getMessage(), e);
                     log.error(MN + "error: " + e.getMessage(), e);
+                    if (statusNotifier != null)
+                        statusNotifier.tryEmitNext("error: " + e.getMessage() + ls);
                 })
-                .doOnComplete(() -> {log.info(MN + "Got all files");})
+                .doOnComplete(() -> {
+                    log.info(MN + "Got all files");
+                    if (statusNotifier != null)
+                        statusNotifier.tryEmitNext("Got all files"+ls);
+                })
                 .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     if (counter.incrementAndGet() % 1000 == 0) {
                         log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
+                        if (statusNotifier != null)
+                            statusNotifier.tryEmitNext( xsbData.getSourceXsbDataFileName() + " ... "+ counter.get() +" records" + ls);
                     }
                 })
-                .doOnComplete(() -> log.info(MN + "Finished. Processed a total of {} records", counter.get()));
+                .doOnComplete(() -> {
+                    log.info(MN + "Finished. Processed a total of {} records", counter.get());
+                    if (statusNotifier != null)
+                        statusNotifier.tryEmitNext("Finished. Processed a total of " +  counter.get() +" records" + ls);
+                });
     }
 
 
-    public void trigger(Trigger trigger) {
+    public void trigger(Trigger trigger, Sinks.Many<String> statusNotifier) {
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
         errorHandler.init();
         AtomicInteger dbCounter = new AtomicInteger(0);
@@ -259,10 +166,7 @@ public class XsbDataService {
         //Flux<Path> filesFromList = xsbResponseFiles(Arrays.asList(fileNames));
         Flux<Path> filesFromList = xsbResponseFiles(Paths.get("testData"), "gsa");
 
-
-        executing.compareAndSet(false, true);
-
-        cleanXsbDataTemp(null)
+        cleanXsbDataTemp(statusNotifier)
                 .then(
                         xsbDataRepository
                                 .findTaaCompliantCountries()
@@ -270,7 +174,7 @@ public class XsbDataService {
                                 .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
                                 .onErrorStop()
                                 .flatMapMany(taaCountryCodes ->
-                                        processXSBFiles(filesFromList, errorHandler, taaCountryCodes)
+                                        processXSBFiles(filesFromList, errorHandler, taaCountryCodes, statusNotifier)
                                 )
                                 .onBackpressureBuffer()
                                 .flatMap(x -> saveXsbDataRecord(x, errorHandler))
@@ -278,6 +182,8 @@ public class XsbDataService {
                                 .doOnNext(e -> {
                                     if (dbCounter.incrementAndGet() % 1000 == 0) {
                                         log.info("Saved {} records", dbCounter.get());
+                                        if (statusNotifier != null)
+                                            statusNotifier.tryEmitNext("Saved "+ dbCounter.get() +" records" + ls);
                                     }
                                 })
                                 .doOnComplete(() -> {
@@ -285,14 +191,27 @@ public class XsbDataService {
                                     log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
                                     log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
                                     log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
+                                    if (statusNotifier != null){
+                                        statusNotifier.tryEmitNext("Finished. Saved a total of " + dbCounter.get() + " records." + ls);
+                                        statusNotifier.tryEmitNext("Number of parsing errors: " + errorHandler.getNumParsingErrors().get()+ls);
+                                        statusNotifier.tryEmitNext("Number of db errors: " + errorHandler.getNumDbErrors().get()+ls);
+                                        statusNotifier.tryEmitNext("Number of file errors: " + errorHandler.getNumFileErrors().get()+ls);
+                                    }
                                 })
                                 .then(moveXsbData(null))
-                                .doOnSuccess(s -> log.info("All Done!!"))
+                                .doOnSuccess(s -> {
+                                    log.info("All Done!!");
+                                    if (statusNotifier != null) {
+                                        statusNotifier.tryEmitNext("All Done!!");
+                                        statusNotifier.tryEmitComplete();
+                                    }
+                                })
                                 .doFinally(s -> errorHandler.close())
                 )
+                .doFirst(() -> executing.compareAndSet(false, true))
                 .doFinally(s -> executing.compareAndSet(true, false))
                 .subscribe(
-                        s -> log.info("subscribe: " + s.toString()),
+                        s -> log.info("subscribe: " + s),
                         e -> log.error("Unexpected Error", e)
                 );
 

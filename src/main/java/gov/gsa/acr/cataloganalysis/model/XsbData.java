@@ -47,7 +47,7 @@ public class XsbData {
         // Refer: See https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbDataAsAMap == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
         String ls = System.getProperty("line.separator");
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         // contractNumber
         String contractNumber = xsbDataAsAMap.get("contractNumber");
@@ -79,14 +79,14 @@ public class XsbData {
             ObjectMapper objectMapper = new ObjectMapper();
             this.setXsbData(Json.of(objectMapper.writeValueAsString(xsbDataJsonRecord)));
         } catch (JsonProcessingException e) {
-            sb.append("Could not convert XSB response data to JSON. " + e.getMessage());
+            sb.append("Could not convert XSB response data to JSON. ").append(e.getMessage());
             sb.append(ls);
         }
         catch (Exception e){
             sb.append(e.getMessage());
         }
 
-        if (sb.length() > 0) throw new IllegalArgumentException(sb.toString());
+        if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
 
     public XsbData() {
