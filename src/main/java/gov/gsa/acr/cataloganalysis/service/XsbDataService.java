@@ -214,8 +214,7 @@ public class XsbDataService {
                 .doFirst(() -> executing.compareAndSet(false, true))
                 .doFinally(s -> executing.compareAndSet(true, false))
                 .subscribe(
-                        s -> log.info("subscribe: " + s),
-                        e -> log.error("Unexpected Error", e)
+                       null, e -> log.error("Unexpected Error", e)
                 );
     }
 

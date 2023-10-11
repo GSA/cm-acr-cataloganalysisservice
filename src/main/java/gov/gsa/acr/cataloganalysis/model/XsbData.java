@@ -89,6 +89,4 @@ public class XsbData {
         if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
 
-    public XsbData() {
-    }
 }
