@@ -8,6 +8,6 @@ import java.util.List;
 public class Trigger {
     private String sourceType;
     private String filePattern;
-    private List<String> files;
+    private String[] files;
     private Boolean monitor = Boolean.FALSE;
 }

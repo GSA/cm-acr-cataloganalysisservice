@@ -41,6 +41,34 @@ public class XsbDataController extends BaseController{
         catch (ConcurrentModificationException e){
             return Flux.just(e.getMessage());
         }
+    }
 
+    @PostMapping(value="/sftp", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<String> sftp(@RequestBody Trigger trigger){
+        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        log.info("Trigger: " + trigger);
+        try {
+            if (trigger.getMonitor()) {
+                /*Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();
+                Flux<String> statusNotifier = statusNotifierSource.asFlux();
+                return statusNotifier.doOnSubscribe(s -> xsbDataService.downloadReportsFromXSB(trigger, statusNotifierSource));
+
+                 */
+                return xsbDataService.downloadReportsFromXSB(trigger, null)
+                        .map(String::valueOf)
+                        .map(s -> s+"\n")
+                        .doOnNext(s -> log.info("File file file " + s));
+            }
+            else {
+                return xsbDataService.downloadReportsFromXSB(trigger, null)
+                        .map(String::valueOf)
+                        .map(s -> s + "\n")
+                        .doOnNext(s -> log.info("File file file " + s));
+                //return Flux.just("Triggered");
+            }
+        }
+        catch (ConcurrentModificationException e){
+            return Flux.just(e.getMessage());
+        }
     }
 }

@@ -3,6 +3,7 @@ package gov.gsa.acr.cataloganalysis.service;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +31,7 @@ public class XsbDataService {
     private AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
+    private final AcrXsbSftpUtil acrXsbSftpUtil;
 
     private final String ls = System.getProperty("line.separator");
     public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
@@ -214,7 +217,23 @@ public class XsbDataService {
                         s -> log.info("subscribe: " + s),
                         e -> log.error("Unexpected Error", e)
                 );
+    }
 
+
+    public Flux<Path> downloadReportsFromXSB(Trigger trigger, Sinks.Many<String> statusNotifier){
+        String tmpdir;
+        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        try {
+            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (trigger.getFiles() != null && trigger.getFiles().length > 0)
+            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFiles(), tmpdir);
+        else if (trigger.getFilePattern() != null)
+            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFilePattern(), tmpdir);
+        else
+            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
     }
 
 }

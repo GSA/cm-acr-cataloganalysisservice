@@ -215,7 +215,7 @@ public class XsbDataJsonRecord {
      * Creates an object that will be saved as a JSON in the database.
      *
      * @param x               XSB Data as a Hashmap
-     * @param taaCountryCodes
+     * @param taaCountryCodes List of countries that do not violate trade agreement
      */
     public XsbDataJsonRecord(Map<String, String> x, List<String> taaCountryCodes) {
         // Refer:https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
