@@ -1,13 +1,13 @@
 package gov.gsa.acr.cataloganalysis.util;
 
 import com.jcraft.jsch.*;
+import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +21,8 @@ import java.util.*;
 @Component
 @Slf4j
 public class AcrXsbSftpUtil {
+
+    private final ErrorHandler errorHandler;
 
     @Value("${xsb.sftp.host}")
     public String host;
@@ -42,6 +44,10 @@ public class AcrXsbSftpUtil {
 
     @Value("${sftp.progress.monitor.duration.seconds:30}")
     private int progressMonitorSeconds;
+
+    public AcrXsbSftpUtil(ErrorHandler errorHandler) {
+        this.errorHandler = errorHandler;
+    }
 
     private ChannelSftp createDownloadChannelSftp() throws JSchException, SftpException {
         return getChannelSftp(sftpGsaFileReportDir);
@@ -87,7 +93,7 @@ public class AcrXsbSftpUtil {
         }
     }
 
-    public void deleteFiles (List<String> files){
+    private void deleteFiles (List<String> files){
         if (files == null) return;
         for (String file : files)
             try {
@@ -98,98 +104,6 @@ public class AcrXsbSftpUtil {
             }
     }
 
-
-    private Mono<Path> downloadFromXSBToLocal(ChannelSftp.LsEntry entry, String destinationFolder){
-        final String MN = "downloadFromXSBToLocal: ";
-        Sinks.One<Path> sinks = Sinks.one();
-        Mono<Path> downloadedPath = sinks.asMono();
-        return downloadedPath.
-                doOnSubscribe(subscription -> {
-                    SftpProgressMonitor sftpProgressMonitor =  getSftpProgressMonitor();
-                    String destFileName = null;
-                    String sourceFileName = entry.getFilename();
-                    ChannelSftp channelSftp = null;
-                    try {
-                        channelSftp =  createDownloadChannelSftp();
-                        SftpATTRS entryAttrs =  entry.getAttrs();
-                        log.info(MN + "Downloading file {} of size {} from XSB", entry.getFilename(), entryAttrs.getSize());
-                        destFileName = new StringBuilder(destinationFolder)
-                                .append(File.separator).append(entry.getFilename()).toString();
-                        channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
-                        sinks.tryEmitValue(Path.of(destFileName));
-                        log.info(MN + "Downloaded file {} of size {} from XSB to {}", entry.getFilename(), entryAttrs.getSize(), destFileName);
-                    } catch (Exception sftpException) {
-                        log.error("SFTP failed downloading "+entry.getFilename() + " to " + destFileName, sftpException);
-
-                        try {
-                            Files.deleteIfExists(Paths.get(destFileName));
-                        } catch (IOException e) {
-                            log.error("Error deleting download file " + destFileName, e);
-                        }
-
-                        sinks.tryEmitError(new RuntimeException(MN + "Download to Local file system from SFTP FAILED. XSB file: " + sourceFileName + " Local File: " + destFileName + " " + sftpException.getMessage(), sftpException));
-                    }
-                    finally {
-                        if (channelSftp != null) {
-                            log.info(MN + "Disconnecting from SFTP for " + entry.getFilename());
-                            disconnectChannelSftp(channelSftp);
-                        }
-                    }
-                });
-    }
-
-
-    public Flux<Path> downloadFilesFromXSBToLocal(String fileNamePattern, String destinationFolder){
-        final String MN = "downloadFilesFromXSBToLocal: ";
-
-        ChannelSftp channelSftp = null;
-        try {
-            channelSftp = createDownloadChannelSftp();
-            Vector<ChannelSftp.LsEntry> lsEntries = channelSftp.ls(new StringBuilder(fileNamePattern).toString());
-            return Flux.fromIterable(lsEntries)
-                    .publishOn(Schedulers.parallel())
-                    .flatMap(entry -> downloadFromXSBToLocal(entry, destinationFolder))
-                    .onErrorContinue((e,p) -> {
-                        //TBD Error Handler for error
-                        log.error("Could not get this file, will ignore " + p, e);
-                    });
-        } catch (Exception e) {
-            log.error("SFTP failed", e);
-            return Flux.error(new RuntimeException(MN + "Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e));
-        }
-        finally {
-            if (channelSftp != null) {
-                log.info(MN + "Disconnecting from SFTP for " + fileNamePattern);
-                disconnectChannelSftp(channelSftp);
-            }
-        }
-
-    }
-
-    public Flux<Path> downloadFilesFromXSBToLocal(String[] fileNames, String destinationFolder){
-        final String MN = "downloadFilesFromXSBToLocal: ";
-        if (fileNames == null) {
-            Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
-            log.error("Error downloading files from XSB. Null argument provided. ", e);
-            return Flux.error(e);
-        }
-        if (fileNames.length == 0 || fileNames.length > 20) {
-            Exception e = new IllegalArgumentException("Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.");
-            log.error("Error downloading files from XSB.", e);
-            return Flux.error(e);
-        }
-        // Remove duplicates, if any.
-        HashSet<String> uniqueItems = new HashSet<>();
-        for (String fn: fileNames) uniqueItems.add(fn);
-
-        return Flux.fromIterable(uniqueItems)
-                .flatMap(f -> downloadFilesFromXSBToLocal(f, destinationFolder))
-                .onErrorContinue((e, f) -> {
-                    // TBD Error Handling
-                    log.error ("Error downloading file " + f, e);
-                });
-    }
-
     private SftpProgressMonitor getSftpProgressMonitor() {
         return new SftpProgressMonitor() {
             private long totalBytesDownloadedUntilNow;
@@ -197,6 +111,7 @@ public class AcrXsbSftpUtil {
             private String srcFileName, dstFileName;
             Instant start, end, lastProgressReportTime;
             private Duration progressMonitorInterval;
+
             @Override
             public void init(int i, String s, String s1, long l) {
                 final String MN = "sftpProgressMonitor: ";
@@ -209,7 +124,6 @@ public class AcrXsbSftpUtil {
 
                 // Provide a progress report every so many minutes
                 progressMonitorInterval = Duration.ofSeconds(progressMonitorSeconds);
-
                 log.info(MN + "Starting to download {} file {} ({} Bytes in size) to {}, reporting progress approximately every {} seconds", i, s, l, s1, progressMonitorInterval.getSeconds());
             }
 
@@ -233,6 +147,96 @@ public class AcrXsbSftpUtil {
                 log.info(MN + "Finished successfully downloading {} file to {}. Time taken: {}", srcFileName, dstFileName, Duration.between(start, end));
             }
         };
+    }
+
+
+    private Mono<Path> downloadFromXSBToLocal(ChannelSftp.LsEntry entry, String destinationFolder){
+        final String MN = "downloadFromXSBToLocal: ";
+        Sinks.One<Path> sinks = Sinks.one();
+        Mono<Path> downloadedPath = sinks.asMono();
+        return downloadedPath.
+                doOnSubscribe(subscription -> {
+                    SftpProgressMonitor sftpProgressMonitor =  getSftpProgressMonitor();
+                    String sourceFileName = entry.getFilename();
+                    String destFileName = new StringBuilder(destinationFolder).append(File.separator).append(sourceFileName).toString();
+                    ChannelSftp channelSftp = null;
+                    try {
+                        channelSftp =  createDownloadChannelSftp();
+                        channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
+                        sinks.tryEmitValue(Path.of(destFileName));
+                    } catch (Exception exception) {
+                        log.error(MN + "Download to Local file system from SFTP FAILED. XSB file: " + sourceFileName + " Local File: " + destFileName + " " + exception.getMessage(), exception);
+                        errorHandler.handleFileError(sourceFileName, "Download to Local file system from SFTP FAILED. " + exception.getMessage(), exception);
+                        try {
+                            Files.deleteIfExists(Paths.get(destFileName));
+                        } catch (IOException e) {
+                            log.error("Error deleting download file " + destFileName, e);
+                        }
+                        sinks.tryEmitEmpty();
+                    }
+                    finally {
+                        log.info(MN + "Disconnecting from SFTP for " + entry.getFilename());
+                        disconnectChannelSftp(channelSftp);
+                    }
+                });
+    }
+
+
+    /**
+     * Download files from the XSB server and generate a flux of paths of the downloaded files.
+     *
+     * @param fileNamePattern   File name for files to search. Could have wildcards (*)
+     * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
+     * @return
+     */
+    public Flux<Path> downloadFilesFromXSBToLocal(String fileNamePattern, String destinationFolder){
+        final String MN = "downloadFilesFromXSBToLocal: ";
+        ChannelSftp channelSftp = null;
+        try {
+            channelSftp = createDownloadChannelSftp();
+            Vector<ChannelSftp.LsEntry> lsEntries = channelSftp.ls(fileNamePattern);
+            return Flux.fromIterable(lsEntries)
+                    .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
+                    //.publishOn(Schedulers.parallel())
+                    .flatMap(entry -> downloadFromXSBToLocal(entry, destinationFolder))
+                    .onErrorContinue((e, o) -> log.error(MN + "Error downloading a file from SFTP server: " + o + " This file will be ignored.", e));
+        } catch (Exception e) {
+            log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
+            errorHandler.handleFileError(fileNamePattern, "SFTP failed. " + e.getMessage(), e);
+            return Flux.empty();
+        }
+        finally {
+            log.info(MN + "Disconnecting from SFTP for " + fileNamePattern);
+            disconnectChannelSftp(channelSftp);
+        }
+
+    }
+
+    /**
+     * Download files from the XSB server and generate a flux of paths of the downloaded files.
+     *
+     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name patterns.
+     * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
+     * @return
+     */
+    public Flux<Path> downloadFilesFromXSBToLocal(Set<String> fileNames, String destinationFolder){
+        final String MN = "downloadFilesFromXSBToLocal: ";
+        if (fileNames == null) {
+            Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
+            log.error("Error downloading files from XSB. Null argument provided. ", e);
+            return Flux.error(e);
+        }
+        if (fileNames.isEmpty() || fileNames.size() > 20) {
+            Exception e = new IllegalArgumentException("Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.");
+            log.error("Error downloading files from XSB.", e);
+            return Flux.error(e);
+        }
+        return Flux.fromIterable(fileNames)
+                .flatMap(f -> downloadFilesFromXSBToLocal(f, destinationFolder))
+                .onErrorResume(e -> {
+                    log.error("Reached back here ", e);
+                    return Flux.empty();
+                });
     }
 
 }

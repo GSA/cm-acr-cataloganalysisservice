@@ -122,7 +122,7 @@ public class ErrorHandler {
         handleError(error, srcFileName, t.getClass().getSimpleName(), "FILE");
     }
 
-    public void handleError(String xsbRecord, String srcFileName, String error, String errorType){
+    private void handleError(String xsbRecord, String srcFileName, String error, String errorType){
         boolean tryAgain = false;
         try {
             if (errorMsgWriter == null) {

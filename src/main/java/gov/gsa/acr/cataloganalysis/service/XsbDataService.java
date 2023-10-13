@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -74,12 +75,29 @@ public class XsbDataService {
     }
 
 
-    public static Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
+    public Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
+        String tmpdir;
+        try {
+            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+        } catch (IOException e) {
+            return Flux.error(new RuntimeException(e));
+        }
+
         return Flux.using(
                 () ->  Files.list(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
                 Flux::fromStream,
                 Stream::close
-        );
+        ).handle((source, sink) -> {
+            Path destination = Path.of(tmpdir + "/" + source.getFileName());
+            try {
+                sink.next(Files.copy(source, destination));
+            } catch (Exception e) {
+                log.error("Unable to copy " + source + " to " + destination + ". Will ignore and continue.", e);
+                errorHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);
+            }
+        });
+
+
     }
 
     public static Flux<Path> xsbResponseFiles(List<String> fileNames){
@@ -137,8 +155,10 @@ public class XsbDataService {
                     if (statusNotifier != null)
                         statusNotifier.tryEmitNext("Got all files"+ls);
                 })
+                .onErrorContinue((e, o) -> log.error("Got error for a response file, " + o + ". Will Continuew"))
                 .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
+                .onErrorContinue((e, o) -> log.error("Got error parsing a response file, " + o + ". Will Continuew"))
                 .doOnNext(xsbData -> {
                     if (counter.incrementAndGet() % 1000 == 0) {
                         log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
@@ -147,9 +167,9 @@ public class XsbDataService {
                     }
                 })
                 .doOnComplete(() -> {
-                    log.info(MN + "Finished. Processed a total of {} records", counter.get());
+                    log.info(MN + "Finished. Parsed and converted to JSON a total of {} records", counter.get());
                     if (statusNotifier != null)
-                        statusNotifier.tryEmitNext("Finished. Processed a total of " +  counter.get() +" records" + ls);
+                        statusNotifier.tryEmitNext("Finished. Parsed and converted to JSON a total of " +  counter.get() +" records" + ls);
                 });
     }
 
@@ -201,6 +221,7 @@ public class XsbDataService {
                                         statusNotifier.tryEmitNext("Number of file errors: " + errorHandler.getNumFileErrors().get()+ls);
                                     }
                                 })
+                                // TBD only move data if there is something to move and an error threshold has not reached
                                 .then(moveXsbData(null))
                                 .doOnSuccess(s -> {
                                     log.info("All Done!!");
@@ -220,6 +241,7 @@ public class XsbDataService {
 
 
     public Flux<Path> downloadReportsFromXSB(Trigger trigger, Sinks.Many<String> statusNotifier){
+        errorHandler.init();
         String tmpdir;
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         try {
@@ -227,10 +249,21 @@ public class XsbDataService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        if (trigger.getFiles() != null && trigger.getFiles().length > 0)
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFiles(), tmpdir);
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+        if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
+            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(uniqueFileNames, tmpdir)
+                    .doOnComplete(() -> {
+                        log.info("Finished downloading all files.");
+                        if (statusNotifier != null) statusNotifier.tryEmitComplete();
+                    })
+                    .doFinally(s -> errorHandler.close());
         else if (trigger.getFilePattern() != null)
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFilePattern(), tmpdir);
+            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFilePattern(), tmpdir)
+                    .doOnComplete(() -> {
+                        log.info("Finished downloading all files.");
+                        if (statusNotifier != null) statusNotifier.tryEmitComplete();
+                    })
+                    .doFinally(s -> errorHandler.close());
         else
             return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
     }
