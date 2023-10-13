@@ -29,9 +29,15 @@ public class XsbReportHandler {
         DELIM_REGEX = delimiter;
         DELIM = DELIM_REGEX.replace("\\", "");
     }
-    public static void setHeader(String sourceFileName, String rawHeaderString) {
+
+    public static void resetHeader(){
+        headerString = null;
+        header = null;
+    }
+
+    public static void setHeader(Long index, String sourceFileName, String rawHeaderString) {
         if (rawHeaderString != null) {
-            if (headerString == null) {
+            if (index == 0 || headerString == null) {
                 headerString = rawHeaderString;
                 if (!rawHeaderString.contains(DELIM))
                     throw new IllegalArgumentException("Header is not formatted correctly, it is not delimited with expected delimiter, " + DELIM);

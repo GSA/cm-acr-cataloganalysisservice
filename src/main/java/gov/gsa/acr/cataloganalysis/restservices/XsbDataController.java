@@ -26,6 +26,7 @@ public class XsbDataController extends BaseController{
 
     @PostMapping(value="/trigger", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<String> trigger(@RequestBody Trigger trigger){
+        log.info("Request body " + trigger);
         try {
             if (trigger.getMonitor()) {
                 Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();

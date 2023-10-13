@@ -4,6 +4,7 @@ import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,6 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +33,7 @@ public class XsbDataService {
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
     private final AcrXsbSftpUtil acrXsbSftpUtil;
+    private final XsbSourceFactory xsbSourceFactory;
 
     private final String ls = System.getProperty("line.separator");
     public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
@@ -50,7 +51,7 @@ public class XsbDataService {
 
 
     @Transactional
-    public Mono<Void> moveXsbData(Sinks.Many<String> statusNotifier) {
+    public Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
                     if (statusNotifier != null) {
@@ -75,45 +76,22 @@ public class XsbDataService {
     }
 
 
-    public Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
-        String tmpdir;
-        try {
-            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
-        } catch (IOException e) {
-            return Flux.error(new RuntimeException(e));
+    public Flux<XsbData> parseXsbResponseFile(Long index, Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
+        final String MN = "parseXsbResponseFile: ";
+
+        if (index == 0) {
+            XsbReportHandler.resetHeader();
+            errorHandler.init(null);
         }
 
-        return Flux.using(
-                () ->  Files.list(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
-                Flux::fromStream,
-                Stream::close
-        ).handle((source, sink) -> {
-            Path destination = Path.of(tmpdir + "/" + source.getFileName());
-            try {
-                sink.next(Files.copy(source, destination));
-            } catch (Exception e) {
-                log.error("Unable to copy " + source + " to " + destination + ". Will ignore and continue.", e);
-                errorHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);
-            }
-        });
-
-
-    }
-
-    public static Flux<Path> xsbResponseFiles(List<String> fileNames){
-        return Flux.fromIterable(fileNames).map(Paths::get);
-    }
-
-
-    public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
-        final String MN = "parseXsbResponseFile: ";
 
         // First read the header row (First row of the File)
         try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
             Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
             if (mayBeHeader.isPresent()) {
                 String header = mayBeHeader.get();
-                XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
+                XsbReportHandler.setHeader(index, String.valueOf(anXsbResponseFile), header);
+                if (errorHandler.getHeader() == null ) errorHandler.setHeader(header);
             }
             else throw new Exception("Missing header row from file, " + anXsbResponseFile + ". Possibly an empty file.");
         } catch (Exception e) {
@@ -156,7 +134,8 @@ public class XsbDataService {
                         statusNotifier.tryEmitNext("Got all files"+ls);
                 })
                 .onErrorContinue((e, o) -> log.error("Got error for a response file, " + o + ". Will Continuew"))
-                .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
+                .index()
+                .flatMap(tuple2 -> parseXsbResponseFile(tuple2.getT1(), tuple2.getT2(), errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .onErrorContinue((e, o) -> log.error("Got error parsing a response file, " + o + ". Will Continuew"))
                 .doOnNext(xsbData -> {
@@ -176,19 +155,20 @@ public class XsbDataService {
 
     public void trigger(Trigger trigger, Sinks.Many<String> statusNotifier) {
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
-        errorHandler.init();
+        if (trigger == null) throw new IllegalArgumentException("Invalid request body in POST");
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+        if (uniqueFileNames == null || uniqueFileNames.isEmpty())  throw new IllegalArgumentException("Request body must include files attribute (an array with file names or file name patterns.");
+
         AtomicInteger dbCounter = new AtomicInteger(0);
 
-//        String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
-//                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
-//                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
+        String tmpdir;
+        try {
+            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        String[] fileNames = {"testData/testFileWithErrors.gsa", "banana", "testData/z1.gsa", "testData/z2.gsa"};
-
-
-        //Flux<Path> filesFromList = xsbResponseFiles(Arrays.asList(fileNames));
-        Flux<Path> filesFromList = xsbResponseFiles(Paths.get("testData"), "gsa");
-
+        Flux<Path> filesFromList = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
         cleanXsbDataTemp(statusNotifier)
                 .then(
                         xsbDataRepository
@@ -222,7 +202,7 @@ public class XsbDataService {
                                     }
                                 })
                                 // TBD only move data if there is something to move and an error threshold has not reached
-                                .then(moveXsbData(null))
+                                .then(moveXsbData(dbCounter.get(), statusNotifier))
                                 .doOnSuccess(s -> {
                                     log.info("All Done!!");
                                     if (statusNotifier != null) {
@@ -241,7 +221,7 @@ public class XsbDataService {
 
 
     public Flux<Path> downloadReportsFromXSB(Trigger trigger, Sinks.Many<String> statusNotifier){
-        errorHandler.init();
+        errorHandler.init(null);
         String tmpdir;
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         try {
@@ -251,14 +231,7 @@ public class XsbDataService {
         }
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(uniqueFileNames, tmpdir)
-                    .doOnComplete(() -> {
-                        log.info("Finished downloading all files.");
-                        if (statusNotifier != null) statusNotifier.tryEmitComplete();
-                    })
-                    .doFinally(s -> errorHandler.close());
-        else if (trigger.getFilePattern() != null)
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFilePattern(), tmpdir)
+            return acrXsbSftpUtil.getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                     .doOnComplete(() -> {
                         log.info("Finished downloading all files.");
                         if (statusNotifier != null) statusNotifier.tryEmitComplete();

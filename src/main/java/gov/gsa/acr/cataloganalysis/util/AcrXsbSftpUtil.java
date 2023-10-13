@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import java.util.*;
 
 @Component
 @Slf4j
-public class AcrXsbSftpUtil {
+public class AcrXsbSftpUtil implements XsbSource {
 
     private final ErrorHandler errorHandler;
 
@@ -37,7 +38,7 @@ public class AcrXsbSftpUtil {
     public String password;
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
-    public String sftpGsaFileReportDir;
+    public String defaultSftpGsaFileReportDir;
 
     @Value("${xsb.sftp.gsa.file.upload.dir}")
     public String sftpCatalogUploadDir;
@@ -45,12 +46,10 @@ public class AcrXsbSftpUtil {
     @Value("${sftp.progress.monitor.duration.seconds:30}")
     private int progressMonitorSeconds;
 
-    public AcrXsbSftpUtil(ErrorHandler errorHandler) {
-        this.errorHandler = errorHandler;
-    }
+    public AcrXsbSftpUtil(ErrorHandler errorHandler) {this.errorHandler = errorHandler;}
 
-    private ChannelSftp createDownloadChannelSftp() throws JSchException, SftpException {
-        return getChannelSftp(sftpGsaFileReportDir);
+    private ChannelSftp createDownloadChannelSftp(String sftpGsaFilesReportDir) throws JSchException, SftpException {
+        return getChannelSftp(defaultSftpGsaFileReportDir);
     }
 
     private ChannelSftp getChannelSftp(String sftpGsaFileReportDir) throws JSchException, SftpException {
@@ -150,10 +149,11 @@ public class AcrXsbSftpUtil {
     }
 
 
-    private Mono<Path> downloadFromXSBToLocal(ChannelSftp.LsEntry entry, String destinationFolder){
+    private Mono<Path> downloadFromXSBToLocal(String sftpGsaFilesReportDir, ChannelSftp.LsEntry entry, String destinationFolder){
         final String MN = "downloadFromXSBToLocal: ";
         Sinks.One<Path> sinks = Sinks.one();
         Mono<Path> downloadedPath = sinks.asMono();
+
         return downloadedPath.
                 doOnSubscribe(subscription -> {
                     SftpProgressMonitor sftpProgressMonitor =  getSftpProgressMonitor();
@@ -161,7 +161,7 @@ public class AcrXsbSftpUtil {
                     String destFileName = new StringBuilder(destinationFolder).append(File.separator).append(sourceFileName).toString();
                     ChannelSftp channelSftp = null;
                     try {
-                        channelSftp =  createDownloadChannelSftp();
+                        channelSftp =  createDownloadChannelSftp(sftpGsaFilesReportDir);
                         channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
                         sinks.tryEmitValue(Path.of(destFileName));
                     } catch (Exception exception) {
@@ -185,20 +185,21 @@ public class AcrXsbSftpUtil {
     /**
      * Download files from the XSB server and generate a flux of paths of the downloaded files.
      *
-     * @param fileNamePattern   File name for files to search. Could have wildcards (*)
-     * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
+     * @param sftpGsaFilesReportDir
+     * @param fileNamePattern       File name for files to search. Could have wildcards (*)
+     * @param destinationFolder     Destination folder name where to save the files downloaded from the XSB server
      * @return
      */
-    public Flux<Path> downloadFilesFromXSBToLocal(String fileNamePattern, String destinationFolder){
-        final String MN = "downloadFilesFromXSBToLocal: ";
+    private Flux<Path> getXSBFiles(String sftpGsaFilesReportDir, String fileNamePattern, String destinationFolder){
+        final String MN = "getXSBFiles: ";
         ChannelSftp channelSftp = null;
         try {
-            channelSftp = createDownloadChannelSftp();
+            channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
             Vector<ChannelSftp.LsEntry> lsEntries = channelSftp.ls(fileNamePattern);
             return Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
-                    //.publishOn(Schedulers.parallel())
-                    .flatMap(entry -> downloadFromXSBToLocal(entry, destinationFolder))
+                    .publishOn(Schedulers.parallel())
+                    .flatMap(entry -> downloadFromXSBToLocal(sftpGsaFilesReportDir, entry, destinationFolder))
                     .onErrorContinue((e, o) -> log.error(MN + "Error downloading a file from SFTP server: " + o + " This file will be ignored.", e));
         } catch (Exception e) {
             log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
@@ -219,8 +220,9 @@ public class AcrXsbSftpUtil {
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
      * @return
      */
-    public Flux<Path> downloadFilesFromXSBToLocal(Set<String> fileNames, String destinationFolder){
-        final String MN = "downloadFilesFromXSBToLocal: ";
+    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder){
+        final String MN = "getXSBFiles: ";
+        final String srcDir = (sourceFolder != null && !sourceFolder.isBlank())? sourceFolder: defaultSftpGsaFileReportDir;
         if (fileNames == null) {
             Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
             log.error("Error downloading files from XSB. Null argument provided. ", e);
@@ -231,11 +233,11 @@ public class AcrXsbSftpUtil {
             log.error("Error downloading files from XSB.", e);
             return Flux.error(e);
         }
+
         return Flux.fromIterable(fileNames)
-                .flatMap(f -> downloadFilesFromXSBToLocal(f, destinationFolder))
-                .onErrorResume(e -> {
-                    log.error("Reached back here ", e);
-                    return Flux.empty();
+                .flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder))
+                .onErrorContinue((e, o) -> {
+                    log.error("Error getting files from " + o, e);
                 });
     }
 

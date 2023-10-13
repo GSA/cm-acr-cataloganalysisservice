@@ -2,6 +2,7 @@ package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,10 @@ public class ErrorHandler {
     private int parseErrorChunk;
     private int dbErrorChunk;
     private String timeStamp;
+
+    @Getter
+    @Setter
+    private String header;
     private final String ls = System.getProperty("line.separator");
     @Getter
     private AtomicInteger numParsingErrors;
@@ -83,7 +88,7 @@ public class ErrorHandler {
     @Getter
     private AtomicInteger numFileErrors;
 
-    public void init(){
+    public void init(String header){
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
@@ -92,6 +97,7 @@ public class ErrorHandler {
         errorMsgWriter = null;
         parseErrorWriter = null;
         dbErrorWriter = null;
+        this.header = header;
         timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
     }
 
@@ -134,11 +140,15 @@ public class ErrorHandler {
                 Path opPath = Paths.get(getDBErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 dbErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
+                if (header == null || header.isBlank()) log.error("Error initializing the errorHandler. Header string is null");
+                else dbErrorWriter.println(header);
             }
             else if (errorType.equals("PARSE") && parseErrorWriter == null) {
                 Path opPath = Paths.get(getParseErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
+                if (header == null || header.isBlank()) log.error("Error initializing the errorHandler. Header string is null");
+                else parseErrorWriter.println(header);
             }
 
             StringBuilder sb = new StringBuilder();
