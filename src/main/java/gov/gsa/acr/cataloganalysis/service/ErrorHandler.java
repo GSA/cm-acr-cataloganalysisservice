@@ -1,13 +1,16 @@
 package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -17,6 +20,7 @@ import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -67,6 +71,7 @@ public class ErrorHandler {
     @Value("${error.file.size.max.bytes.per.file}")
     private long maxErrorFileSizeBytes;
     @Value("${error.file.directory}")
+    @Getter
     private String errorDirectory;
 
     private BoundedPrintWriter errorMsgWriter;
@@ -88,6 +93,22 @@ public class ErrorHandler {
     @Getter
     private AtomicInteger numFileErrors;
 
+    private void deleteOldErrorFiles(){
+        try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*")))) {
+            stream.forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException e) {
+                   log.error("Unable to delete error file: " + p, e);
+                }
+            });
+        }
+        catch (IOException e){
+            log.error("Unable to delete error files.", e);
+        }
+
+    }
+
     public void init(String header){
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
@@ -99,6 +120,7 @@ public class ErrorHandler {
         dbErrorWriter = null;
         this.header = header;
         timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        deleteOldErrorFiles();
     }
 
     public void close(){
@@ -115,6 +137,15 @@ public class ErrorHandler {
             dbErrorWriter = null;
         }
     }
+
+    public Flux<Path> getErrorFiles(){
+        return Flux.using(
+                () ->  Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*_"+timeStamp+"_*"))),
+                Flux::fromStream,
+                Stream::close
+        );
+    }
+
 
     public void handleParsingError(String xsbRecord, String srcFileName, String error){
         handleError(xsbRecord, srcFileName, error, "PARSE");
@@ -216,8 +247,6 @@ public class ErrorHandler {
     }
 
 
-
-
     private String getErrorMessageFileName(){
         String errorMsgSuffix = ".txt";
         return errorDirectory + "/xsb_error_msg_" + timeStamp + "_" + errorMsgChunk++ + errorMsgSuffix;
@@ -225,12 +254,12 @@ public class ErrorHandler {
 
     private String getParseErrorFileName(){
         String parseErrorSuffix = ".gsa";
-        return errorDirectory + "/xsb_parse_error_" + timeStamp + "_" + parseErrorChunk++ + parseErrorSuffix;
+        return errorDirectory + "/xsb_error_parse_" + timeStamp + "_" + parseErrorChunk++ + parseErrorSuffix;
     }
 
     private String getDBErrorFileName(){
         String dbErrorSuffix = ".gsa";
-        return errorDirectory + "/xsb_db_error_" + timeStamp + "_" + dbErrorChunk++ + dbErrorSuffix;
+        return errorDirectory + "/xsb_error_db_" + timeStamp + "_" + dbErrorChunk++ + dbErrorSuffix;
     }
 
 }

@@ -3,6 +3,7 @@ package gov.gsa.acr.cataloganalysis.service;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.RequiredArgsConstructor;
@@ -32,11 +33,20 @@ public class XsbDataService {
     private AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
-    private final AcrXsbSftpUtil acrXsbSftpUtil;
     private final XsbSourceFactory xsbSourceFactory;
 
+    private final AcrXsbS3Util acrXsbS3Util;
+
     private final String ls = System.getProperty("line.separator");
-    public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
+
+    private Flux<String> saveErrorFilesToS3() {
+        return errorHandler.getErrorFiles()
+                .doFirst(() -> errorHandler.close())
+                .flatMap(p -> acrXsbS3Util.uploadToS3(p, "errors/" + p.getFileName()));
+    }
+
+
+    private Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
         return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
                 // TBD: Retry logic here
                 //.retry(5)
@@ -51,7 +61,7 @@ public class XsbDataService {
 
 
     @Transactional
-    public Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
+    private Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
                     if (statusNotifier != null) {
@@ -64,7 +74,7 @@ public class XsbDataService {
                 .then(xsbDataRepository.moveXsbData());
     }
 
-    public Mono<Void> cleanXsbDataTemp(Sinks.Many<String> statusNotifier) {
+    private Mono<Void> cleanXsbDataTemp(Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAllXsbDataTemp().doFirst(() -> {
             if (statusNotifier != null) {
                 statusNotifier.tryEmitNext("Cleaning up temporary data from xsb_data_temp\n");
@@ -76,7 +86,7 @@ public class XsbDataService {
     }
 
 
-    public Flux<XsbData> parseXsbResponseFile(Long index, Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
+    private Flux<XsbData> parseXsbResponseFile(Long index, Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
         final String MN = "parseXsbResponseFile: ";
 
         if (index == 0) {
@@ -113,7 +123,7 @@ public class XsbDataService {
     }
 
 
-    public Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes, Sinks.Many<String> statusNotifier){
+    private Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes, Sinks.Many<String> statusNotifier){
         final String MN = "processXSBFiles: ";
         AtomicInteger counter = new AtomicInteger(0);
         return xsbResponseFiles
@@ -170,7 +180,7 @@ public class XsbDataService {
 
         Flux<Path> filesFromList = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
         cleanXsbDataTemp(statusNotifier)
-                .then(
+                .thenMany(
                         xsbDataRepository
                                 .findTaaCompliantCountries()
                                 .collectList()
@@ -210,7 +220,8 @@ public class XsbDataService {
                                         statusNotifier.tryEmitComplete();
                                     }
                                 })
-                                .doFinally(s -> errorHandler.close())
+                                //.doFinally(s -> errorHandler.close())
+                                .thenMany(saveErrorFilesToS3())
                 )
                 .doFirst(() -> executing.compareAndSet(false, true))
                 .doFinally(s -> executing.compareAndSet(true, false))
@@ -220,7 +231,7 @@ public class XsbDataService {
     }
 
 
-    public Flux<Path> downloadReportsFromXSB(Trigger trigger, Sinks.Many<String> statusNotifier){
+    public Flux<Path> downloadReports(Trigger trigger, Sinks.Many<String> statusNotifier){
         errorHandler.init(null);
         String tmpdir;
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
@@ -229,9 +240,10 @@ public class XsbDataService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
-            return acrXsbSftpUtil.getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+            return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                     .doOnComplete(() -> {
                         log.info("Finished downloading all files.");
                         if (statusNotifier != null) statusNotifier.tryEmitComplete();
@@ -240,5 +252,6 @@ public class XsbDataService {
         else
             return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
     }
+
 
 }
