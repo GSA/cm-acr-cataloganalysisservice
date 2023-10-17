@@ -38,7 +38,7 @@ public class AcrXsbS3Util implements XsbSource  {
     public Mono<String> uploadToS3(Path source, String destination){
         final String MN = "uploadToS3: ";
         log.info(MN + " saving file {} to S3 at {}", source, destination);
-        CompletableFuture<PutObjectResponse> future = null;
+        CompletableFuture<PutObjectResponse> future;
         try {
             future = s3client
                     .putObject(PutObjectRequest.builder()
@@ -48,7 +48,7 @@ public class AcrXsbS3Util implements XsbSource  {
             return Mono.fromFuture(future)
                     .map((response) -> {
                         checkResult(response);
-                        return destination.toString();
+                        return destination;
                     })
                     .onErrorResume(e -> {
                         log.error("Unable to save file to S3.", e);
@@ -72,7 +72,7 @@ public class AcrXsbS3Util implements XsbSource  {
 
             return Mono.fromFuture(future)
                     .flatMapMany(response -> Flux.fromIterable(response.contents()))
-                    .map(s3Object -> s3Object.key())
+                    .map(S3Object::key)
                     .onErrorResume(e -> {
                         log.error("Error while listing files from S3", e);
                         return Mono.empty();
@@ -128,19 +128,17 @@ public class AcrXsbS3Util implements XsbSource  {
 
         if (fileNames == null) {
             Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
-            log.error("Error downloading files from XSB. Null argument provided. ", e);
+            log.error(MN + "Error downloading files from XSB. Null argument provided. ", e);
             return Flux.error(e);
         }
         if (fileNames.isEmpty() || fileNames.size() > 20) {
             Exception e = new IllegalArgumentException("Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.");
-            log.error("Error downloading files from XSB.", e);
+            log.error(MN + "Error downloading files from XSB.", e);
             return Flux.error(e);
         }
 
         return Flux.fromIterable(fileNames)
                 .flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder))
-                .onErrorContinue((e, o) -> {
-                    log.error("Error getting files from " + o, e);
-                });
+                .onErrorContinue((e, o) -> log.error(MN + "Error getting files from " + o, e));
     }
 }

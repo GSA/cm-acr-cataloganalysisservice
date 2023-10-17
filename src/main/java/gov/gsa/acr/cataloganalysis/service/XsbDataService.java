@@ -4,7 +4,6 @@ import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class XsbDataService {
-    private AtomicBoolean executing = new AtomicBoolean();
+    private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
     private final XsbSourceFactory xsbSourceFactory;
@@ -41,7 +40,7 @@ public class XsbDataService {
 
     private Flux<String> saveErrorFilesToS3() {
         return errorHandler.getErrorFiles()
-                .doFirst(() -> errorHandler.close())
+                .doFirst(errorHandler::close)
                 .flatMap(p -> acrXsbS3Util.uploadToS3(p, "errors/" + p.getFileName()));
     }
 
@@ -61,7 +60,7 @@ public class XsbDataService {
 
 
     @Transactional
-    public Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
+    public Mono<Void> moveXsbData(Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
                     if (statusNotifier != null) {
@@ -212,7 +211,7 @@ public class XsbDataService {
                                     }
                                 })
                                 // TBD only move data if there is something to move and an error threshold has not reached
-                                .then(moveXsbData(dbCounter.get(), statusNotifier))
+                                .then(moveXsbData(statusNotifier))
                                 .doOnSuccess(s -> {
                                     log.info("All Done!!");
                                     if (statusNotifier != null) {

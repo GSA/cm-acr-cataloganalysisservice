@@ -58,10 +58,7 @@ public class S3ClientConfiguration {
         }
         else {
             // Return custom credentials provider
-            return () -> {
-                AwsCredentials creds = AwsBasicCredentials.create(s3props.getKey(), s3props.getSecret());
-                return creds;
-            };
+            return () -> (AwsCredentials) AwsBasicCredentials.create(s3props.getKey(), s3props.getSecret());
         }
     }
 }
