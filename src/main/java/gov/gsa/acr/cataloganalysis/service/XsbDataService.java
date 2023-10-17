@@ -61,7 +61,7 @@ public class XsbDataService {
 
 
     @Transactional
-    protected Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
+    public Mono<Void> moveXsbData(Integer numRecordsInStaging, Sinks.Many<String> statusNotifier) {
         return xsbDataRepository.deleteAll()
                 .doFirst(() -> {
                     if (statusNotifier != null) {
