@@ -56,7 +56,7 @@ public class XsbDataController extends BaseController{
                             summary = "S3 Example",
                             description = """
                             To trigger downloading files from ACR's S3 bucket.
-                            If the sourceFolder is provided, it is relative to "catalogAnalysis" on S3, meaning the base is always "catalogAnalysis", so in the example, the files will be looked relative to catalogAnalysis/testData/. 
+                            If the sourceFolder is provided, it is relative to "catalogAnalysis" on S3, meaning the base is always "catalogAnalysis", so in the example, the files will be looked relative to catalogAnalysis/testData/.
                             If the sourceFolder is not provided, the files will be looked under catalogAnalysis.
                             The "files" property could be an array of full file names
                             or prefix, since glob patterns do not work in case of S3.
