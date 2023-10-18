@@ -47,7 +47,7 @@ public class XsbDataController extends BaseController{
                             """,
                             value = """
                                     {"sourceType": "SFTP",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521*"]                    
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521*"]
                                     }
                                     """
                                     ),
@@ -64,7 +64,7 @@ public class XsbDataController extends BaseController{
                             value = """
                                     {"sourceType": "S3",
                                     "sourceFolder":"testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                    
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]
                                     }
                                     """
                     )
@@ -81,7 +81,7 @@ public class XsbDataController extends BaseController{
                             value = """
                                     {"sourceType": "LOCAL",
                                     "sourceFolder":"/app/testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                    
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]
                                     }
                                     """
                     )
