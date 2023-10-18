@@ -10,7 +10,6 @@ import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 
-
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;

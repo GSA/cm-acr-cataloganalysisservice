@@ -8,8 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Mono;
 
 import java.util.ConcurrentModificationException;
 
@@ -17,62 +16,23 @@ import java.util.ConcurrentModificationException;
 @RestController
 @Tag(name= "ACR Catalog Analysis Service", description = "A Service for analyzing catalogs.")
 public class XsbDataController extends BaseController{
-    final
-    XsbDataService xsbDataService;
+    final XsbDataService xsbDataService;
 
     public XsbDataController(XsbDataService xsbDataService) {
         this.xsbDataService = xsbDataService;
     }
 
     @PostMapping(value="/trigger", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<String> trigger(@RequestBody Trigger trigger){
+    public Mono<String> trigger(@RequestBody Trigger trigger){
         log.info("Request body " + trigger);
+        String message;
         try {
-            if (trigger.getMonitor()) {
-                Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();
-                Flux<String> statusNotifier = statusNotifierSource.asFlux();
-                return statusNotifier.doOnSubscribe(s -> xsbDataService.trigger(trigger, statusNotifierSource));
-
-            }
-            else {
-                xsbDataService.trigger(trigger, null);
-                return Flux.just("Triggered");
-            }
+            xsbDataService.trigger(trigger);
+            message = "\nTriggered\n";
         }
         catch (ConcurrentModificationException e){
-            return Flux.just(e.getMessage());
+            message = "\n"+e.getMessage()+"\n";
         }
+        return Mono.just(message);
     }
-
-
-    // TBD: Delete this only for testing
-    @PostMapping(value="/download", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<String> sftp(@RequestBody Trigger trigger){
-        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
-        log.info("Trigger: " + trigger);
-        try {
-            if (trigger.getMonitor()) {
-                /*Sinks.Many<String> statusNotifierSource = Sinks.many().replay().latest();
-                Flux<String> statusNotifier = statusNotifierSource.asFlux();
-                return statusNotifier.doOnSubscribe(s -> xsbDataService.downloadReports(trigger, statusNotifierSource));
-
-                 */
-                return xsbDataService.downloadReports(trigger, null)
-                        .map(String::valueOf)
-                        .map(s -> s+"\n")
-                        .doOnNext(s -> log.info("File file file " + s));
-            }
-            else {
-                return xsbDataService.downloadReports(trigger, null)
-                        .map(String::valueOf)
-                        .map(s -> s + "\n")
-                        .doOnNext(s -> log.info("File file file " + s));
-                //return Flux.just("Triggered");
-            }
-        }
-        catch (ConcurrentModificationException e){
-            return Flux.just(e.getMessage());
-        }
-    }
-
 }

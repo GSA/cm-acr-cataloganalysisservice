@@ -236,9 +236,7 @@ public class AcrXsbSftpUtil implements XsbSource {
 
         return Flux.fromIterable(fileNames)
                 .flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder))
-                .onErrorContinue((e, o) -> {
-                    log.error("Error getting files from " + o, e);
-                });
+                .onErrorContinue((e, o) -> log.error("Error getting files from " + o, e));
     }
 
 }

@@ -11,7 +11,6 @@ public class Trigger {
     private XsbSourceType sourceType;
     private String sourceFolder;
     private String[] files;
-    private Boolean monitor = Boolean.FALSE;
     private Set<String> uniqueFileNames;
 
     public Set<String> getUniqueFileNames(){

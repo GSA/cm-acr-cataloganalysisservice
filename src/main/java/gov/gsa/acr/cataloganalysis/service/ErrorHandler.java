@@ -65,14 +65,14 @@ public class ErrorHandler {
 
     }
 
-
-
-
     @Value("${error.file.size.max.bytes.per.file}")
     private long maxErrorFileSizeBytes;
     @Value("${error.file.directory}")
     @Getter
     private String errorDirectory;
+
+    @Value("${error.threshold}")
+    private Integer errorThreshold;
 
     private BoundedPrintWriter errorMsgWriter;
     private BoundedPrintWriter parseErrorWriter;
@@ -92,6 +92,10 @@ public class ErrorHandler {
     private AtomicInteger numDbErrors;
     @Getter
     private AtomicInteger numFileErrors;
+
+    @Getter
+    @Setter
+    private AtomicInteger numRecordsSavedInTempDB;
 
     private void deleteOldErrorFiles(){
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*")))) {
@@ -183,15 +187,10 @@ public class ErrorHandler {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(xsbRecord)
-                    .append(ls)
-                    .append("Source File: ")
-                    .append(srcFileName)
-                    .append(ls)
-                    .append("Error (s):")
-                    .append(ls)
-                    .append(error)
-                    .append(ls)
+            sb.append(xsbRecord).append(ls)
+                    .append("Source File: ").append(srcFileName).append(ls)
+                    .append("Error (s):").append(ls)
+                    .append(error).append(ls)
                     .append("------------------------------");
 
             // Check if this file has reached its max limit, if so then the number of allowed bytes will be zero.
@@ -244,6 +243,10 @@ public class ErrorHandler {
             log.error("Error while handling "+ errorType +" error messages. " + xsbRecord + " " + error, e);
         }
 
+    }
+
+    public Boolean proceedToMoveDataFromStagingToFinal(){
+        return (numRecordsSavedInTempDB.get() > 0) && ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
     }
 
 
