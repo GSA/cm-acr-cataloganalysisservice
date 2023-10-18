@@ -47,7 +47,7 @@ public class XsbDataController extends BaseController{
                             """,
                             value = """
                                     {"sourceType": "SFTP",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521*"]                     
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521*"]                    
                                     }
                                     """
                                     ),
@@ -55,7 +55,7 @@ public class XsbDataController extends BaseController{
                             name = "Sample Trigger Object from S3 bucket",
                             summary = "S3 Example",
                             description = """
-                            To trigger downloading files from ACR's S3 bucket. 
+                            To trigger downloading files from ACR's S3 bucket.
                             If the sourceFolder is provided, it is relative to "catalogAnalysis" on S3, meaning the base is always "catalogAnalysis", so in the example, the files will be looked relative to catalogAnalysis/testData/. 
                             If the sourceFolder is not provided, the files will be looked under catalogAnalysis.
                             The "files" property could be an array of full file names
@@ -64,7 +64,7 @@ public class XsbDataController extends BaseController{
                             value = """
                                     {"sourceType": "S3",
                                     "sourceFolder":"testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                     
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                    
                                     }
                                     """
                     )
@@ -73,7 +73,7 @@ public class XsbDataController extends BaseController{
                             name = "Sample Trigger Object from the local file system",
                             summary = "Local Example",
                             description = """
-                            To trigger downloading files from the pod's local file system. 
+                            To trigger downloading files from the pod's local file system.
                             SourceFolder is required in this case and it should be the absolute path to the files.
                             The "files" property could be an array of full file names
                             or glob like patterns.
@@ -81,7 +81,7 @@ public class XsbDataController extends BaseController{
                             value = """
                                     {"sourceType": "LOCAL",
                                     "sourceFolder":"/app/testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                     
+                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]                    
                                     }
                                     """
                     )

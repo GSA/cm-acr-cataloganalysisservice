@@ -4,15 +4,16 @@ import gov.gsa.acr.cataloganalysis.util.XsbSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 @Data
 public class Trigger {
     @Schema(description = """
-    Source for XSB Files. Has to be one of "SFTP", or "LOCAL", or "S3". 
-    "SFTP": will look for files on the XSB's SFTP server, 
-    "S3": Will look for file in the ACR's S3 bucket, 
+    Source for XSB Files. Has to be one of "SFTP", or "LOCAL", or "S3".
+    "SFTP": will look for files on the XSB's SFTP server,
+    "S3": Will look for file in the ACR's S3 bucket,
     "LOCAL": Will look for files on the PODs local file system.
     """)
     private XsbSourceType sourceType;
@@ -41,7 +42,7 @@ public class Trigger {
         if (uniqueFileNames == null) {
             if (files != null && files.length > 0) {
                 uniqueFileNames = new HashSet<>();
-                for (String fn : files) uniqueFileNames.add(fn);
+                Collections.addAll(uniqueFileNames, files);
             }
         }
         return uniqueFileNames;
