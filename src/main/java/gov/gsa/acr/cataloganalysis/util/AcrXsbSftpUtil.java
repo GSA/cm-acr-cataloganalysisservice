@@ -92,17 +92,6 @@ public class AcrXsbSftpUtil implements XsbSource {
         }
     }
 
-    private void deleteFiles (List<String> files){
-        if (files == null) return;
-        for (String file : files)
-            try {
-                boolean fileDeleted = Files.deleteIfExists(Paths.get(file));
-                if (!fileDeleted) log.warn("Unable to delete downloaded XSB report file {}", file);
-            } catch (IOException e) {
-                log.error("Error deleting download file " + file, e);
-            }
-    }
-
     private SftpProgressMonitor getSftpProgressMonitor() {
         return new SftpProgressMonitor() {
             private long totalBytesDownloadedUntilNow;
@@ -158,7 +147,7 @@ public class AcrXsbSftpUtil implements XsbSource {
                 doOnSubscribe(subscription -> {
                     SftpProgressMonitor sftpProgressMonitor =  getSftpProgressMonitor();
                     String sourceFileName = entry.getFilename();
-                    String destFileName = new StringBuilder(destinationFolder).append(File.separator).append(sourceFileName).toString();
+                    String destFileName = destinationFolder + File.separator + sourceFileName;
                     ChannelSftp channelSftp = null;
                     try {
                         channelSftp =  createDownloadChannelSftp(sftpGsaFilesReportDir);
@@ -169,7 +158,7 @@ public class AcrXsbSftpUtil implements XsbSource {
                         errorHandler.handleFileError(sourceFileName, "Download to Local file system from SFTP FAILED. " + exception.getMessage(), exception);
                         try {
                             Files.deleteIfExists(Paths.get(destFileName));
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             log.error("Error deleting download file " + destFileName, e);
                         }
                         sinks.tryEmitEmpty();
@@ -185,10 +174,10 @@ public class AcrXsbSftpUtil implements XsbSource {
     /**
      * Download files from the XSB server and generate a flux of paths of the downloaded files.
      *
-     * @param sftpGsaFilesReportDir
-     * @param fileNamePattern       File name for files to search. Could have wildcards (*)
+     * @param sftpGsaFilesReportDir The directory on the XSB sftp server where all response files are located.
+     * @param fileNamePattern       File name for files to search. Could have wildcards (*), in which case all the matching files will be downloaded
      * @param destinationFolder     Destination folder name where to save the files downloaded from the XSB server
-     * @return
+     * @return A stream of downloaded XSB files
      */
     private Flux<Path> getXSBFiles(String sftpGsaFilesReportDir, String fileNamePattern, String destinationFolder){
         final String MN = "getXSBFiles: ";
@@ -199,8 +188,7 @@ public class AcrXsbSftpUtil implements XsbSource {
             return Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
                     .publishOn(Schedulers.parallel())
-                    .flatMap(entry -> downloadFromXSBToLocal(sftpGsaFilesReportDir, entry, destinationFolder))
-                    .onErrorContinue((e, o) -> log.error(MN + "Error downloading a file from SFTP server: " + o + " This file will be ignored.", e));
+                    .flatMap(entry -> downloadFromXSBToLocal(sftpGsaFilesReportDir, entry, destinationFolder));
         } catch (Exception e) {
             log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
             errorHandler.handleFileError(fileNamePattern, "SFTP failed. " + e.getMessage(), e);
@@ -216,27 +204,25 @@ public class AcrXsbSftpUtil implements XsbSource {
     /**
      * Download files from the XSB server and generate a flux of paths of the downloaded files.
      *
-     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name patterns.
+     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name patterns, in which case each pattern might return a list of files
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
-     * @return
+     * @return A stream of all XSB files downloaded for all the patterns/ file names provided as the fileNames arg. Each element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into a single stream
      */
     public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder){
         final String MN = "getXSBFiles: ";
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank())? sourceFolder: defaultSftpGsaFileReportDir;
         if (fileNames == null) {
             Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
-            log.error("Error downloading files from XSB. Null argument provided. ", e);
+            log.error(MN + "Error downloading files from XSB. Null argument provided. ", e);
             return Flux.error(e);
         }
         if (fileNames.isEmpty() || fileNames.size() > 20) {
             Exception e = new IllegalArgumentException("Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.");
-            log.error("Error downloading files from XSB.", e);
+            log.error(MN + "Error downloading files from XSB.", e);
             return Flux.error(e);
         }
 
-        return Flux.fromIterable(fileNames)
-                .flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder))
-                .onErrorContinue((e, o) -> log.error("Error getting files from " + o, e));
+        return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
     }
 
 }

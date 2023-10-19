@@ -60,14 +60,13 @@ public class AcrXsbS3Util implements XsbSource  {
 
     }
 
-    public Flux<String> list(String sourceFolder, String fileNamePattern){
+    private Flux<String> list(String sourceFolder, String fileNamePattern){
         try {
             ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
                     .bucket(s3config.getBucket())
                     .prefix(s3config.getBaseDir() + sourceFolder + fileNamePattern)
                     .build();
-            CompletableFuture<ListObjectsResponse> future = s3client
-                    .listObjects(listObjectsRequest);
+            CompletableFuture<ListObjectsResponse> future = s3client.listObjects(listObjectsRequest);
 
             return Mono.fromFuture(future)
                     .flatMapMany(response -> Flux.fromIterable(response.contents()))
@@ -82,14 +81,11 @@ public class AcrXsbS3Util implements XsbSource  {
         }
     }
 
-    public Mono<Path> downloadFromS3(String key, String destinationFolder){
+    private Mono<Path> downloadFromS3(String key, String destinationFolder){
         try {
             Path sourcePath = Path.of(key);
             Path destinationPath = Path.of(destinationFolder+"/"+sourcePath.getFileName());
-            GetObjectRequest request = GetObjectRequest.builder()
-                    .bucket(s3config.getBucket())
-                    .key(key)
-                    .build();
+            GetObjectRequest request = GetObjectRequest.builder().bucket(s3config.getBucket()).key(key).build();
 
             return Mono.fromFuture(s3client.getObject(request, destinationPath))
                     .map(response -> {
@@ -110,8 +106,7 @@ public class AcrXsbS3Util implements XsbSource  {
 
 
     private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder){
-        return list(sourceFolder, fileNamePattern)
-                .flatMap(k -> downloadFromS3(k, destinationFolder));
+        return list(sourceFolder, fileNamePattern).flatMap(k -> downloadFromS3(k, destinationFolder));
     }
 
     private String getScrubbedSourceDir(String origSourceDir){
@@ -124,20 +119,18 @@ public class AcrXsbS3Util implements XsbSource  {
     public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder) {
         final String MN = "getXSBFiles: ";
         final String srcDir = getScrubbedSourceDir(sourceFolder);
-
         if (fileNames == null) {
-            Exception e = new IllegalArgumentException("The array must have valid file names, not NULL>");
-            log.error(MN + "Error downloading files from XSB. Null argument provided. ", e);
+            String message = "The files array must have valid file names. The files array is null.";
+            Exception e = new IllegalArgumentException(message);
+            log.error(MN + message, e);
             return Flux.error(e);
         }
         if (fileNames.isEmpty() || fileNames.size() > 20) {
-            Exception e = new IllegalArgumentException("Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.");
-            log.error(MN + "Error downloading files from XSB.", e);
+            String message = "Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.";
+            Exception e = new IllegalArgumentException(message);
+            log.error(MN + message, e);
             return Flux.error(e);
         }
-
-        return Flux.fromIterable(fileNames)
-                .flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder))
-                .onErrorContinue((e, o) -> log.error(MN + "Error getting files from " + o, e));
+        return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
     }
 }

@@ -30,6 +30,7 @@ public class XsbDataController extends BaseController{
             description = """
     This API endpoint is used to trigger the Catalog Analysis Service to start loading the bi-monthly XSB data. The end point expects
     a trigger message. The examples listed below explains the structure of the trigger message and explains what each attribute means.
+    It is important to read the description for each example to understand the nuances for different options for getting XSB source files.
     """
     )
     @PostMapping(value="/trigger", produces = MediaType.APPLICATION_NDJSON_VALUE)
