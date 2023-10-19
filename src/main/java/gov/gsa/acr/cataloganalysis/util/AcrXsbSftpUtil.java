@@ -11,13 +11,15 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
 
 @Component
 @Slf4j
@@ -60,10 +62,10 @@ public class AcrXsbSftpUtil implements XsbSource {
         config.put("StrictHostKeyChecking", "no");
         session.setConfig(config);
         long lStartTime = new Date().getTime();
-        log.info("Connecting to sftp...");
+        log.debug("Connecting to sftp...");
         session.connect();
         long lEndTime = new Date().getTime();
-        log.info("Connected to SFTP in : " + (lEndTime - lStartTime));
+        log.debug("Connected to SFTP in : " + (lEndTime - lStartTime));
         Channel channel = session.openChannel("sftp");
         channel.connect();
         ChannelSftp channelSftp = (ChannelSftp) channel;
@@ -164,7 +166,7 @@ public class AcrXsbSftpUtil implements XsbSource {
                         sinks.tryEmitEmpty();
                     }
                     finally {
-                        log.info(MN + "Disconnecting from SFTP for " + entry.getFilename());
+                        log.debug(MN + "Disconnecting from SFTP for " + entry.getFilename());
                         disconnectChannelSftp(channelSftp);
                     }
                 });
@@ -172,7 +174,8 @@ public class AcrXsbSftpUtil implements XsbSource {
 
 
     /**
-     * Download files from the XSB server and generate a flux of paths of the downloaded files.
+     * Download files from the XSB server and generate a stream of paths of the downloaded files. Since file name
+     * coulc be a glob line pattern, there could be multiple files that may match the pattern
      *
      * @param sftpGsaFilesReportDir The directory on the XSB sftp server where all response files are located.
      * @param fileNamePattern       File name for files to search. Could have wildcards (*), in which case all the matching files will be downloaded
@@ -195,16 +198,21 @@ public class AcrXsbSftpUtil implements XsbSource {
             return Flux.empty();
         }
         finally {
-            log.info(MN + "Disconnecting from SFTP for " + fileNamePattern);
+            log.debug(MN + "Disconnecting from SFTP for " + fileNamePattern);
             disconnectChannelSftp(channelSftp);
         }
 
     }
 
     /**
-     * Download files from the XSB server and generate a flux of paths of the downloaded files.
+     * Download files from the XSB server and generate a stream of paths of the downloaded files. If multiple patterns
+     * are provided in the fileNames set, then each pattern might match multiple files. All these files are collected
+     * on the same stream for further processing (parsing, JSON conversion, storing in DB)
      *
-     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name patterns, in which case each pattern might return a list of files
+     * @param sourceFolder      An optional source folder to seach the files in SFTP server. If this is not provided
+     *                          then the default "/reports" folder is searched on the server
+     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name
+     *                          patterns, in which case each pattern might return a list of files
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server
      * @return A stream of all XSB files downloaded for all the patterns/ file names provided as the fileNames arg. Each element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into a single stream
      */
