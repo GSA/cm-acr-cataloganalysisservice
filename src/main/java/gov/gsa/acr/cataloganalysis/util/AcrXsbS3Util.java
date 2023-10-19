@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
-public class AcrXsbS3Util implements XsbSource  {
+public class AcrXsbS3Util implements XsbSource {
     private final S3AsyncClient s3client;
     private final S3ClientConfigurarionProperties s3config;
 
@@ -34,16 +34,16 @@ public class AcrXsbS3Util implements XsbSource  {
         }
     }
 
-    public Mono<String> uploadToS3(Path source, String destination){
+    public Mono<String> uploadToS3(Path source, String destination) {
         final String MN = "uploadToS3: ";
         log.info(MN + " saving file {} to S3 at {}", source, destination);
         CompletableFuture<PutObjectResponse> future;
         try {
             future = s3client
                     .putObject(PutObjectRequest.builder()
-                                    .bucket(s3config.getBucket())
-                                    .key(s3config.getBaseDir() + destination)
-                                    .build(), source);
+                            .bucket(s3config.getBucket())
+                            .key(s3config.getBaseDir() + destination)
+                            .build(), source);
             return Mono.fromFuture(future)
                     .map((response) -> {
                         checkResult(response);
@@ -60,7 +60,7 @@ public class AcrXsbS3Util implements XsbSource  {
 
     }
 
-    private Flux<String> list(String sourceFolder, String fileNamePattern){
+    private Flux<String> list(String sourceFolder, String fileNamePattern) {
         try {
             ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
                     .bucket(s3config.getBucket())
@@ -73,7 +73,7 @@ public class AcrXsbS3Util implements XsbSource  {
                     .map(S3Object::key)
                     .onErrorResume(e -> {
                         log.error("Error while listing files from S3", e);
-                        return Mono.empty();
+                        return Flux.empty();
                     });
         } catch (Exception e) {
             log.error("Error while listing files from S3", e);
@@ -81,10 +81,10 @@ public class AcrXsbS3Util implements XsbSource  {
         }
     }
 
-    private Mono<Path> downloadFromS3(String key, String destinationFolder){
+    private Mono<Path> downloadFromS3(String key, String destinationFolder) {
         try {
             Path sourcePath = Path.of(key);
-            Path destinationPath = Path.of(destinationFolder+"/"+sourcePath.getFileName());
+            Path destinationPath = Path.of(destinationFolder + "/" + sourcePath.getFileName());
             GetObjectRequest request = GetObjectRequest.builder().bucket(s3config.getBucket()).key(key).build();
 
             return Mono.fromFuture(s3client.getObject(request, destinationPath))
@@ -93,9 +93,9 @@ public class AcrXsbS3Util implements XsbSource  {
                         return destinationPath;
                     })
                     .onErrorResume(e -> {
-                      log.error("Error downloading file from S3: " + key);
-                      errorHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
-                      return Mono.empty();
+                        log.error("Error downloading file from S3: " + key);
+                        errorHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
+                        return Mono.empty();
                     });
         } catch (Exception e) {
             log.error("Error downloading the file from S3: " + key, e);
@@ -105,32 +105,51 @@ public class AcrXsbS3Util implements XsbSource  {
     }
 
 
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder){
-        return list(sourceFolder, fileNamePattern).flatMap(k -> downloadFromS3(k, destinationFolder));
-    }
-
-    private String getScrubbedSourceDir(String origSourceDir){
+    private String getScrubbedSourceDir(String origSourceDir) {
         if (origSourceDir == null || origSourceDir.isBlank()) return "";
         else if (!origSourceDir.endsWith("/")) return origSourceDir + "/";
         else return origSourceDir;
     }
 
+
+    /**
+     * Download files from the S3 bucket and generate a stream of paths of the downloaded files. Since file name
+     * could be a glob line pattern, there could be multiple files that may match the pattern
+     *
+     * @param sourceFolder      An optional source folder to search the files in S3 bucket. If provided, this folder
+     *                          will be treated relative to the base folder "catalogAnalysis/". If not provided, then
+     *                          the files will be searched in the base folder.
+     * @param fileNamePattern   Name of the file to search. The file names are treated as prefix. Wild cards are not
+     *                          allowed here.
+     * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server. Usually
+     *                          a temporary directory that is deleted once processing completes.
+     * @return A stream of downloaded XSB files
+     */
+    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
+        return list(sourceFolder, fileNamePattern).flatMap(k -> downloadFromS3(k, destinationFolder));
+    }
+
+
+    /**
+     * Download files from the S3 bucket and generate a stream of paths of the downloaded files. If multiple patterns
+     * are provided in the fileNames, then each pattern might match multiple files. All these files are collected
+     * on the same stream for further processing (parsing, JSON conversion, storing in DB)
+     *
+     * @param sourceFolder      An optional source folder to search the files in S3 bucket. If provided, this folder
+     *                          will be treated relative to the base folder "catalogAnalysis/". If not provided, then
+     *                          the files will be searched in the base folder.
+     * @param fileNames         An array of file names to be downloaded from the XSB server. The file names are treated
+     *                          as prefix. Wild cards are not allowed here.
+     * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server. Usually
+     *                          a temporary directory that is deleted once processing completes.
+     * @return A stream of all XSB files downloaded for all the patterns/ file names provided as the fileNames arg. Each
+     * element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into
+     * a single stream
+     */
     @Override
     public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder) {
-        final String MN = "getXSBFiles: ";
         final String srcDir = getScrubbedSourceDir(sourceFolder);
-        if (fileNames == null) {
-            String message = "The files array must have valid file names. The files array is null.";
-            Exception e = new IllegalArgumentException(message);
-            log.error(MN + message, e);
-            return Flux.error(e);
-        }
-        if (fileNames.isEmpty() || fileNames.size() > 20) {
-            String message = "Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.";
-            Exception e = new IllegalArgumentException(message);
-            log.error(MN + message, e);
-            return Flux.error(e);
-        }
+        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
         return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
     }
 }

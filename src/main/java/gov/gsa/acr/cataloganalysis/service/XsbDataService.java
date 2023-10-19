@@ -41,37 +41,39 @@ public class XsbDataService {
      * @param trigger A trigger object. See the Swagger Docs for more information about this.
      */
     public void trigger(Trigger trigger) {
-        if (executing.get())
-            throw new ConcurrentModificationException("Process is currently running!"); // Already executing!
+        if (executing.get()) throw new ConcurrentModificationException("Process is currently running!"); // Already executing!
         if (trigger == null) throw new IllegalArgumentException("Invalid request body in POST"); // Trigger is required
-        errorHandler.init(null);
+        errorHandler.init(null); // Initialize the error handler, reset all previous attributes.
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         if (uniqueFileNames == null || uniqueFileNames.isEmpty())
             throw new IllegalArgumentException("Request body must include files attribute (an array with file names or file name patterns.");
         AtomicInteger dbCounter = new AtomicInteger(0);
-        String tmpdir;
+        String tmpdir; // Create a temporary directory for staging all XSB files that need to be processed.
         try {
             tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to a temp dir.
+        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
         Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
         deleteOldStagingData()
                 .thenMany(xsbDataRepository
                         .findTaaCompliantCountries()
                         .collectList()
                         .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
-                        .onErrorStop()
                         .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, errorHandler, taaCountryCodes))
                         .onBackpressureBuffer()
                         .flatMap(x -> saveDataRecordToStaging(x, errorHandler))
                         .doFirst(() -> dbCounter.set(0))
                         .doOnNext(e -> {
+                            // TBD change the frequency of reporting
                             if (dbCounter.incrementAndGet() % 1000 == 0) log.info("Saved {} records", dbCounter.get());
                         })
-                        .doOnComplete(() -> errorHandler.setNumRecordsSavedInTempDB(dbCounter))
+                        .doOnComplete(() -> {
+                            errorHandler.setNumRecordsSavedInTempDB(dbCounter);
+                            log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
+                        })
                 )
                 .then(Mono.defer(this::moveDataFromStagingToFinal))
                 .thenMany(Flux.defer(this::uploadErrorFilesToS3))
@@ -79,7 +81,7 @@ public class XsbDataService {
                 .doFirst(() -> executing.compareAndSet(false, true))
                 .doFinally(s -> {
                     errorHandler.close();
-                    log.info("Finished. Saved a total of {} records", dbCounter.get());
+                    log.info("Finished. Moved a total of {} records to the final xsb_data table", dbCounter.get());
                     log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
                     log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
                     log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
@@ -106,17 +108,12 @@ public class XsbDataService {
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles
                 .doOnNext(p -> log.info(MN + "Parsing file: " + p))
-                .doOnError(e -> {
-                    errorHandler.handleFileError("", e.getMessage(), e);
-                    log.error(MN + "error: " + e.getMessage(), e);
-                })
-                .doOnComplete(() -> log.info(MN + "Got all files"))
-                .onErrorContinue((e, o) -> log.error("Got error for a response file, " + o + ". Will continue..."))
+                .doOnComplete(() -> log.info(MN + "Parsed ALL files!!"))
                 .index()
                 .flatMap(tuple2 -> parseXsbFile(tuple2.getT1(), tuple2.getT2(), errorHandler, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
-                .onErrorContinue((e, o) -> log.error("Got error parsing a response file, " + o + ". Will Continue..."))
                 .doOnNext(xsbData -> {
+                    // TBD adjust the frequency of reporting
                     if (counter.incrementAndGet() % 1000 == 0)
                         log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
                 })
@@ -202,7 +199,7 @@ public class XsbDataService {
         return Mono.just(errorHandler.proceedToMoveDataFromStagingToFinal())
                 .filter(proceed -> proceed)
                 .flatMap(proceed -> xsbDataRepository.deleteAll()
-                        .doFirst(() -> log.info("Moving data in bulk from enrichment table to the xsb_data table."))
+                        .doFirst(() -> log.info("Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table."))
                         .then(Mono.defer(xsbDataRepository::moveXsbData)));
     }
 
