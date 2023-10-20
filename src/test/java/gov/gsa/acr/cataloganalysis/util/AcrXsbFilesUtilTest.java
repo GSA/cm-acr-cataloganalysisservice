@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.util;
 
-import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
@@ -59,9 +58,9 @@ class AcrXsbFilesUtilTest {
 
     @Test
     void globToRegex() {
-        assertEquals("file.*\\.gsa", acrXsbFilesUtil.globToRegex("file*.gsa") );
-        assertEquals("file.\\.gsa", acrXsbFilesUtil.globToRegex("file?.gsa"));
-        assertEquals("/.*.*/file.\\.gsa", acrXsbFilesUtil.globToRegex("/**/file?.gsa"));
+        assertEquals("file.*\\.gsa", AcrXsbFilesUtil.globToRegex("file*.gsa") );
+        assertEquals("file.\\.gsa", AcrXsbFilesUtil.globToRegex("file?.gsa"));
+        assertEquals("/.*.*/file.\\.gsa", AcrXsbFilesUtil.globToRegex("/**/file?.gsa"));
     }
 
     @Test
