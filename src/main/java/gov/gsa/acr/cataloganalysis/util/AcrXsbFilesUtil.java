@@ -113,13 +113,13 @@ public class AcrXsbFilesUtil implements XsbSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
+        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
         if (destinationFolder == null || destinationFolder.isBlank() || (Files.notExists(Path.of(destinationFolder)))) {
             String message = "Invalid destination folder: " + destinationFolder;
             Exception e = new IllegalArgumentException(message);
             log.error(MN + message, e);
             return Flux.empty();
         }
-        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
         return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(sourceFolder, f, destinationFolder));
     }
 }

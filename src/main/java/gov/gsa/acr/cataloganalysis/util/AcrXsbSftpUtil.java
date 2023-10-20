@@ -53,9 +53,7 @@ public class AcrXsbSftpUtil implements XsbSource {
     }
 
     private ChannelSftp createDownloadChannelSftp(String sftpGsaFilesReportDir) throws JSchException, SftpException {
-        if (sftpGsaFilesReportDir == null || sftpGsaFilesReportDir.isBlank())
-            return getChannelSftp(defaultSftpGsaFileReportDir);
-        else return getChannelSftp(sftpGsaFilesReportDir);
+        return getChannelSftp(sftpGsaFilesReportDir);
     }
 
     private ChannelSftp getChannelSftp(String sftpGsaFileReportDir) throws JSchException, SftpException {
