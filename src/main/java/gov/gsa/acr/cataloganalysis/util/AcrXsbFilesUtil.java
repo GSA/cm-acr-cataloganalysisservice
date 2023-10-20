@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -59,7 +60,7 @@ public class AcrXsbFilesUtil implements XsbSource {
 
 
     /**
-     * For the file name pattern proviced in the argument, create a stream with all the matching files
+     * For the file name pattern provided in the argument, create a stream with all the matching files
      *
      * @param sourceFolder      The local directory to search for the files.
      * @param fileNamePattern   File name for files to search. Could have wildcards (*), in which case all the
@@ -81,7 +82,7 @@ public class AcrXsbFilesUtil implements XsbSource {
                 .handle((source, sink) -> {
                     Path destination = Path.of(destinationFolder + "/" + source.getFileName());
                     try {
-                        sink.next(Files.copy(source, destination));
+                        sink.next(Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING));
                     } catch (Exception e) {
                         log.error("Unable to copy " + source + " to " + destination + ". Will ignore and continue.", e);
                         errorHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);

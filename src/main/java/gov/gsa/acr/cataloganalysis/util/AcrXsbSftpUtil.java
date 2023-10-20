@@ -153,15 +153,16 @@ public class AcrXsbSftpUtil implements XsbSource {
                     String sourceFileName = entry.getFilename();
                     String destFileName = destinationFolder + File.separator + sourceFileName;
                     ChannelSftp channelSftp = null;
+                    Path dest = Path.of(destFileName);
                     try {
                         channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
                         channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
-                        sinks.tryEmitValue(Path.of(destFileName));
+                        sinks.tryEmitValue(dest);
                     } catch (Exception exception) {
                         log.error(MN + "Download to Local file system from SFTP FAILED. XSB file: " + sourceFileName + " Local File: " + destFileName + " " + exception.getMessage(), exception);
                         errorHandler.handleFileError(sourceFileName, "Download to Local file system from SFTP FAILED. " + exception.getMessage(), exception);
                         try {
-                            Files.deleteIfExists(Paths.get(destFileName));
+                            Files.deleteIfExists(dest);
                         } catch (Exception e) {
                             log.error("Error deleting download file " + destFileName, e);
                         }

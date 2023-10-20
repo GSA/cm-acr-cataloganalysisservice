@@ -105,10 +105,22 @@ public class AcrXsbS3Util implements XsbSource {
     }
 
 
-    private String getScrubbedSourceDir(String origSourceDir) {
+    String getScrubbedSourceDir(String origSourceDir) {
         if (origSourceDir == null || origSourceDir.isBlank()) return "";
-        else if (!origSourceDir.endsWith("/")) return origSourceDir + "/";
-        else return origSourceDir;
+        int beginIndex;
+        for (beginIndex = 0; beginIndex < origSourceDir.length() - 1; beginIndex++)
+            if (invalidCharacter(origSourceDir, beginIndex)) break;
+
+        int endIndex;
+        for (endIndex = origSourceDir.length() - 1; endIndex > 0; endIndex--)
+            if (invalidCharacter(origSourceDir, endIndex)) break;
+
+        return origSourceDir.substring(beginIndex, endIndex + 1) + '/';
+    }
+
+    private boolean invalidCharacter(String origSourceDir, int index) {
+        char c = origSourceDir.charAt(index);
+        return c != '"' && c != '*' && c != '<' && c != '>' && c != '?' && c != '|' && c != '\\' && c != '/';
     }
 
 

@@ -167,19 +167,19 @@ public class ErrorHandler {
         boolean tryAgain = false;
         try {
             if (errorMsgWriter == null) {
-                Path opPath = Paths.get(getErrorMessageFileName());
+                Path opPath = Path.of(getErrorMessageFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 errorMsgWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
             }
             if (errorType.equals("DB") && dbErrorWriter == null) {
-                Path opPath = Paths.get(getDBErrorFileName());
+                Path opPath = Path.of(getDBErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 dbErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
                 if (header == null || header.isBlank()) log.error("Error initializing the errorHandler. Header string is null");
                 else dbErrorWriter.println(header);
             }
             else if (errorType.equals("PARSE") && parseErrorWriter == null) {
-                Path opPath = Paths.get(getParseErrorFileName());
+                Path opPath = Path.of(getParseErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
                 if (header == null || header.isBlank()) log.error("Error initializing the errorHandler. Header string is null");
