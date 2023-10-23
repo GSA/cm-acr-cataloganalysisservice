@@ -3,20 +3,19 @@ package gov.gsa.acr.cataloganalysis.service;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Optional;
@@ -29,243 +28,230 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class XsbDataService {
-    private AtomicBoolean executing = new AtomicBoolean();
+    private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
-    private final AcrXsbSftpUtil acrXsbSftpUtil;
-
-    private final String ls = System.getProperty("line.separator");
-    public Mono<Integer> saveXsbDataRecord(XsbData x, ErrorHandler errorHandler) {
-        return xsbDataRepository.saveXSBDataToTemp(x.getContractNumber(), x.getManufacturer(), x.getPartNumber(), x.getXsbData())
-                // TBD: Retry logic here
-                //.retry(5)
-                .onErrorResume(e -> {
-                        log.error("Error saving record to DB. " + e.getMessage() + " " + x, e);
-                        // TBD Error Handler: Possibly a recoverable Error
-                        errorHandler.handleDBError (x, e.getMessage());
-                        return Mono.empty();
-                });
-
-    }
+    private final XsbSourceFactory xsbSourceFactory;
+    private final AcrXsbS3Util acrXsbS3Util;
+    private final XsbDataParser xsbDataParser;
 
 
-    @Transactional
-    public Mono<Void> moveXsbData(Sinks.Many<String> statusNotifier) {
-        return xsbDataRepository.deleteAll()
-                .doFirst(() -> {
-                    if (statusNotifier != null) {
-                        statusNotifier.tryEmitNext("Moving data in bulk from enrichment table to the xsb_data table using transaction ID\n");
-                        statusNotifier.tryEmitNext("------------------------------------------------------------------------------------\n");
-                    }
-                    log.info("Moving data in bulk from enrichment table to the xsb_data table using transaction ID ");
-                    log.info("----------------------------------------------");
-                })
-                .then(xsbDataRepository.moveXsbData());
-    }
-
-    public Mono<Void> cleanXsbDataTemp(Sinks.Many<String> statusNotifier) {
-        return xsbDataRepository.deleteAllXsbDataTemp().doFirst(() -> {
-            if (statusNotifier != null) {
-                statusNotifier.tryEmitNext("Cleaning up temporary data from xsb_data_temp\n");
-                statusNotifier.tryEmitNext("---------------------------------------------\n");
-            }
-            log.info("Cleaning up temporary data from xsb_data_temp");
-            log.info("----------------------------------------------");
-        });
-    }
-
-
-    public Flux<Path> xsbResponseFiles(Path xsbResponseDir, String responseFileExtension){
-        String tmpdir;
-        try {
-            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
-        } catch (IOException e) {
-            return Flux.error(new RuntimeException(e));
-        }
-
-        return Flux.using(
-                () ->  Files.list(xsbResponseDir).filter(Files::isRegularFile).filter(p->p.toString().endsWith(responseFileExtension)),
-                Flux::fromStream,
-                Stream::close
-        ).handle((source, sink) -> {
-            Path destination = Path.of(tmpdir + "/" + source.getFileName());
-            try {
-                sink.next(Files.copy(source, destination));
-            } catch (Exception e) {
-                log.error("Unable to copy " + source + " to " + destination + ". Will ignore and continue.", e);
-                errorHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);
-            }
-        });
-
-
-    }
-
-    public static Flux<Path> xsbResponseFiles(List<String> fileNames){
-        return Flux.fromIterable(fileNames).map(Paths::get);
-    }
-
-
-    public static Flux<XsbData> parseXsbResponseFile(Path anXsbResponseFile, ErrorHandler eh, List<String> taaCountryCodes) {
-        final String MN = "parseXsbResponseFile: ";
-
-        // First read the header row (First row of the File)
-        try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)){
-            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
-            if (mayBeHeader.isPresent()) {
-                String header = mayBeHeader.get();
-                XsbReportHandler.setHeader(String.valueOf(anXsbResponseFile), header);
-            }
-            else throw new Exception("Missing header row from file, " + anXsbResponseFile + ". Possibly an empty file.");
-        } catch (Exception e) {
-            eh.handleFileError(String.valueOf(anXsbResponseFile), "Ignoring File. " + e.getMessage(), e);
-            log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e );
-            return Flux.empty();
-        }
-
-        // Now create a Flux of all the lines from the file.
-        return Flux.using(
-                        () -> Files.lines(anXsbResponseFile).skip(1),
-                        Flux::fromStream,
-                        Stream::close
-                )
-                .map(s -> XsbReportHandler.mapRawXsbResponseToXsbDataPojo(String.valueOf(anXsbResponseFile), s, taaCountryCodes))
-                .publishOn(Schedulers.parallel())
-                .onErrorContinue((e, s) -> eh.handleParsingError(String.valueOf(s), String.valueOf(anXsbResponseFile), e.getMessage())
-                );
-    }
-
-
-    public Flux<XsbData> processXSBFiles(Flux<Path> xsbResponseFiles, ErrorHandler errorHandler, List<String> taaCountryCodes, Sinks.Many<String> statusNotifier){
-        final String MN = "processXSBFiles: ";
-        AtomicInteger counter = new AtomicInteger(0);
-        return xsbResponseFiles
-                .doOnNext(p -> {
-                    log.info(MN + "Processing file: " + p);
-                    if (statusNotifier != null)
-                        statusNotifier.tryEmitNext("Processing file: " + p + ls);
-                })
-                .doOnError(e -> {
-                    errorHandler.handleFileError("", e.getMessage(), e);
-                    log.error(MN + "error: " + e.getMessage(), e);
-                    if (statusNotifier != null)
-                        statusNotifier.tryEmitNext("error: " + e.getMessage() + ls);
-                })
-                .doOnComplete(() -> {
-                    log.info(MN + "Got all files");
-                    if (statusNotifier != null)
-                        statusNotifier.tryEmitNext("Got all files"+ls);
-                })
-                .onErrorContinue((e, o) -> log.error("Got error for a response file, " + o + ". Will Continuew"))
-                .flatMap(p -> parseXsbResponseFile(p, errorHandler, taaCountryCodes))
-                .doFirst(() -> counter.set(0))
-                .onErrorContinue((e, o) -> log.error("Got error parsing a response file, " + o + ". Will Continuew"))
-                .doOnNext(xsbData -> {
-                    if (counter.incrementAndGet() % 1000 == 0) {
-                        log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
-                        if (statusNotifier != null)
-                            statusNotifier.tryEmitNext( xsbData.getSourceXsbDataFileName() + " ... "+ counter.get() +" records" + ls);
-                    }
-                })
-                .doOnComplete(() -> {
-                    log.info(MN + "Finished. Parsed and converted to JSON a total of {} records", counter.get());
-                    if (statusNotifier != null)
-                        statusNotifier.tryEmitNext("Finished. Parsed and converted to JSON a total of " +  counter.get() +" records" + ls);
-                });
-    }
-
-
-    public void trigger(Trigger trigger, Sinks.Many<String> statusNotifier) {
-        if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
-        errorHandler.init();
+    /**
+     * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
+     *
+     * @param trigger A trigger object. See the Swagger Docs for more information about this.
+     */
+    public void trigger(Trigger trigger) {
+        if (executing.get()) throw new ConcurrentModificationException("Process is currently running!"); // Already executing!
+        if (trigger == null) throw new IllegalArgumentException("Invalid request body in POST"); // Trigger is required
+        errorHandler.init(null); // Initialize the error handler, reset all previous attributes.
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+        if (uniqueFileNames == null || uniqueFileNames.isEmpty())
+            throw new IllegalArgumentException("Request body must include files attribute (an array with file names or file name patterns.");
         AtomicInteger dbCounter = new AtomicInteger(0);
-
-//        String[] fileNames = { "banana", "testData/fruits", "testData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa", "testData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"
-//                    , "testData/GS-06F-0052R-3008634_20230816153812_6606792615789196106_report_1.gsa"
-//                    , "orange", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t"};
-
-        String[] fileNames = {"testData/testFileWithErrors.gsa", "banana", "testData/z1.gsa", "testData/z2.gsa"};
-
-
-        //Flux<Path> filesFromList = xsbResponseFiles(Arrays.asList(fileNames));
-        Flux<Path> filesFromList = xsbResponseFiles(Paths.get("testData"), "gsa");
-
-        cleanXsbDataTemp(statusNotifier)
-                .then(
-                        xsbDataRepository
-                                .findTaaCompliantCountries()
-                                .collectList()
-                                .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
-                                .onErrorStop()
-                                .flatMapMany(taaCountryCodes ->
-                                        processXSBFiles(filesFromList, errorHandler, taaCountryCodes, statusNotifier)
-                                )
-                                .onBackpressureBuffer()
-                                .flatMap(x -> saveXsbDataRecord(x, errorHandler))
-                                .doFirst(() -> dbCounter.set(0))
-                                .doOnNext(e -> {
-                                    if (dbCounter.incrementAndGet() % 1000 == 0) {
-                                        log.info("Saved {} records", dbCounter.get());
-                                        if (statusNotifier != null)
-                                            statusNotifier.tryEmitNext("Saved "+ dbCounter.get() +" records" + ls);
-                                    }
-                                })
-                                .doOnComplete(() -> {
-                                    log.info("Finished. Saved a total of {} records", dbCounter.get());
-                                    log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
-                                    log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
-                                    log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
-                                    if (statusNotifier != null){
-                                        statusNotifier.tryEmitNext("Finished. Saved a total of " + dbCounter.get() + " records." + ls);
-                                        statusNotifier.tryEmitNext("Number of parsing errors: " + errorHandler.getNumParsingErrors().get()+ls);
-                                        statusNotifier.tryEmitNext("Number of db errors: " + errorHandler.getNumDbErrors().get()+ls);
-                                        statusNotifier.tryEmitNext("Number of file errors: " + errorHandler.getNumFileErrors().get()+ls);
-                                    }
-                                })
-                                // TBD only move data if there is something to move and an error threshold has not reached
-                                .then(moveXsbData(null))
-                                .doOnSuccess(s -> {
-                                    log.info("All Done!!");
-                                    if (statusNotifier != null) {
-                                        statusNotifier.tryEmitNext("All Done!!");
-                                        statusNotifier.tryEmitComplete();
-                                    }
-                                })
-                                .doFinally(s -> errorHandler.close())
-                )
-                .doFirst(() -> executing.compareAndSet(false, true))
-                .doFinally(s -> executing.compareAndSet(true, false))
-                .subscribe(
-                       null, e -> log.error("Unexpected Error", e)
-                );
-    }
-
-
-    public Flux<Path> downloadReportsFromXSB(Trigger trigger, Sinks.Many<String> statusNotifier){
-        errorHandler.init();
-        String tmpdir;
-        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        String tmpdir; // Create a temporary directory for staging all XSB files that need to be processed.
         try {
             tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(uniqueFileNames, tmpdir)
-                    .doOnComplete(() -> {
-                        log.info("Finished downloading all files.");
-                        if (statusNotifier != null) statusNotifier.tryEmitComplete();
-                    })
-                    .doFinally(s -> errorHandler.close());
-        else if (trigger.getFilePattern() != null)
-            return acrXsbSftpUtil.downloadFilesFromXSBToLocal(trigger.getFilePattern(), tmpdir)
-                    .doOnComplete(() -> {
-                        log.info("Finished downloading all files.");
-                        if (statusNotifier != null) statusNotifier.tryEmitComplete();
-                    })
-                    .doFinally(s -> errorHandler.close());
-        else
-            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
+
+        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
+        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        deleteOldStagingData()
+                .thenMany(xsbDataRepository
+                        .findTaaCompliantCountries()
+                        .collectList()
+                        .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
+                        .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, errorHandler, taaCountryCodes))
+                        .onBackpressureBuffer()
+                        .flatMap(x -> saveDataRecordToStaging(x, errorHandler))
+                        .doFirst(() -> dbCounter.set(0))
+                        .doOnNext(e -> {
+                            // TBD change the frequency of reporting
+                            if (dbCounter.incrementAndGet() % 1000 == 0) log.info("Saved {} records", dbCounter.get());
+                        })
+                        .doOnComplete(() -> {
+                            errorHandler.setNumRecordsSavedInTempDB(dbCounter);
+                            log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
+                        })
+                )
+                .then(Mono.defer(this::moveDataFromStagingToFinal))
+                .thenMany(Flux.defer(this::uploadErrorFilesToS3))
+                .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
+                .doFirst(() -> executing.compareAndSet(false, true))
+                .doFinally(s -> {
+                    errorHandler.close();
+                    log.info("Finished. Moved a total of {} records to the final xsb_data table", dbCounter.get());
+                    log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
+                    log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
+                    log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
+                    log.info("All Done!!");
+                    executing.compareAndSet(true, false);
+                })
+                .subscribe(null, e -> log.error("Unexpected Error", e));
+    }
+
+
+    /**
+     * Parse all the XSB files asynchronously, producing a list of XSBData POJOs. A helper function (parseXsbFile) is
+     * used to parse a single file. XsbData objects from all the individual files are collected into a single stream.
+     *
+     * @param xsbFiles        A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
+     * @param errorHandler    An object for handling any errors by mainly logging the error with as much information
+     *                        as possible for further analysis
+     * @param taaCountryCodes Country codes for all the countries that USA has a valid Trade Agreement
+     * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
+     * stream from all the files
+     */
+    private Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, ErrorHandler errorHandler, List<String> taaCountryCodes) {
+        final String MN = "parseXsbFiles: ";
+        AtomicInteger counter = new AtomicInteger(0);
+        return xsbFiles
+                .doOnNext(p -> log.info(MN + "Parsing file: " + p))
+                .doOnComplete(() -> log.info(MN + "Parsed ALL files!!"))
+                .index()
+                .flatMap(tuple2 -> parseXsbFile(tuple2.getT1(), tuple2.getT2(), errorHandler, taaCountryCodes))
+                .doFirst(() -> counter.set(0))
+                .doOnNext(xsbData -> {
+                    // TBD adjust the frequency of reporting
+                    if (counter.incrementAndGet() % 1000 == 0)
+                        log.info(MN + "{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
+                })
+                .doOnComplete(() -> log.info(MN + "Finished. Parsed and converted to JSON a total of {} records", counter.get()));
+    }
+
+
+    /**
+     * Function that parses a single XSB file and converts each line inside the file to an XsbData POJO. Any individual
+     * lines that have problems are separated into an error file for further analysis.
+     *
+     * @param index             Index of the Xsb File that is going to be processed by this method
+     * @param xsbFile The Xsb File to be processed
+     * @param errorHandler      An object for handling any errors by mainly logging the error with as much information
+     *                          as possible for further analysis
+     * @param taaCountryCodes   Country codes for all the countries that USA has a valid Trade Agreement
+     * @return A stream of XsbData POJO object created from each data line of the XSB file.
+     */
+    private Flux<XsbData> parseXsbFile(Long index, Path xsbFile, ErrorHandler errorHandler, List<String> taaCountryCodes) {
+        if (index == 0) this.errorHandler.init(null);
+
+        // First read the header row (First row of the File)
+        try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
+            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
+            if (mayBeHeader.isPresent()) {
+                String header = mayBeHeader.get();
+                if (!xsbDataParser.validateHeader(header)) throw new Exception ("Header String for file " + xsbFile + ", " + header +", is different from expected header, " + xsbDataParser.getHeaderString());
+                if (this.errorHandler.getHeader() == null) this.errorHandler.setHeader(header);
+            } else
+                throw new Exception("Missing header row from file, " + xsbFile + ". Possibly an empty file.");
+        } catch (Exception e) {
+            errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);
+            log.error("Ignoring file : " + xsbFile, e);
+            return Flux.empty();
+        }
+
+        // Now create a Flux of all the lines from the file.
+        return Flux.using(
+                        () -> Files.lines(xsbFile).skip(1), //Skip the header line
+                        Flux::fromStream,
+                        Stream::close
+                )
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbFile.toString(), xsbData, taaCountryCodes))
+                .publishOn(Schedulers.parallel())
+                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage())
+                );
+    }
+
+
+    /**
+     * Each XsbData POJO, on the stream, is first saved in to a staging table. This is a fast operation that does not
+     * work in a database transaction.
+     *
+     * @param xsbData      XsbData POJO that needs to be saved to the DB
+     * @param errorHandler An object that can handle any errors, mainly by logging them for further analysis.
+     * @return The ID of the saved record
+     */
+    private Mono<Integer> saveDataRecordToStaging(XsbData xsbData, ErrorHandler errorHandler) {
+        return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
+                // TBD: Retry logic here
+                //.retry(5)
+                .onErrorResume(e -> {
+                    log.error("Error saving record to DB. " + e.getMessage() + " " + xsbData, e);
+                    errorHandler.handleDBError(xsbData, e.getMessage());
+                    return Mono.empty();
+                });
+    }
+
+
+    /**
+     * Once all the data from all the XSB files have been saved into the staging table, bulk move it into the final
+     * table. This is an atomic operation, performed in a DB transaction and succeeds or fails as an atomic operation.
+     *
+     * @return Asynchronously return void once completed
+     */
+    @Transactional
+    public Mono<Void> moveDataFromStagingToFinal() {
+        return Mono.just(errorHandler.proceedToMoveDataFromStagingToFinal())
+                .filter(proceed -> proceed)
+                .flatMap(proceed -> xsbDataRepository.deleteAll()
+                        .doFirst(() -> log.info("Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table."))
+                        .then(Mono.defer(xsbDataRepository::moveXsbData)));
+    }
+
+
+    /**
+     * Deletes old data from previous runs in staging table
+     * @return Asynchronously returns a void once all data is deleted.
+     */
+    private Mono<Void> deleteOldStagingData() {
+        return xsbDataRepository.deleteAllXsbDataTemp().doFirst(() -> log.info("Cleaning up temporary data from xsb_data_temp"));
+    }
+
+
+    /**
+     * After the data is saved in the final tables, if there are any error files, upload them to the S3 bucket for
+     * further analysis.
+     *
+     * @return A stream of fully qualified names of the uploaded files
+     */
+    private Flux<String> uploadErrorFilesToS3() {
+        return errorHandler.getErrorFiles()
+                .doFirst(errorHandler::close)
+                .flatMap(p -> acrXsbS3Util.uploadToS3(p, "errors/" + p.getFileName()));
+    }
+
+
+    /**
+     * After everything is done, delete the temporary directory used to download XSB files for processing.
+     *
+     * @param tmpDir the temporary directory where XSB files are downloaded for processing
+     * @return A Mono of True or False depending on if the files in the temp directory and the directory were deleted successfully
+     */
+    private Mono<Boolean> deleteTmpDir(Path tmpDir) {
+        return Flux.using(
+                        () -> Files.list(tmpDir),
+                        Flux::fromStream,
+                        Stream::close
+                )
+                .doFirst(() -> log.info("Deleting temporary folder " + tmpDir))
+                .handle((source, sink) -> {
+                    log.info("Deleting file " + source);
+                    try {
+                        sink.next(Files.deleteIfExists(source));
+                    } catch (Exception e) {
+                        log.error("Unable to delete " + source, e);
+                    }
+                })
+                .then(Mono.defer(() -> {
+                    try {
+                        return Mono.just(Files.deleteIfExists(tmpDir));
+                    } catch (Exception e) {
+                        log.error("Unable to delete the folder " + tmpDir);
+                        return Mono.error(e);
+                    }
+                }))
+                .doOnSuccess(b -> log.info("Successfully Deleted folder " + tmpDir));
     }
 
 }
