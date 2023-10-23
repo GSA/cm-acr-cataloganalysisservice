@@ -50,7 +50,7 @@ public class S3ClientConfiguration {
     @Bean
     public AwsCredentialsProvider awsCredentialsProvider(S3ClientConfigurarionProperties s3props) {
 
-        log.info("AWS properties " + s3props);
+        log.info("AWS properties: " + s3props.getRegion() + ", " + s3props.getEndpoint() + ", " + s3props.getBucket());
 
         if (StringUtils.isBlank(s3props.getKey())) {
             // Return default provider
