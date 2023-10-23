@@ -17,7 +17,7 @@ public class XsbSourceFactory {
     }
 
     public XsbSource xsbSource(Trigger trigger){
-        XsbSourceType sourceType = trigger.getSourceType();
+        Trigger.XsbSourceType sourceType = trigger.getSourceType();
         if (sourceType == null) throw new IllegalArgumentException("Invalid Source type: null");
 
         switch (sourceType) {

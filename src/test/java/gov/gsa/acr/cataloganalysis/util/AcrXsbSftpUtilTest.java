@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.util;
 
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,18 +19,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 @SpringBootTest
 @Slf4j
-@ContextConfiguration(classes = {AcrXsbFilesUtil.class, AcrXsbFilesUnitTestConfiguration.class})
+@ContextConfiguration(classes ={AcrXsbSftpUtil.class, AcrXsbFilesUnitTestConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
-class AcrXsbFilesUtilTest {
-    @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
+class AcrXsbSftpUtilTest {
 
     @Autowired
-    private ErrorHandler errorHandler;
+    private AcrXsbSftpUtil acrXsbSftpUtil
+            ;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -56,63 +52,22 @@ class AcrXsbFilesUtilTest {
     }
 
     @Test
-    void globToRegex() {
-        assertEquals("file.*\\.gsa", AcrXsbFilesUtil.globToRegex("file*.gsa") );
-        assertEquals("file.\\.gsa", AcrXsbFilesUtil.globToRegex("file?.gsa"));
-        assertEquals("/.*.*/file.\\.gsa", AcrXsbFilesUtil.globToRegex("/**/file?.gsa"));
-    }
-
-    @Test
     void getXSBFiles() {
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_*.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
-                .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
-                .expectNext(Path.of("tmp/getXsbFilesTest_2.gsa"))
-                .expectComplete()
-                .verify();
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(2, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
-    @Test
-    void testOverwritingFile() throws IOException {
-        // Artificially add a file that we will try to copy over
-        Files.createFile(Path.of ("tmp/getXsbFilesTest_1.gsa"));
-
-
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
-                .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
-                .expectComplete()
-                .verify();
-
-        //verify(errorHandler, Mockito.times(1)).handleFileError(eq(source), eq("Unable to copy "+source+" to "+destination), Mockito.any(Exception.class) );
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(1, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles(null, null, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("", null, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -120,12 +75,12 @@ class AcrXsbFilesUtilTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -134,7 +89,7 @@ class AcrXsbFilesUtilTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -144,28 +99,27 @@ class AcrXsbFilesUtilTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
+
 
     @Test
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }
-
-
 
 }

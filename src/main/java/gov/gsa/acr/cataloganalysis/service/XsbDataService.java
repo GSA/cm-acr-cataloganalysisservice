@@ -33,6 +33,7 @@ public class XsbDataService {
     private final ErrorHandler errorHandler;
     private final XsbSourceFactory xsbSourceFactory;
     private final AcrXsbS3Util acrXsbS3Util;
+    private final XsbDataParser xsbDataParser;
 
 
     /**
@@ -126,44 +127,39 @@ public class XsbDataService {
      * lines that have problems are separated into an error file for further analysis.
      *
      * @param index             Index of the Xsb File that is going to be processed by this method
-     * @param anXsbResponseFile The Xsb File to be processed
+     * @param xsbFile The Xsb File to be processed
      * @param errorHandler      An object for handling any errors by mainly logging the error with as much information
      *                          as possible for further analysis
      * @param taaCountryCodes   Country codes for all the countries that USA has a valid Trade Agreement
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
-    private Flux<XsbData> parseXsbFile(Long index, Path anXsbResponseFile, ErrorHandler errorHandler, List<String> taaCountryCodes) {
-        final String MN = "parseXsbFile: ";
-
-        if (index == 0) {
-            XsbReportHandler.resetHeader();
-            this.errorHandler.init(null);
-        }
+    private Flux<XsbData> parseXsbFile(Long index, Path xsbFile, ErrorHandler errorHandler, List<String> taaCountryCodes) {
+        if (index == 0) this.errorHandler.init(null);
 
         // First read the header row (First row of the File)
-        try (Stream<String> rawProductsFromXSB = Files.lines(anXsbResponseFile)) {
+        try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
             if (mayBeHeader.isPresent()) {
                 String header = mayBeHeader.get();
-                XsbReportHandler.setHeader(index, String.valueOf(anXsbResponseFile), header);
+                if (!xsbDataParser.validateHeader(header)) throw new Exception ("Header String for file " + xsbFile + ", " + header +", is different from expected header, " + xsbDataParser.getHeaderString());
                 if (this.errorHandler.getHeader() == null) this.errorHandler.setHeader(header);
             } else
-                throw new Exception("Missing header row from file, " + anXsbResponseFile + ". Possibly an empty file.");
+                throw new Exception("Missing header row from file, " + xsbFile + ". Possibly an empty file.");
         } catch (Exception e) {
-            errorHandler.handleFileError(String.valueOf(anXsbResponseFile), "Ignoring File. " + e.getMessage(), e);
-            log.error(MN + "Ignoring this file because of the following error: " + e.getMessage(), e);
+            errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);
+            log.error("Ignoring file : " + xsbFile, e);
             return Flux.empty();
         }
 
         // Now create a Flux of all the lines from the file.
         return Flux.using(
-                        () -> Files.lines(anXsbResponseFile).skip(1), //Skip the header line
+                        () -> Files.lines(xsbFile).skip(1), //Skip the header line
                         Flux::fromStream,
                         Stream::close
                 )
-                .map(s -> XsbReportHandler.mapRawXsbResponseToXsbDataPojo(String.valueOf(anXsbResponseFile), s, taaCountryCodes))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbFile.toString(), xsbData, taaCountryCodes))
                 .publishOn(Schedulers.parallel())
-                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(anXsbResponseFile), e.getMessage())
+                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage())
                 );
     }
 

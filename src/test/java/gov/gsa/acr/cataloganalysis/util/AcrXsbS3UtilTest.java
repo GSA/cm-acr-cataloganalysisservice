@@ -32,8 +32,6 @@ import static org.mockito.Mockito.verify;
 class AcrXsbS3UtilTest {
     @Autowired
     private AcrXsbS3Util acrXsbS3Util;
-    @Autowired
-    private ErrorHandler errorHandler;
 
     @BeforeEach
     void setUp() throws IOException {

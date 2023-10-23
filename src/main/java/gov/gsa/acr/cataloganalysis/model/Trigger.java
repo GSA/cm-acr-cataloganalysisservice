@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.model;
 
-import gov.gsa.acr.cataloganalysis.util.XsbSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -46,5 +45,9 @@ public class Trigger {
             }
         }
         return uniqueFileNames;
+    }
+
+    public enum XsbSourceType {
+        SFTP, LOCAL, S3
     }
 }

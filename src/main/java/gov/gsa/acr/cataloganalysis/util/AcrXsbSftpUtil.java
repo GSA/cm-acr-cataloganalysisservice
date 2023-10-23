@@ -13,7 +13,6 @@ import reactor.core.scheduler.Schedulers;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -192,7 +191,7 @@ public class AcrXsbSftpUtil implements XsbSource {
         ChannelSftp channelSftp = null;
         try {
             channelSftp = createDownloadChannelSftp(sourceFolder);
-            Vector<ChannelSftp.LsEntry> lsEntries = channelSftp.ls(fileNamePattern);
+            Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
             return Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
                     .publishOn(Schedulers.parallel())
