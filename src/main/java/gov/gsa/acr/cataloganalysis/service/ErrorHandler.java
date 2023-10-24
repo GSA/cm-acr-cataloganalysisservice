@@ -123,6 +123,13 @@ public class ErrorHandler {
         dbErrorWriter = null;
         this.header = header;
         timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+
+        try {
+            Files.createDirectories(Path.of(errorDirectory));
+        } catch (Exception e) {
+            log.error("Unable to create error directory.", e);
+        }
+
         deleteOldErrorFiles();
     }
 
@@ -141,12 +148,16 @@ public class ErrorHandler {
         }
     }
 
-    public Flux<Path> getErrorFiles(){
+    public Flux<Path> getErrorFiles() {
         return Flux.using(
-                () ->  Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*_"+timeStamp+"_*"))),
-                Flux::fromStream,
-                Stream::close
-        );
+                        () -> Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*_" + timeStamp + "_*"))),
+                        Flux::fromStream,
+                        Stream::close
+                )
+                .onErrorResume(e -> {
+                    log.error("Unable to get the error files.", e);
+                    return Flux.empty();
+                });
     }
 
 

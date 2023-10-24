@@ -92,6 +92,7 @@ public class AcrXsbS3Util implements XsbSource {
                         checkResult(response);
                         return destinationPath;
                     })
+                    .doOnSuccess(p -> log.info("Downloaded {} file from S3 to {}", key, p))
                     .onErrorResume(e -> {
                         log.error("Error downloading file from S3: " + key);
                         errorHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
