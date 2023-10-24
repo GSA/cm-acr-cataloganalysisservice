@@ -297,6 +297,7 @@ public class XsbDataJsonRecord {
         }
         this.setCommercialCatalogMinPriceSupplier(x.get("commercialCatalogMinPriceSupplier"));
         this.setCountryOriginInference(x.get("countryOriginInference"));
+        this.setCountryOfOrigin(x.get("countryOrigin"));
         try {
             v = x.get("catalogMedianPrice");
             if (v != null && !v.isBlank()) this.setHighPriceTarget(Double.valueOf(v));
@@ -475,7 +476,7 @@ public class XsbDataJsonRecord {
             sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: ").append(v).append(", ").append(v1).append(ls);
         }
         this.setIsTaaRisk(isTradeAgreementViolated(x.get("countryOriginInference"), taaCountryCodes)); //ACREPO-2143
-        this.setIsMiaRisk(isMiaMisrepresented(x.get("countryOriginInference"), x.get("countryOfOrigin")));
+        this.setIsMiaRisk(isMiaMisrepresented(x.get("countryOriginInference"), x.get("countryOrigin")));
 
         try {
             v1 = x.get("catalogMedianPrice");
