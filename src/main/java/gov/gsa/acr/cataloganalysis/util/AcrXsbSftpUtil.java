@@ -214,7 +214,7 @@ public class AcrXsbSftpUtil implements XsbSource {
      *
      * @param sourceFolder      An optional source folder to search the files in SFTP server. If this is not provided
      *                          then the default "/reports" folder is searched on the server
-     * @param fileNames         An array of file names to be downloaded from the XSB server. Could be file name
+     * @param fileNamePatterns         An array of file names to be downloaded from the XSB server. Could be file name
      *                          patterns, in which case each pattern might return a list of files
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server. Usually
      *                          a temporary directory that is deleted once processing completes.
@@ -222,10 +222,10 @@ public class AcrXsbSftpUtil implements XsbSource {
      * element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into
      * a single stream
      */
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder) {
+    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
-        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
-        return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
     }
 
 }

@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.util.Set;
 
 public interface XsbSource {
-    Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder);
+    Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder);
     default boolean unexpectedFileNames(Set<String> fileNames, Logger log) {
         final String MN = "getXSBFiles: ";
         if (fileNames == null) {

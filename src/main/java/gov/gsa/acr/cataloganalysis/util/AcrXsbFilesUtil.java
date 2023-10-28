@@ -98,7 +98,7 @@ public class AcrXsbFilesUtil implements XsbSource {
      * on the same stream for further processing (parsing, JSON conversion, storing in DB)
      *
      * @param sourceFolder      This is a required field and provides the folder where to search for the files
-     * @param fileNames         An array of file names to be processed. Could be file name
+     * @param fileNamePatterns         An array of file names to be processed. Could be file name
      *                          patterns, in which case each pattern might return a list of files
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server. Usually
      *                          a temporary directory that is deleted once processing completes.
@@ -106,7 +106,7 @@ public class AcrXsbFilesUtil implements XsbSource {
      * in the fileNames arg could be a pattern, in which case, the stream collects all the  files into a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder) {
+    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String MN = "getXSBFiles: ";
         if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder)))) {
             String message = "Invalid Source folder: " + sourceFolder;
@@ -114,13 +114,13 @@ public class AcrXsbFilesUtil implements XsbSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
-        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
+        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
         if (destinationFolder == null || destinationFolder.isBlank() || (Files.notExists(Path.of(destinationFolder)))) {
             String message = "Invalid destination folder: " + destinationFolder;
             Exception e = new IllegalArgumentException(message);
             log.error(MN + message, e);
             return Flux.empty();
         }
-        return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(sourceFolder, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(sourceFolder, f, destinationFolder));
     }
 }

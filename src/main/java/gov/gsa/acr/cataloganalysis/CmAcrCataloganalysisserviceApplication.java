@@ -1,7 +1,5 @@
 package gov.gsa.acr.cataloganalysis;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,11 +8,6 @@ import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 @SpringBootApplication
 @Slf4j
 @EnableR2dbcAuditing
-@OpenAPIDefinition(
-        servers = {
-                @Server(url = "/cataloganalysis", description = "Default Server URL")
-        }
-)
 public class CmAcrCataloganalysisserviceApplication {
 
     public CmAcrCataloganalysisserviceApplication() {
