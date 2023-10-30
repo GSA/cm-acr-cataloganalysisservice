@@ -56,14 +56,14 @@ class AcrXsbFilesUtilTest {
     }
 
     @Test
-    void globToRegex() {
+    void testGlobToRegex() {
         assertEquals("file.*\\.gsa", AcrXsbFilesUtil.globToRegex("file*.gsa") );
         assertEquals("file.\\.gsa", AcrXsbFilesUtil.globToRegex("file?.gsa"));
         assertEquals("/.*.*/file.\\.gsa", AcrXsbFilesUtil.globToRegex("/**/file?.gsa"));
     }
 
     @Test
-    void getXSBFiles() {
+    void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_*.gsa");
         StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))

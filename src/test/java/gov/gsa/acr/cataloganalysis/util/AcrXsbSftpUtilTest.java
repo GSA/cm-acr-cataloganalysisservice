@@ -1,10 +1,15 @@
 package gov.gsa.acr.cataloganalysis.util;
 
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpATTRS;
+import com.jcraft.jsch.SftpException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
@@ -13,21 +18,25 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @SpringBootTest
 @Slf4j
-@ContextConfiguration(classes ={AcrXsbSftpUtil.class, AcrXsbFilesUnitTestConfiguration.class})
+@ContextConfiguration(classes ={AcrXsbSftpUtil.class,  AcrXsbFilesUtil.class, AcrXsbFilesUnitTestConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 class AcrXsbSftpUtilTest {
 
+    @Value("${xsb.sftp.gsa.file.report.dir}")
+    private String defaultSftpGsaFileReportDir;
+
     @Autowired
-    private AcrXsbSftpUtil acrXsbSftpUtil
-            ;
+    private AcrXsbSftpUtil acrXsbSftpUtil;
+
+    @Autowired
+    private AcrXsbFilesUtil acrXsbFilesUtil;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -52,7 +61,70 @@ class AcrXsbSftpUtilTest {
     }
 
     @Test
-    void getXSBFiles() {
+    void testGetXSBFiles() throws JSchException, SftpException, IOException {
+        log.info("Listing files from {} directory", defaultSftpGsaFileReportDir);
+
+        // Since the files on the XSB SFTP server might change every time this test is executed, we have to first find
+        // some valid files that could be used in our test case here. THe selection criteria is --
+        // Regular Files less than 50KB in size
+        // If possible the file name should have a common pattern so the test case can select files using a glob wilecard
+        // Find a file that satisfies the size criteria listed above and there is only one of its kind.
+        ChannelSftp channelSftp = acrXsbSftpUtil.createDownloadChannelSftp(defaultSftpGsaFileReportDir);
+        Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(defaultSftpGsaFileReportDir);
+        Map<String, Integer> potentialFiles = new HashMap<>();
+        for(ChannelSftp.LsEntry lsEntry: lsEntries){
+            SftpATTRS attrs = lsEntry.getAttrs();
+            // Get only regular files
+            if (attrs.isReg()) {
+                String fileName = lsEntry.getFilename();
+                String fileNamePattern = fileName.substring(0, Math.min(fileName.length(), 13));
+                // If we have already encountered this file pattern
+                if (potentialFiles.containsKey(fileNamePattern)) {
+                    // Put a high number if the size of the file size is over our limit, so it gets igmored
+                    if (attrs.getSize() > 50000) potentialFiles.put(fileNamePattern, 1000);
+                    else {
+                        int count = potentialFiles.get(fileNamePattern);
+                        potentialFiles.put(fileNamePattern, count + 1);
+                    }
+                }
+                // We are encountering this file name pattern for the first time
+                else {
+                    // If the file is too large, ignore it by putting a high value for it. This high number will be
+                    // rejected in the next criteria.
+                    if (attrs.getSize() > 50000) potentialFiles.put(fileNamePattern, 1000);
+                    else potentialFiles.put(fileNamePattern, 1);
+
+                }
+            }
+        }
+
+        String pattern1 = null, pattern2 = null;
+        Integer numFiles1 = 0, numFiles2 = 0;
+        for (Map.Entry<String, Integer> entry : potentialFiles.entrySet()) {
+            if (entry.getValue() > 2 && entry.getValue() < 10 && pattern1 == null) {
+                pattern1 = entry.getKey(); numFiles1 = entry.getValue();
+            }
+            if (entry.getValue() == 1 && pattern2 == null){
+                pattern2 = entry.getKey();numFiles2= entry.getValue();
+            }
+        }
+
+        Set<String> filePatterns = new HashSet<>();
+        if (pattern1 != null) filePatterns.add(pattern1 + "*");
+        if (pattern2 != null) filePatterns.add(pattern2 + "*");
+
+        // Add a bogus file as well. This should not change the results.
+        filePatterns.add("invalidFile.gsa");
+
+        final int expectedCount = numFiles1+numFiles2;
+
+        String regEx1 = acrXsbFilesUtil.globToRegex("tmp*"+pattern1+"*");
+        String regEx2 = acrXsbFilesUtil.globToRegex("tmp*"+pattern2+"*");
+
+        StepVerifier.Step<Path> step = StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, filePatterns, "tmp"));
+        for (int i = 0; i < expectedCount; i++) step = step.expectNextMatches(p -> p.toString().matches(regEx1) || p.toString().matches(regEx2));
+
+        step.expectComplete().verify();
     }
 
 

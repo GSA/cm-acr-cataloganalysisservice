@@ -27,22 +27,22 @@ public class AcrXsbSftpUtil implements XsbSource {
     private final ErrorHandler errorHandler;
 
     @Value("${xsb.sftp.host}")
-    public String host;
+    private String host;
 
     @Value("${xsb.sftp.port}")
-    public Integer port;
+    private Integer port;
 
     @Value("${xsb.sftp.username}")
-    public String username;
+    private String username;
 
     @Value("${xsb.sftp.password}")
-    public String password;
+    private String password;
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
-    public String defaultSftpGsaFileReportDir;
+    private String defaultSftpGsaFileReportDir;
 
     @Value("${xsb.sftp.gsa.file.upload.dir}")
-    public String sftpCatalogUploadDir;
+    private String sftpCatalogUploadDir;
 
     @Value("${sftp.progress.monitor.duration.seconds:30}")
     private int progressMonitorSeconds;
@@ -51,7 +51,7 @@ public class AcrXsbSftpUtil implements XsbSource {
         this.errorHandler = errorHandler;
     }
 
-    private ChannelSftp createDownloadChannelSftp(String sftpGsaFilesReportDir) throws JSchException, SftpException {
+    ChannelSftp createDownloadChannelSftp(String sftpGsaFilesReportDir) throws JSchException, SftpException {
         return getChannelSftp(sftpGsaFilesReportDir);
     }
 

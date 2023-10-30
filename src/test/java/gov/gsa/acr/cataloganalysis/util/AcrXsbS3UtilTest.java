@@ -1,7 +1,6 @@
 package gov.gsa.acr.cataloganalysis.util;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +21,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @Slf4j
@@ -64,7 +61,7 @@ class AcrXsbS3UtilTest {
     }
 
     @Test
-    void getXSBFiles() {
+    void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_");
         StepVerifier.create(acrXsbS3Util.getXSBFiles("/junitTestData/", testFileNames, "tmp").map(p->String.valueOf(p)))
