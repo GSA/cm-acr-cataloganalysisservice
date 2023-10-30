@@ -226,8 +226,18 @@ public class XsbDataJsonRecord {
         StringBuilder sb = new StringBuilder();
 
         this.setModificationNumber(x.get("modificationNumber"));
+        this.setVendorName(x.get("vendorName"));
+        this.setVendorPartNumber(x.get("vendorPartNumber"));
+        this.setVendorDescription(x.get("vendorDescription"));
         this.setSolicitationNumber(x.get("solicitationNumber"));
         this.setDunsNumber(x.get("dunsNumber"));
+        try {
+            v = x.get("quantityOfUnit");
+            if (v != null && !v.isBlank())
+                this.setQuantityOfUnit(Integer.valueOf(v));
+        } catch (Exception e) {
+            sb.append("Invalid data, Quantity Of Unit. Must be a valid number. Value encountered: ").append(v).append(ls);
+        }
         try {
             v = x.get("quantityPerUnit");
             if (v != null && !v.isBlank())
@@ -237,8 +247,6 @@ public class XsbDataJsonRecord {
         }
         this.setAbilityOneItem(x.get("abilityOneItem"));
         this.setGlobalPackagingIdentifier(x.get("globalPackagingIdentifier"));
-        this.setVendorName(x.get("vendorName"));
-        this.setVendorDescription(x.get("vendorDescription"));
         this.setProductName(x.get("productName"));
         this.setUnspsc(x.get("unspsc"));
         this.setUnitOfIssue(x.get("unitOfIssue"));
@@ -269,14 +277,13 @@ public class XsbDataJsonRecord {
         // Begin ACREPO-2432
         try {
             v = x.get("catalogMedianPrice");
-            if (v != null && !v.isBlank())
-                this.setCatalogMedianPrice(Double.valueOf(v));
+            if (v != null && !v.isBlank()) this.setCatalogMedianPrice(Double.valueOf(v));
         } catch (Exception e) {
             sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
         this.setCatalogMedianPriceSupplier(x.get("catalogMedianPriceSupplier"));
         try {
-            v = x.get("catalogMedianPrice");
+            v = x.get("catalogMinPrice");
             if (v != null && !v.isBlank()) this.setCatalogMinPrice(Double.valueOf(v));
         } catch (Exception e) {
             sb.append("Invalid data, Catalog Min Price. Must be a valid number. Value encountered: ").append(v).append(ls);
@@ -299,7 +306,7 @@ public class XsbDataJsonRecord {
         this.setCountryOriginInference(x.get("countryOriginInference"));
         this.setCountryOfOrigin(x.get("countryOrigin"));
         try {
-            v = x.get("catalogMedianPrice");
+            v = x.get("highPriceTarget");
             if (v != null && !v.isBlank()) this.setHighPriceTarget(Double.valueOf(v));
         } catch (Exception e) {
             sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(v).append(ls);
@@ -345,7 +352,10 @@ public class XsbDataJsonRecord {
         } catch (Exception e) {
             sb.append("Invalid data, VPP Indicator. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
+        this.setProhibitionCondition(x.get("prohibitionCondition"));
+        this.setProhibitionReason(x.get("prohibitionReason"));
         this.setProhibitionComment(x.get("prohibitionComment"));
+
         // End ACREPO-2432
 
         // Begin ACREPO-3215
@@ -362,14 +372,6 @@ public class XsbDataJsonRecord {
             if (v != null && !v.isBlank()) this.setCatalogAvgPrice(Double.valueOf(v));
         } catch (Exception e) {
             sb.append("Invalid data, Catalog Average Price. Must be a valid number. Value encountered: ").append(v).append(ls);
-        }
-
-        try {
-            v = x.get("catalogMedianPrice");
-            if (v != null && !v.isBlank())
-                this.setCatalogMedianPrice(Double.valueOf(v));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(v).append(ls);
         }
 
         try {

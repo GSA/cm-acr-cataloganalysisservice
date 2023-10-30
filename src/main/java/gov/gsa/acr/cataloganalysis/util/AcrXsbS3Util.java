@@ -151,7 +151,7 @@ public class AcrXsbS3Util implements XsbSource {
      * @param sourceFolder      An optional source folder to search the files in S3 bucket. If provided, this folder
      *                          will be treated relative to the base folder "catalogAnalysis/". If not provided, then
      *                          the files will be searched in the base folder.
-     * @param fileNames         An array of file names to be downloaded from the XSB server. The file names are treated
+     * @param fileNamePatterns         An array of file names to be downloaded from the XSB server. The file names are treated
      *                          as prefix. Wild cards are not allowed here.
      * @param destinationFolder Destination folder name where to save the files downloaded from the XSB server. Usually
      *                          a temporary directory that is deleted once processing completes.
@@ -160,9 +160,9 @@ public class AcrXsbS3Util implements XsbSource {
      * a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNames, String destinationFolder) {
+    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = getScrubbedSourceDir(sourceFolder);
-        if (unexpectedFileNames(fileNames, log)) return Flux.empty();
-        return Flux.fromIterable(fileNames).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
     }
 }
