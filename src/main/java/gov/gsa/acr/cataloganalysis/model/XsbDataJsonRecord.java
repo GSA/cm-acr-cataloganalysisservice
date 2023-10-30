@@ -232,6 +232,13 @@ public class XsbDataJsonRecord {
         this.setSolicitationNumber(x.get("solicitationNumber"));
         this.setDunsNumber(x.get("dunsNumber"));
         try {
+            v = x.get("quantityOfUnit");
+            if (v != null && !v.isBlank())
+                this.setQuantityOfUnit(Integer.valueOf(v));
+        } catch (Exception e) {
+            sb.append("Invalid data, Quantity Of Unit. Must be a valid number. Value encountered: ").append(v).append(ls);
+        }
+        try {
             v = x.get("quantityPerUnit");
             if (v != null && !v.isBlank())
                 this.setQuantityPerUnit(Integer.valueOf(v));
