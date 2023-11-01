@@ -18,7 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ConcurrentModificationException;
 import java.util.List;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,7 +44,7 @@ public class XsbDataService {
     public void trigger(Trigger trigger) {
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!"); // Already executing!
         if (trigger == null) throw new IllegalArgumentException("Invalid request body in POST"); // Trigger is required
-        errorHandler.init(null); // Initialize the error handler, reset all previous attributes.
+        errorHandler.init(xsbDataParser.getHeaderString()); // Initialize the error handler, reset all previous attributes.
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         if (uniqueFileNames == null || uniqueFileNames.isEmpty())
             throw new IllegalArgumentException("Request body must include files attribute (an array with file names or file name patterns.");
@@ -63,9 +63,9 @@ public class XsbDataService {
                         .findTaaCompliantCountries()
                         .collectList()
                         .doOnError(e -> log.error("Unable to get a list of TAA compliant country codes. Exiting!", e))
-                        .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, errorHandler, taaCountryCodes))
+                        .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes))
                         .onBackpressureBuffer()
-                        .flatMap(x -> saveDataRecordToStaging(x, errorHandler))
+                        .flatMap(this::saveDataRecordToStaging)
                         .doFirst(() -> dbCounter.set(0))
                         .doOnNext(e -> {
                             // TBD change the frequency of reporting
@@ -98,20 +98,17 @@ public class XsbDataService {
      * used to parse a single file. XsbData objects from all the individual files are collected into a single stream.
      *
      * @param xsbFiles        A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
-     * @param errorHandler    An object for handling any errors by mainly logging the error with as much information
-     *                        as possible for further analysis
      * @param taaCountryCodes Country codes for all the countries that USA has a valid Trade Agreement
      * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
      * stream from all the files
      */
-    private Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, ErrorHandler errorHandler, List<String> taaCountryCodes) {
+    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes) {
         final String MN = "parseXsbFiles: ";
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles
-                .doOnNext(p -> log.info(MN + "Parsing file: " + p))
+                .doOnNext(path -> log.info(MN + "Parsing file: " + path))
                 .doOnComplete(() -> log.info(MN + "Parsed ALL files!!"))
-                .index()
-                .flatMap(tuple2 -> parseXsbFile(tuple2.getT1(), tuple2.getT2(), errorHandler, taaCountryCodes))
+                .flatMap(path -> parseXsbFile(path, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     // TBD adjust the frequency of reporting
@@ -126,26 +123,17 @@ public class XsbDataService {
      * Function that parses a single XSB file and converts each line inside the file to an XsbData POJO. Any individual
      * lines that have problems are separated into an error file for further analysis.
      *
-     * @param index             Index of the Xsb File that is going to be processed by this method
-     * @param xsbFile The Xsb File to be processed
-     * @param errorHandler      An object for handling any errors by mainly logging the error with as much information
-     *                          as possible for further analysis
-     * @param taaCountryCodes   Country codes for all the countries that USA has a valid Trade Agreement
+     * @param xsbFile         The Xsb File to be processed
+     * @param taaCountryCodes Country codes for all the countries that USA has a valid Trade Agreement
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
-    private Flux<XsbData> parseXsbFile(Long index, Path xsbFile, ErrorHandler errorHandler, List<String> taaCountryCodes) {
-        if (index == 0) this.errorHandler.init(null);
-
-        // First read the header row (First row of the File)
+    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes) {
+        // First read the header row (First row of the File) and makes sure its valid
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
-            Optional<String> mayBeHeader = rawProductsFromXSB.findFirst();
-            if (mayBeHeader.isPresent()) {
-                String header = mayBeHeader.get();
-                if (!xsbDataParser.validateHeader(header)) throw new Exception ("Header String for file " + xsbFile + ", " + header +", is different from expected header, " + xsbDataParser.getHeaderString());
-                if (this.errorHandler.getHeader() == null) this.errorHandler.setHeader(header);
-            } else
-                throw new Exception("Missing header row from file, " + xsbFile + ". Possibly an empty file.");
-        } catch (Exception e) {
+           String header = rawProductsFromXSB.findFirst().get();
+            if (!xsbDataParser.validateHeader(header)) throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", is different from expected header, " + xsbDataParser.getHeaderString());
+        }
+        catch (Exception e) {
             errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);
             log.error("Ignoring file : " + xsbFile, e);
             return Flux.empty();
@@ -169,10 +157,9 @@ public class XsbDataService {
      * work in a database transaction.
      *
      * @param xsbData      XsbData POJO that needs to be saved to the DB
-     * @param errorHandler An object that can handle any errors, mainly by logging them for further analysis.
      * @return The ID of the saved record
      */
-    private Mono<Integer> saveDataRecordToStaging(XsbData xsbData, ErrorHandler errorHandler) {
+    private Mono<Integer> saveDataRecordToStaging(XsbData xsbData) {
         return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
                 // TBD: Retry logic here
                 //.retry(5)
