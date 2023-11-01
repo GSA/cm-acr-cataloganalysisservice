@@ -4,6 +4,7 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
+import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
@@ -25,7 +27,8 @@ import java.util.stream.Stream;
 
 @SpringBootTest
 @Slf4j
-@ContextConfiguration(classes ={AcrXsbSftpUtil.class,  AcrXsbFilesUtil.class, AcrXsbFilesUnitTestConfiguration.class})
+@MockBean(ErrorHandler.class)
+@ContextConfiguration(classes ={AcrXsbSftpUtil.class,  AcrXsbFilesUtil.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 class AcrXsbSftpUtilTest {
 
@@ -61,7 +64,7 @@ class AcrXsbSftpUtilTest {
     }
 
     @Test
-    void testGetXSBFiles() throws JSchException, SftpException, IOException {
+    void testGetXSBFiles() throws JSchException, SftpException {
         log.info("Listing files from {} directory", defaultSftpGsaFileReportDir);
 
         // Since the files on the XSB SFTP server might change every time this test is executed, we have to first find
@@ -118,8 +121,8 @@ class AcrXsbSftpUtilTest {
 
         final int expectedCount = numFiles1+numFiles2;
 
-        String regEx1 = acrXsbFilesUtil.globToRegex("tmp*"+pattern1+"*");
-        String regEx2 = acrXsbFilesUtil.globToRegex("tmp*"+pattern2+"*");
+        String regEx1 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern1 + "*");
+        String regEx2 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern2 + "*");
 
         StepVerifier.Step<Path> step = StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, filePatterns, "tmp"));
         for (int i = 0; i < expectedCount; i++) step = step.expectNextMatches(p -> p.toString().matches(regEx1) || p.toString().matches(regEx2));

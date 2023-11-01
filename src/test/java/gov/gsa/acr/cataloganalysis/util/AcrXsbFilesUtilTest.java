@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
@@ -24,14 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @Slf4j
-@ContextConfiguration(classes = {AcrXsbFilesUtil.class, AcrXsbFilesUnitTestConfiguration.class})
+@MockBean(ErrorHandler.class)
+@ContextConfiguration(classes = {AcrXsbFilesUtil.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 class AcrXsbFilesUtilTest {
     @Autowired
     private AcrXsbFilesUtil acrXsbFilesUtil;
-
-    @Autowired
-    private ErrorHandler errorHandler;
 
     @BeforeEach
     void setUp() throws IOException {
