@@ -241,4 +241,25 @@ public class XsbDataService {
                 .doOnSuccess(b -> log.info("Successfully Deleted folder " + tmpDir));
     }
 
+
+    // TBD: Only for the demo. Delete later
+    public Flux<Path> downloadReports(Trigger trigger){
+        errorHandler.init(null);
+        String tmpdir;
+        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        try {
+            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+        if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
+            return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+                    .doOnComplete(() -> log.info("Finished downloading all files."))
+                    .doFinally(s -> errorHandler.close());
+        else
+            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
+    }
+
 }
