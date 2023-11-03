@@ -7,6 +7,7 @@ import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
+import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -28,10 +30,14 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.matches;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Slf4j
@@ -40,6 +46,10 @@ import static org.mockito.ArgumentMatchers.matches;
 @TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataServiceTest {
 
+    @Autowired
+    private XsbDataRepository xsbDataRepository;
+    @Autowired
+    private XsbDataParser xsbDataParser;
     @Autowired
     private ErrorHandler errorHandler;
     @Autowired
@@ -156,10 +166,231 @@ class XsbDataServiceTest {
     }
 
     @Test
-    void trigger() {
+    void testSaveNullDataRecordToStaging() {
+        Random rn = new Random();
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(rn.nextInt(100)));
+        StepVerifier.create(xsbDataService.saveDataRecordToStaging(null))
+                .expectComplete()
+                .verify();
     }
 
     @Test
-    void moveDataFromStagingToFinal() {
+    void testSaveInvalidDataRecordToStaging() {
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenThrow(new RuntimeException("Dummy"));
+        XsbData xsbData = new XsbData();
+        xsbData.setContractNumber("contract number");
+        xsbData.setManufacturer("manufacturer");
+        xsbData.setPartNumber("part number");
+        xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
+        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleDBError(eq(xsbData), eq("Dummy"));
+
     }
+
+
+    @Test
+    void testSaveInvalidDataRecordToStaging2() {
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
+        XsbData xsbData = new XsbData();
+        xsbData.setContractNumber("contract number");
+        xsbData.setManufacturer("manufacturer");
+        xsbData.setPartNumber("part number");
+        xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
+        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleDBError(eq(xsbData), eq("Dummy"));
+
+    }
+
+
+    @Test
+    void testSaveDataRecordToStaging() {
+        String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
+        XsbData xsbData = xsbDataParser.parseXsbData("testFile.gsa", xsbDataString, taaCountryCodes);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(1));
+        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+                .expectNext(1)
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(any(XsbData.class), anyString());
+    }
+
+    @Test
+    void testDontMoveDataFromStagingToFinal() {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), anyString(), any(Exception.class));
+    }
+
+    @Test
+    void testMoveDataFromStagingToFinal_deleteAllException() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        Exception e = new RuntimeException("Dummy");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.deleteAll()).thenThrow(e);
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+    }
+
+    @Test
+    void testMoveDataFromStagingToFinal_deleteAllError() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        Exception e = new RuntimeException("Dummy");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+    }
+
+    @Test
+    void testMoveDataFromStagingToFinal_movXsbDataException() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        Exception e = new RuntimeException("Dummy");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData()).thenThrow(e);
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+    }
+
+    @Test
+    void testMoveDataFromStagingToFinal_moveXsbDataError() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        Exception e = new RuntimeException("Dummy");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+    }
+
+    @Test
+    void testMoveDataFromStagingToFinal_movXsbDataSuccess() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), eq(errMsg), any(Exception.class));
+    }
+
+    @Test
+    void testDeleteOldStagingData_Exception() {
+        Exception e = new RuntimeException("Dummy");
+        final AtomicBoolean firstCalled = new AtomicBoolean(false);
+        final AtomicBoolean finallyCalled =  new AtomicBoolean(false);
+        assertFalse(firstCalled.get());
+        assertFalse(finallyCalled.get());
+
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenThrow(e);
+        StepVerifier.create(
+                xsbDataService.deleteOldStagingData()
+                        .doFirst(() -> firstCalled.compareAndSet(false, true))
+                        .doFinally(s -> finallyCalled.compareAndSet(false, true))
+                )
+                .expectError(RuntimeException.class)
+                .verify();
+
+        assertTrue(firstCalled.get());
+        assertTrue(finallyCalled.get());
+    }
+
+    @Test
+    void testDeleteOldStagingData_Error() {
+        Exception e = new RuntimeException("Dummy");
+        final AtomicBoolean firstCalled = new AtomicBoolean(false);
+        final AtomicBoolean finallyCalled =  new AtomicBoolean(false);
+        assertFalse(firstCalled.get());
+        assertFalse(finallyCalled.get());
+
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
+        StepVerifier.create(xsbDataService.deleteOldStagingData()
+                        .doFirst(() -> firstCalled.compareAndSet(false, true))
+                        .doFinally(s -> finallyCalled.compareAndSet(false, true))
+                )
+                .expectError(RuntimeException.class)
+                .verify();
+
+        assertTrue(firstCalled.get());
+        assertTrue(finallyCalled.get());
+    }
+
+
+    @Test
+    void testDeleteOldStagingData() {
+        final AtomicBoolean firstCalled = new AtomicBoolean(false);
+        final AtomicBoolean finallyCalled =  new AtomicBoolean(false);
+        assertFalse(firstCalled.get());
+        assertFalse(finallyCalled.get());
+
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        StepVerifier.create(xsbDataService.deleteOldStagingData()
+                        .doFirst(() -> firstCalled.compareAndSet(false, true))
+                        .doFinally(s -> finallyCalled.compareAndSet(false, true))
+                )
+                .verifyComplete();
+
+        assertTrue(firstCalled.get());
+        assertTrue(finallyCalled.get());
+    }
+
+
+    @Test
+    void testFindTaaCompliantCountries_Exception() {
+        Exception e = new RuntimeException("Dummy");
+        when(xsbDataRepository.findTaaCompliantCountries()).thenThrow(e);
+        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+                .expectError()
+                .verify();
+    }
+
+
+    @Test
+    void testFindTaaCompliantCountries_Error() {
+        Exception e = new RuntimeException("Dummy");
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
+        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+                .expectError()
+                .verify();
+    }
+
+    @Test
+    void testFindTaaCompliantCountries() {
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+                .expectNext(Arrays.asList("AF", "AG", "AM", "AO", "AT"))
+                .verifyComplete();
+    }
+
+    @Test
+    void trigger() {
+    }
+
 }
