@@ -255,7 +255,7 @@ public class ErrorHandler {
 
     }
 
-    public Boolean proceedToMoveDataFromStagingToFinal(){
+    public Boolean totalErrorsWithinAcceptableThreshold(){
         return (numRecordsSavedInTempDB.get() > 0) && ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
     }
 
