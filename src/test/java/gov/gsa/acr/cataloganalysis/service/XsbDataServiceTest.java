@@ -291,7 +291,6 @@ class XsbDataServiceTest {
     void testMoveDataFromStagingToFinal_movXsbDataSuccess() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
-        Exception e = new RuntimeException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -346,8 +345,6 @@ class XsbDataServiceTest {
 
     @Test
     void testDeleteOldStagingData() {
-        Exception e = new RuntimeException("Dummy");
-
         final AtomicBoolean firstCalled = new AtomicBoolean(false);
         final AtomicBoolean finallyCalled =  new AtomicBoolean(false);
         assertFalse(firstCalled.get());
@@ -367,7 +364,6 @@ class XsbDataServiceTest {
 
     @Test
     void testFindTaaCompliantCountries_Exception() {
-        String msg = "Unable to get a list of TAA compliant country codes. Exiting!";
         Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenThrow(e);
         StepVerifier.create(xsbDataService.findTaaCompliantCountries())
@@ -378,7 +374,6 @@ class XsbDataServiceTest {
 
     @Test
     void testFindTaaCompliantCountries_Error() {
-        String msg = "Unable to get a list of TAA compliant country codes. Exiting!";
         Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
         StepVerifier.create(xsbDataService.findTaaCompliantCountries())
@@ -388,8 +383,6 @@ class XsbDataServiceTest {
 
     @Test
     void testFindTaaCompliantCountries() {
-        String msg = "Unable to get a list of TAA compliant country codes. Exiting!";
-        Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
         StepVerifier.create(xsbDataService.findTaaCompliantCountries())
                 .expectNext(Arrays.asList("AF", "AG", "AM", "AO", "AT"))
