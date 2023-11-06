@@ -35,11 +35,11 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Slf4j
@@ -383,7 +383,7 @@ class XsbDataServiceTest {
 
     @Test
     void testFindTaaCompliantCountries_noCountries() {
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList()));
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(List.of()));
         StepVerifier.create(xsbDataService.findTaaCompliantCountries())
                 .verifyError(NoSuchElementException.class);
     }
@@ -448,12 +448,9 @@ class XsbDataServiceTest {
         doCallRealMethod().when(errorHandler).init(anyString());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
-        when(xsbDataRepository.deleteAllXsbDataTemp()).thenAnswer(new Answer<Mono<Void>>() {
-            @Override
-            public Mono<Void> answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Thread.sleep(200);
-                return Mono.error(e);
-            }
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenAnswer((Answer<Mono<Void>>) invocationOnMock -> {
+            Thread.sleep(200);
+            return Mono.error(e);
         });
 
         ExecutorService service = Executors.newFixedThreadPool(2);
@@ -561,7 +558,6 @@ class XsbDataServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
-        Exception e = new RuntimeException("Dummy");
 
         errorHandler.errorDirectory =  errorDirectory;
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
