@@ -93,7 +93,7 @@ public class XsbDataController extends BaseController{
         log.info("Request body " + trigger);
         String message;
         try {
-            xsbDataService.trigger(trigger);
+            xsbDataService.triggerDataUpload(trigger).subscribe(null, e -> log.error("Unexpected Error", e));
             message = "\nTriggered\n";
         }
         catch (ConcurrentModificationException e){

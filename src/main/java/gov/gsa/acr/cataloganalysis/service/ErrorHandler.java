@@ -68,7 +68,7 @@ public class ErrorHandler {
     private long maxErrorFileSizeBytes;
     @Value("${error.file.directory}")
     @Getter
-    private String errorDirectory;
+    String errorDirectory;
 
     @Value("${error.threshold}")
     private Integer errorThreshold;
