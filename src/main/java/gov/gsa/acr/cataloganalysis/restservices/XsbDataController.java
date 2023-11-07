@@ -1,5 +1,6 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
+import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,12 +17,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ConcurrentModificationException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @RestController
 @Tag(name= "ACR Catalog Analysis Service", description = "A Service for analyzing catalogs.")
 public class XsbDataController extends BaseController{
     final XsbDataService xsbDataService;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     public XsbDataController(XsbDataService xsbDataService) {
         this.xsbDataService = xsbDataService;
@@ -91,15 +95,14 @@ public class XsbDataController extends BaseController{
 
                                     @RequestBody Trigger trigger){
         log.info("Request body " + trigger);
-        String message;
         try {
-            xsbDataService.triggerDataUpload(trigger).subscribe(null, e -> log.error("Unexpected Error", e));
-            message = "\nTriggered\n";
+            Mono<DataUploadResults> dataUploadResultsMono =  xsbDataService.triggerDataUpload(trigger);
+            executorService.submit(() -> dataUploadResultsMono.subscribe(null, e -> log.error("Unexpected Error", e)));
+            return Mono.just("\nTriggered\n");
         }
         catch (ConcurrentModificationException e){
-            message = "\n"+e.getMessage()+"\n";
+            return Mono.just("\n"+e.getMessage()+"\n");
         }
-        return Mono.just(message);
     }
 
 

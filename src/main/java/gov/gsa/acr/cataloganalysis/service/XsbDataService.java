@@ -38,13 +38,13 @@ public class XsbDataService {
      * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
      *
      * @param trigger A trigger object. See the Swagger Docs for more information about this.
-     * @return
+     * @return Returns the results of uploading the data from XSB to DB
      */
     public Mono<DataUploadResults> triggerDataUpload(Trigger trigger) {
         // Already executing? Exit if it is already executing.
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
         // Trigger is required
-        if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger. Cannot be null!");
+        if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
         // Must have a valid source type
         if(trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
         // Need files to download.
@@ -79,7 +79,7 @@ public class XsbDataService {
                 .then(Mono.defer(this::moveDataFromStagingToFinal))
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
-                .flatMap(errorFileNames -> dataUploadResults(errorFileNames, errorHandler))
+                .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
                 .doFirst(() -> {
                     executing.compareAndSet(false, true);
                     errorHandler.init(xsbDataParser.getHeaderString()); // Initialize the error handler, reset all previous attributes.
@@ -178,12 +178,13 @@ public class XsbDataService {
             if (!xsbDataParser.validateHeader(header))
                 throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", is different from expected header, " + xsbDataParser.getHeaderString());
         } catch (Exception e) {
+            // If the header is invalid, we cannot do much with the file. The quality of data is not reliable.
             errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);
             log.error("Ignoring file : " + xsbFile, e);
             return Flux.empty();
         }
 
-        // Now create a Flux of all the lines from the file.
+        // If the file seems valid, create a Flux of all the lines from the file. These will be the raw file lines.
         return Flux.using(
                         () -> Files.lines(xsbFile).skip(1), //Skip the header line
                         Flux::fromStream,
@@ -197,7 +198,7 @@ public class XsbDataService {
 
 
     /**
-     * Each XsbData POJO, on the stream, is first saved in to a staging table. This is a fast operation that does not
+     * Each XsbData POJO, is first saved in to a staging table. This is a fast operation that does not
      * work in a database transaction.
      *
      * @param xsbData XsbData POJO that needs to be saved to the DB
@@ -299,7 +300,13 @@ public class XsbDataService {
     }
 
 
-    Mono<DataUploadResults> dataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
+    /**
+     * Collect all the results and generate a data object with the results.
+     * @param errorFileNames Names of all the error files generated during the run.
+     * @param errorHandler The error handler has all the valuable information regarding what worked and what failed.
+     * @return A data object holding the merics of the data upload process execution.
+     */
+    Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
         if (errorHandler == null) return Mono.error(new IllegalArgumentException("Error Handler cannot be null"));
 
         DataUploadResults results = new DataUploadResults();
