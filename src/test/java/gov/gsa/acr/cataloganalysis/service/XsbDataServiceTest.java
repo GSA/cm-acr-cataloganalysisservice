@@ -5,7 +5,10 @@ import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.*;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
+import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -56,10 +59,6 @@ class XsbDataServiceTest {
     private ErrorHandler errorHandler;
     @Autowired
     private AcrXsbS3Util acrXsbS3Util;
-    @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
-    @Autowired
-    private AcrXsbSftpUtil acrXsbSftpUtil;
     @Autowired
     private XsbDataService xsbDataService;
 
@@ -475,7 +474,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_nullTrigger() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(null));
-        assertEquals("Illegal argument, trigger. Cannot be null!", e.getMessage());
+        assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
     }
 
 
