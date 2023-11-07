@@ -116,6 +116,7 @@ public class ErrorHandler {
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
+        numRecordsSavedInTempDB = new AtomicInteger(0);
         errorMsgChunk = 0;
         parseErrorChunk = 0;
         errorMsgWriter = null;
