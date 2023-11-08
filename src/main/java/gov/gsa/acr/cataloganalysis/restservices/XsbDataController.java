@@ -120,8 +120,8 @@ public class XsbDataController extends BaseController{
                     schema = @Schema(implementation = Trigger.class),
                     examples = {
                             @ExampleObject(
-                                    name = "Sample Trigger Object from SFTP server",
-                                    summary = "SFTP Example",
+                                    name = "Download individual files from the SFTP server",
+                                    summary = "SFTP Example - Individual Files",
                                     description = """
                                             To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
                                             default value is configured already in the system. The "files" property could be an array of full file names
@@ -141,8 +141,25 @@ public class XsbDataController extends BaseController{
                             )
                             ,
                             @ExampleObject(
-                                    name = "Sample Trigger Object from SFTP server - 2",
-                                    summary = "SFTP Example",
+                                    name = "Download files using a wildcard from the SFTP server",
+                                    summary = "SFTP Example - Using a wild card",
+                                    description = """
+                                            To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
+                                            default value is configured already in the system. The "files" property could be an array of full file names
+                                            or glob like patterns.
+                                            """,
+                                    value = """
+                                            {"sourceType": "SFTP",
+                                             "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
+                                             "47QSWA19D0073-3003521*"
+                                             ]
+                                            }
+                                            """
+                            )
+                            ,
+                            @ExampleObject(
+                                    name = "Download files from any other folder on the SFTP server",
+                                    summary = "SFTP Example - Any folder",
                                     description = """
                                             To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
                                             default value is configured already in the system. The "files" property could be an array of full file names

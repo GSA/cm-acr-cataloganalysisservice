@@ -240,7 +240,7 @@ public class XsbDataService {
             // If there are too many errors, do not move the data to the final tables.
             return Mono.just(errorHandler.totalErrorsWithinAcceptableThreshold())
                     .filter(proceed -> proceed)
-                    // TBD add functionality if it's a complete replace or an incremental update
+                    // TBD add functionality if it's a complete replacement or an incremental update
                     .flatMap(proceed -> xsbDataRepository.deleteAll()
                             .doFirst(() -> log.info(msg))
                             .then(Mono.defer(xsbDataRepository::moveXsbData)))
