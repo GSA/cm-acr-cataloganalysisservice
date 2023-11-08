@@ -51,7 +51,14 @@ public class ErrorHandler {
 
         public long numBytesAllowed(String x){
             long numBytesRequested = x.getBytes().length;
-            if ( (this.currentFileSizeInBytes + numBytesRequested + lsBytes) < this.maxBytes) return numBytesRequested;
+            if (numBytesRequested > maxBytes)
+                throw new IllegalArgumentException("Error message is too long ("
+                                                   + numBytesRequested
+                                                   +" bytes) and exceeds the maximum size of the file ("
+                                                   +maxBytes
+                                                   +" bytes)");
+            if ( (this.currentFileSizeInBytes + numBytesRequested + lsBytes) < maxBytes)
+                return numBytesRequested;
             return 0;
         }
 
@@ -65,7 +72,7 @@ public class ErrorHandler {
     }
 
     @Value("${error.file.size.max.bytes.per.file}")
-    private long maxErrorFileSizeBytes;
+    long maxErrorFileSizeBytes;
     @Value("${error.file.directory}")
     @Getter
     String errorDirectory;
@@ -82,7 +89,6 @@ public class ErrorHandler {
     private String timeStamp;
 
     @Getter
-    @Setter
     private String header;
     private final String ls = System.getProperty("line.separator");
     @Getter
@@ -119,6 +125,7 @@ public class ErrorHandler {
         numRecordsSavedInTempDB = new AtomicInteger(0);
         errorMsgChunk = 0;
         parseErrorChunk = 0;
+        dbErrorChunk = 0;
         errorMsgWriter = null;
         parseErrorWriter = null;
         dbErrorWriter = null;
@@ -163,14 +170,17 @@ public class ErrorHandler {
 
 
     public void handleParsingError(String xsbRecord, String srcFileName, String error){
+        numParsingErrors.incrementAndGet();
         handleError(xsbRecord, srcFileName, error, "PARSE");
     }
 
     public void handleDBError(XsbData xsbRecord, String error){
+        numDbErrors.incrementAndGet();
         handleError(xsbRecord.getSourceXsbDataString(), xsbRecord.getSourceXsbDataFileName(), error, "DB");
     }
 
     public void handleFileError(String srcFileName, String error, Throwable t){
+        numFileErrors.incrementAndGet();
         handleError(error, srcFileName, t.getClass().getSimpleName(), "FILE");
     }
 
@@ -237,17 +247,10 @@ public class ErrorHandler {
             }
             else {
                 errorMsgWriter.println(sb.toString(), numAllowedErrorMessageBytes);
-                if (errorType.equals("DB") && numAllowedDbErrorBytes > 0) {
+                if (errorType.equals("DB") && numAllowedDbErrorBytes > 0)
                     dbErrorWriter.println(xsbRecord, numAllowedDbErrorBytes);
-                    numDbErrors.incrementAndGet();
-                }
-                else if (errorType.equals("PARSE") && numAllowedParseErrorBytes > 0) {
+                else if (errorType.equals("PARSE") && numAllowedParseErrorBytes > 0)
                     parseErrorWriter.println(xsbRecord, numAllowedParseErrorBytes);
-                    numParsingErrors.incrementAndGet();
-                }
-                else if (errorType.equals("FILE") ) {
-                    numFileErrors.incrementAndGet();
-                }
             }
 
         } catch (Exception e) {
