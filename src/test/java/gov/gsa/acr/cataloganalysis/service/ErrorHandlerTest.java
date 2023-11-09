@@ -17,9 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @SpringBootTest
@@ -71,6 +71,7 @@ class ErrorHandlerTest {
         assertEquals(0, errorHandler.getNumRecordsSavedInTempDB().get());
         assertEquals("dummy header", errorHandler.getHeader());
         assertTrue(isEmpty(Path.of(errorHandler.getErrorDirectory())));
+        assertEquals(2, errorHandler.getErrorThreshold());
     }
 
     @Test
@@ -223,6 +224,42 @@ class ErrorHandlerTest {
                 })
                 .expectNextMatches(p -> {
                     try {
+                        log.info("3. p: " + p.toString() + " regx1 " + regEx1);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("4. p: " + p.toString() + " regx2 " + regEx2);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+
+        assertEquals(3, errorHandler.getNumParsingErrors().get());
+
+    }
+
+
+    @Test
+    void handleParsingError_generateMultipleParseFiles() {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        String message = getAlphaNumericString(1900);
+        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        message = getAlphaNumericString(1900);
+        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        message = getAlphaNumericString(1900);
+        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
+        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
+        errorHandler.close();
+        StepVerifier.create(errorHandler.getErrorFiles())
+                .expectNextMatches(p -> {
+                    try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
                         return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
                     } catch (IOException e) {
@@ -237,11 +274,44 @@ class ErrorHandlerTest {
                         throw new RuntimeException(e);
                     }
                 })
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("3. p: " + p.toString() + " regx1 " + regEx1);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("4. p: " + p.toString() + " regx2 " + regEx2);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("5. p: " + p.toString() + " regx1 " + regEx1);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("6. p: " + p.toString() + " regx2 " + regEx2);
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (Files.size(p) > 0);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .verifyComplete();
 
         assertEquals(3, errorHandler.getNumParsingErrors().get());
 
     }
+
 
 
     @Test
@@ -455,10 +525,44 @@ class ErrorHandlerTest {
 
     @Test
     void handleFileError() {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        String message = getAlphaNumericString(100);
+        errorHandler.handleFileError("dummyFile1.gsa", message, new RuntimeException("dummy exception"));
+        message = getAlphaNumericString(100);
+        errorHandler.handleFileError("dummyFile2.gsa", message, new RuntimeException("dummy exception2"));
+        message = getAlphaNumericString(100);
+        errorHandler.handleFileError("dummyFile3.gsa", message, new RuntimeException("dummy exception3"));
+        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
+        errorHandler.close();
+        StepVerifier.create(errorHandler.getErrorFiles())
+                .expectNextMatches(p -> {
+                    try {
+                        log.info("1. p: " + p.toString() + " regx1 " + regEx1);
+                        return (p.toString().matches(regEx1) && (Files.size(p) > 0));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+
+        assertEquals(3, errorHandler.getNumFileErrors().get());
     }
 
     @Test
     void totalErrorsWithinAcceptableThreshold() {
+        assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
+        errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+        handleFileError();
+        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+    }
+
+    @Test
+    void totalErrorsWithinAcceptableThreshold_moreErrorsThanAccepted() {
+        errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+        handleMultipleErrors_generateMultipleFiles();
+        assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
     }
 
 
