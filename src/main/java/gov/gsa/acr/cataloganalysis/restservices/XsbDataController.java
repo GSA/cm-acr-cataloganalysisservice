@@ -183,11 +183,8 @@ public class XsbDataController extends BaseController{
         try {
             return xsbDataService.downloadReports(trigger)
                     .map(String::valueOf)
-                    .map(s -> s + "\n")
-                    .doOnNext(s -> log.info("File file file " + s));
-            //return Flux.just("Triggered");
-
-        } catch (ConcurrentModificationException e) {
+                    .map(s -> s + "\n");
+        } catch (Exception e) {
             return Flux.just(e.getMessage());
         }
     }

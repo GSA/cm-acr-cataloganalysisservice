@@ -78,6 +78,7 @@ public class ErrorHandler {
     String errorDirectory;
 
     @Value("${error.threshold}")
+    @Getter
     private Integer errorThreshold;
 
     private BoundedPrintWriter errorMsgWriter;
