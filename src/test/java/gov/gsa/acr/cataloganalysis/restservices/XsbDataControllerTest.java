@@ -6,56 +6,101 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.nio.file.Path;
 import java.util.ConcurrentModificationException;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
 @Slf4j
-@ContextConfiguration(classes ={XsbDataController.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataControllerTest {
+    @Autowired
+    WebTestClient webTestClient;
 
    @MockBean
     private XsbDataService xsbDataService;
 
-    @Autowired
-    XsbDataController xsbDataController;
+    @Test
+    void testTriggerEmptyBody() {
+        Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.empty());
+
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).contains("Bad Request"));
+    }
 
     @Test
-    void trigger() {
+    void triggerEndPoint() {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataController.trigger(trigger))
-                .expectNext("\nTriggered\n")
-                .verifyComplete();
+
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
     }
 
     @Test
     void trigger_alreadyWorking() {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.triggerDataUpload(any())).thenThrow(new ConcurrentModificationException("Working"));
-        StepVerifier.create(xsbDataController.trigger(trigger))
-                .expectNext("\nWorking\n")
-                .verifyComplete();
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isEqualTo(503)
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nWorking\n"));
     }
+
 
     @Test
     void trigger_error() {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
-        StepVerifier.create(xsbDataController.trigger(trigger))
-                .expectNext("\nTriggered\n")
-                .verifyComplete();
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
+    }
+
+
+    @Test
+    void trigger_unexpectedException() {
+        Trigger trigger= new Trigger();
+        Mockito.when(xsbDataService.triggerDataUpload(any())).thenThrow(new RuntimeException("Dummy"));
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("Dummy"));
     }
 
 
@@ -63,8 +108,14 @@ class XsbDataControllerTest {
     void sftp() {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.empty());
-        StepVerifier.create(xsbDataController.sftp(trigger))
-                .verifyComplete();
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/download")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isNull());
 
     }
 
@@ -74,21 +125,30 @@ class XsbDataControllerTest {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.fromArray(dummyFiles));
 
-        StepVerifier.create(xsbDataController.sftp(trigger))
-                .expectNext("file1\n")
-                .expectNext("file2\n")
-                .verifyComplete();
-
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/download")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("file1\nfile2\n"));
     }
+
 
     @Test
     void sftp_error() {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.error(new RuntimeException("Dummy")));
 
-        StepVerifier.create(xsbDataController.sftp(trigger))
-                .verifyError(RuntimeException.class);
-
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/download")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(String.class).value(response -> assertThat(response).isNotBlank());
     }
 
     @Test
@@ -96,9 +156,13 @@ class XsbDataControllerTest {
         Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.downloadReports(any())).thenThrow(new RuntimeException("Dummy Exception"));
 
-        StepVerifier.create(xsbDataController.sftp(trigger))
-                .expectNext("Dummy Exception")
-                .verifyComplete();
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/download")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(trigger, Trigger.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("Dummy Exception"));
     }
-
 }

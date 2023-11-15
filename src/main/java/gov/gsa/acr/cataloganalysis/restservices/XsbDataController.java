@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,7 +41,7 @@ public class XsbDataController extends BaseController{
     """
     )
     @PostMapping(value="/trigger", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Mono<String> trigger(@io.swagger.v3.oas.annotations.parameters.RequestBody(content = {
+    public ResponseEntity<Mono<String>> trigger(@io.swagger.v3.oas.annotations.parameters.RequestBody(content = {
             @Content(
             schema = @Schema(implementation = Trigger.class),
             examples = {
@@ -98,10 +100,19 @@ public class XsbDataController extends BaseController{
         try {
             Mono<DataUploadResults> dataUploadResultsMono =  xsbDataService.triggerDataUpload(trigger);
             executorService.submit(() -> dataUploadResultsMono.subscribe(null, e -> log.error("Unexpected Error", e)));
-            return Mono.just("\nTriggered\n");
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(Mono.just("\nTriggered\n"));
         }
         catch (ConcurrentModificationException e){
-            return Mono.just("\n"+e.getMessage()+"\n");
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Mono.just("\n"+e.getMessage()+"\n"));
+        }
+        catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Mono.just("\n"+e.getMessage()+"\n"));
         }
     }
 
