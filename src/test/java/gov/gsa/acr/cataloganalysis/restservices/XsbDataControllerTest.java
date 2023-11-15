@@ -12,7 +12,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -35,7 +34,6 @@ class XsbDataControllerTest {
 
     @Test
     void testTriggerEmptyBody() {
-        Trigger trigger= new Trigger();
         Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.empty());
 
         webTestClient
@@ -43,9 +41,7 @@ class XsbDataControllerTest {
                 .post().uri("/api/trigger")
                 .exchange()
                 .expectStatus().isBadRequest()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).contains("Bad Request");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).contains("Bad Request"));
     }
 
     @Test
@@ -57,12 +53,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualTo("\nTriggered\n");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
     }
 
     @Test
@@ -73,12 +67,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isEqualTo(503)
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualTo("\nWorking\n");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nWorking\n"));
     }
 
 
@@ -90,12 +82,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualTo("\nTriggered\n");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
     }
 
 
@@ -107,12 +97,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().is5xxServerError()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualToIgnoringNewLines("Dummy");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("Dummy"));
     }
 
 
@@ -124,12 +112,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isNull();
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isNull());
 
     }
 
@@ -143,12 +129,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualTo("file1\nfile2\n");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("file1\nfile2\n"));
     }
 
 
@@ -161,12 +145,10 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().is5xxServerError()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isNotBlank();
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isNotBlank());
     }
 
     @Test
@@ -178,11 +160,9 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(trigger))
+                .body(trigger, Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(response -> {
-                    assertThat(response).isEqualTo("Dummy Exception");
-                });
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("Dummy Exception"));
     }
 }

@@ -26,9 +26,7 @@ class InformationControllerTest {
                 .get().uri("/api")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> {
-                    assertThat(greeting).isEqualTo("Welcome to Catalog Analysis");
-                });
+                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("Welcome to Catalog Analysis"));
     }
 
     @Test
@@ -38,8 +36,6 @@ class InformationControllerTest {
                 .get().uri("/api/info")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> {
-                    assertThat(greeting).isEqualTo("A service for analyzing catalogs in ACR");
-                });
+                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("A service for analyzing catalogs in ACR"));
     }
 }
