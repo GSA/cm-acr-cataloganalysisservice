@@ -49,7 +49,7 @@ public class XsbDataService {
         // Trigger is required
         if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
         // Must have a valid source type
-        if(trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
+        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
         // Need files to download.
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         if (uniqueFileNames == null || uniqueFileNames.isEmpty())
@@ -339,7 +339,7 @@ public class XsbDataService {
                     .doOnComplete(() -> log.info("Finished downloading all files."))
                     .doFinally(s -> errorHandler.close());
         else
-            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is requires."));
+            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is required."));
     }
 
 }
