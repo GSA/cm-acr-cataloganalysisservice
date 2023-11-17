@@ -3,6 +3,8 @@ package gov.gsa.acr.cataloganalysis.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,6 +39,11 @@ public class Trigger {
     @Schema(hidden = true)
     private Set<String> uniqueFileNames;
 
+    public void setFiles(String[] newFiles){
+        files = newFiles;
+        uniqueFileNames = null;
+    }
+
     public Set<String> getUniqueFileNames(){
         if (uniqueFileNames == null) {
             if (files != null && files.length > 0) {
@@ -45,6 +52,23 @@ public class Trigger {
             }
         }
         return uniqueFileNames;
+    }
+
+    public static void validate(Trigger trigger){
+        // Trigger is required
+        if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
+        // Must have a valid source type
+        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
+        // For LOCAL source type, source folder is required
+        if (XsbSourceType.LOCAL.equals(trigger.getSourceType())){
+            String sourceFolder = trigger.getSourceFolder();
+            if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder))))
+                throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
+        }
+        // Need files to download.
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+        if (uniqueFileNames == null || uniqueFileNames.isEmpty())
+            throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
     }
 
     public enum XsbSourceType {

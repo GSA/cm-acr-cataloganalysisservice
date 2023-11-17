@@ -46,25 +46,28 @@ public class XsbDataService {
     public Mono<DataUploadResults> triggerDataUpload(Trigger trigger) {
         // Already executing? Exit if it is already executing.
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
-        // Trigger is required
-        if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
-        // Must have a valid source type
-        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
-        // Need files to download.
+
+        // Trigger validation throws an IllegalArgumentException if invalid.
+        Trigger.validate(trigger);
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        if (uniqueFileNames == null || uniqueFileNames.isEmpty())
-            throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+
         // Counter to count the number of records saved in the database
         AtomicInteger dbCounter = new AtomicInteger(0);
+
         // A temporary directory for downloading and staging all XSB files that need to be processed.
         String tmpdir;
         try {
             tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unexpected error, cannot create a temporary directory. Cannot proceed without a temporary directory.", e);
         }
+
+        // Initialize the error handler, reset all previous attributes.
+        errorHandler.init(xsbDataParser.getHeaderString());
+
         // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
         Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+
         // Start the pipeline for parsing files and storing data in the database
         return deleteOldStagingData()
                 .then(findTaaCompliantCountries())
@@ -85,7 +88,6 @@ public class XsbDataService {
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
                 .doFirst(() -> {
                     executing.compareAndSet(false, true);
-                    errorHandler.init(xsbDataParser.getHeaderString()); // Initialize the error handler, reset all previous attributes.
                     dbCounter.set(0);
                 })
                 .doFinally(s -> {
@@ -307,7 +309,7 @@ public class XsbDataService {
      * Collect all the results and generate a data object with the results.
      * @param errorFileNames Names of all the error files generated during the run.
      * @param errorHandler The error handler has all the valuable information regarding what worked and what failed.
-     * @return A data object holding the merics of the data upload process execution.
+     * @return A data object holding the metrics of the data upload process execution.
      */
     Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
         if (errorHandler == null) return Mono.error(new IllegalArgumentException("Error Handler cannot be null"));
@@ -326,7 +328,7 @@ public class XsbDataService {
     public Flux<Path> downloadReports(Trigger trigger) {
         errorHandler.init(null);
         String tmpdir;
-        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        Trigger.validate(trigger);
         try {
             tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
         } catch (IOException e) {

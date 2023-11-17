@@ -166,4 +166,59 @@ class AcrXsbS3UtilTest {
                 .verify();
     }
 
+
+    @Test
+    void testDeleteNonExistentObject() {
+        // Did not exist before
+        StepVerifier.create(acrXsbS3Util.list("", "non-existent" ))
+                        .verifyComplete();
+        StepVerifier.create (acrXsbS3Util.deleteFromS3("non-existent"))
+                .expectNext(true)
+                .verifyComplete();
+
+        // Does not exist after
+        StepVerifier.create(acrXsbS3Util.list("", "non-existent" ))
+                .verifyComplete();
+
+    }
+
+
+    @Test
+    void testUploadToS3AndDeleteFromS3() {
+        // Did not exist before
+        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+                .verifyComplete();
+
+        // upload a test file
+        StepVerifier.create (acrXsbS3Util.uploadToS3(Path.of("junitTestData/testErrorFile.txt"), "errors/testErrorFile.txt"))
+                .expectNext("errors/testErrorFile.txt")
+                .verifyComplete();
+
+        // Make sure file uploaded correctly
+        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+                .expectNext("catalogAnalysis/errors/testErrorFile.txt")
+                .verifyComplete();
+
+
+        StepVerifier.create (acrXsbS3Util.deleteFromS3("errors/testErrorFile.txt"))
+                .expectNext(true)
+                .verifyComplete();
+
+        // Does not exist after
+        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+                .verifyComplete();
+
+    }
+
+    @Test
+    void testUploadNonExistentFile() {
+        StepVerifier.create(acrXsbS3Util.list("errors/", "non-existent" ))
+                .verifyComplete();
+        StepVerifier.create (acrXsbS3Util.uploadToS3(Path.of("non-existent"), "errors/non-existent"))
+                .verifyComplete();
+
+        StepVerifier.create(acrXsbS3Util.list("errors/", "non-existent" ))
+                .verifyComplete();
+
+    }
 }

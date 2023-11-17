@@ -109,6 +109,11 @@ public class XsbDataController extends BaseController{
                     .status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Mono.just("\n"+e.getMessage()+"\n"));
         }
+        catch (IllegalArgumentException e){
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Mono.just("\n"+e.getMessage()+"\n"));
+        }
         catch (Exception e) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)

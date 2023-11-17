@@ -53,7 +53,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
@@ -67,7 +67,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isEqualTo(503)
                 .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nWorking\n"));
@@ -82,7 +82,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
@@ -97,11 +97,12 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().is5xxServerError()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("Dummy"));
     }
+
 
 
     @Test
@@ -112,7 +113,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(response -> assertThat(response).isNull());
@@ -129,7 +130,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualTo("file1\nfile2\n"));
@@ -145,7 +146,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().is5xxServerError()
                 .expectBody(String.class).value(response -> assertThat(response).isNotBlank());
@@ -160,7 +161,7 @@ class XsbDataControllerTest {
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(trigger, Trigger.class)
+                .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualTo("Dummy Exception"));
