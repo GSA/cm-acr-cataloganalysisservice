@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -107,14 +106,15 @@ public class ErrorHandler {
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*")))) {
             stream.forEach(p -> {
                 try {
+                    log.info("Cleaning up error directory, deleting old error file, " + p + ", from a previous execution.");
                     Files.deleteIfExists(p);
-                } catch (IOException e) {
-                   log.error("Unable to delete error file: " + p, e);
+                } catch (Exception e) {
+                   throw new RuntimeException("Unexpected error. Unable to delete old error file from a previous execution: " + p, e);
                 }
             });
         }
-        catch (IOException e){
-            log.error("Unable to delete error files.", e);
+        catch (Exception e){
+            throw new RuntimeException("Unexpected error. Unable to delete old error files from previous executions.", e);
         }
 
     }
@@ -136,7 +136,7 @@ public class ErrorHandler {
         try {
             Files.createDirectories(Path.of(errorDirectory));
         } catch (Exception e) {
-            log.error("Unable to create error directory.", e);
+            throw new RuntimeException("Unexpected error. Unable to create a new directory for storing error files.", e);
         }
 
         deleteOldErrorFiles();

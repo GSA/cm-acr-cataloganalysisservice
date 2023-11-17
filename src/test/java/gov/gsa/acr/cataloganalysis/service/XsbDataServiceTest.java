@@ -38,8 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @Slf4j
@@ -75,6 +74,7 @@ class XsbDataServiceTest {
                 .expectNext(true)
                 .verifyComplete();
     }
+
 
     @Test
     void testParsingEmptyFile() {
@@ -486,6 +486,19 @@ class XsbDataServiceTest {
         assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
     }
 
+    @Test
+    void testTriggerDataUpload_ErrorHandlerError() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        Exception e = new RuntimeException("Dummy");
+
+        doThrow(e).when(errorHandler).init(anyString());
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> xsbDataService.triggerDataUpload(trigger));
+    }
 
     @Test
     void testTriggerDataUpload_noSourceType() {
@@ -494,6 +507,72 @@ class XsbDataServiceTest {
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
     }
 
+
+    @Test
+    void testTriggerDataUpload_noSourceFolderForLocalSourceType() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
+    }
+
+    @Test
+    void testValidateTrigger() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(null));
+        assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
+
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
+
+        trigger.setUniqueFileNames(uniqueFileNames);
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
+
+        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+
+        trigger.setSourceType(Trigger.XsbSourceType.S3);
+        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+
+        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
+
+        trigger.setSourceFolder("");
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, ", e.getMessage());
+
+        trigger.setSourceFolder("invalid");
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, invalid", e.getMessage());
+
+        trigger.setSourceFolder("junitTestData");
+        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+
+        trigger.setUniqueFileNames(null);
+        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
+
+        trigger.setFiles(new String[]{"aa", "bb", "cc", "dd"});
+        uniqueFileNames = trigger.getUniqueFileNames();
+        assertNotNull(uniqueFileNames);
+        assertEquals(4, uniqueFileNames.size());
+        assertEquals(4, trigger.getFiles().length);
+
+        trigger.setFiles(new String[]{"aa", "bb", "cc", "dd", "aa", "bb"});
+        uniqueFileNames = trigger.getUniqueFileNames();
+        assertNotNull(uniqueFileNames);
+        assertEquals(4, uniqueFileNames.size());
+        assertEquals(6, trigger.getFiles().length);
+
+    }
 
     @Test
     void testTriggerDataUpload_deleteOldStagingData_failure() {

@@ -1,6 +1,6 @@
 package gov.gsa.acr.cataloganalysis.util;
 
-import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurarionProperties;
+import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
 import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,20 +18,47 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class AcrXsbS3Util implements XsbSource {
     private final S3AsyncClient s3client;
-    private final S3ClientConfigurarionProperties s3config;
+    private final S3ClientConfigurationProperties s3config;
 
     private final ErrorHandler errorHandler;
 
-    public AcrXsbS3Util(S3AsyncClient s3client, S3ClientConfigurarionProperties s3config, ErrorHandler errorHandler) {
+    public AcrXsbS3Util(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
         this.errorHandler = errorHandler;
     }
 
     private static void checkResult(SdkResponse result) {
-        if (result.sdkHttpResponse() == null || !result.sdkHttpResponse().isSuccessful()) {
+        if (result.sdkHttpResponse() == null || !result.sdkHttpResponse().isSuccessful())
             throw new RuntimeException(result.toString());
+    }
+
+    public Mono<Boolean> deleteFromS3(String objectKey) {
+        CompletableFuture<DeleteObjectResponse> future;
+
+        try {
+            DeleteObjectRequest request = DeleteObjectRequest.builder()
+                    .bucket(s3config.getBucket())
+                    .key(s3config.getBaseDir() + objectKey)
+                    .build();
+
+            future = s3client.deleteObject(request);
+            return Mono.fromFuture(future)
+                    .map((response) -> {
+                        checkResult(response);
+                        return response.sdkHttpResponse().isSuccessful();
+                    })
+                    .onErrorResume(e -> {
+                        log.error("Unable to delete file from S3 " + objectKey, e);
+                        return Mono.just(false);
+                    });
         }
+        catch (Exception e) {
+            log.error("Unable to delete S3 object " + objectKey, e);
+            return Mono.just(false);
+        }
+
+
     }
 
     public Mono<String> uploadToS3(Path source, String destination) {
@@ -50,7 +77,7 @@ public class AcrXsbS3Util implements XsbSource {
                         return destination;
                     })
                     .onErrorResume(e -> {
-                        log.error("Unable to save file to S3.", e);
+                        log.error("Unable to save file to S3: " + source, e);
                         return Mono.empty();
                     });
         } catch (Exception e) {
@@ -60,7 +87,7 @@ public class AcrXsbS3Util implements XsbSource {
 
     }
 
-    private Flux<String> list(String sourceFolder, String fileNamePattern) {
+    Flux<String> list(String sourceFolder, String fileNamePattern) {
         try {
             ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
                     .bucket(s3config.getBucket())

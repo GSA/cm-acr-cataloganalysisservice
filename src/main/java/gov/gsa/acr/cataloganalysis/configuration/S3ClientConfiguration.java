@@ -18,11 +18,11 @@ import software.amazon.awssdk.utils.StringUtils;
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties(S3ClientConfigurarionProperties.class)
+@EnableConfigurationProperties(S3ClientConfigurationProperties.class)
 @Slf4j
 public class S3ClientConfiguration {
     @Bean
-    public S3AsyncClient s3client(S3ClientConfigurarionProperties s3props, AwsCredentialsProvider credentialsProvider) {
+    public S3AsyncClient s3client(S3ClientConfigurationProperties s3props, AwsCredentialsProvider credentialsProvider) {
 
         SdkAsyncHttpClient httpClient = NettyNioAsyncHttpClient.builder()
                 .writeTimeout(Duration.ZERO)
@@ -48,7 +48,7 @@ public class S3ClientConfiguration {
     }
 
     @Bean
-    public AwsCredentialsProvider awsCredentialsProvider(S3ClientConfigurarionProperties s3props) {
+    public AwsCredentialsProvider awsCredentialsProvider(S3ClientConfigurationProperties s3props) {
 
         log.info("AWS S3 properties. Region: " + s3props.getRegion() + ", End Point: " + s3props.getEndpoint() + ", Bucket: " + s3props.getBucket());
 
