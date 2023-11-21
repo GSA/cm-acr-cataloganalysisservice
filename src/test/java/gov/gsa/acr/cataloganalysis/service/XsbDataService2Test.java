@@ -41,10 +41,6 @@ import static org.mockito.Mockito.when;
 @TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataService2Test {
     private MockedStatic<Files> mockedSettings;
-    @Autowired
-    private AcrXsbSftpUtil acrXsbSftpUtil;
-    @Autowired
-    private XsbSourceFactory xsbSourceFactory;
 
     @Autowired
     private XsbDataService xsbDataService;

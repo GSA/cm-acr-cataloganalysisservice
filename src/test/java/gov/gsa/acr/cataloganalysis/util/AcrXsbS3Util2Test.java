@@ -140,11 +140,10 @@ class AcrXsbS3Util2Test {
 
     @Test
     void testDeleteNullSdkHttpResponse() {
-        SdkResponse deleteObjectResponse = DeleteObjectResponse.builder()
+        DeleteObjectResponse deleteObjectResponse = DeleteObjectResponse.builder()
                 .versionId("ab")
                 .build();
-        CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() ->
-                (DeleteObjectResponse) deleteObjectResponse);
+        CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
         StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
                 .expectNext(false)
@@ -227,11 +226,10 @@ class AcrXsbS3Util2Test {
 
     @Test
     void testUploadNullSdkHttpResponse() {
-        SdkResponse deleteObjectResponse = PutObjectResponse.builder()
+        PutObjectResponse deleteObjectResponse = PutObjectResponse.builder()
                 .versionId("ab")
                 .build();
-        CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() ->
-                (PutObjectResponse) deleteObjectResponse);
+        CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
         StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
@@ -320,11 +318,10 @@ class AcrXsbS3Util2Test {
 
     @Test
     void testDownloadNullSdkHttpResponse() {
-        SdkResponse deleteObjectResponse = GetObjectResponse.builder()
+        GetObjectResponse deleteObjectResponse = GetObjectResponse.builder()
                 .versionId("ab")
                 .build();
-        CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() ->
-                (GetObjectResponse) deleteObjectResponse);
+        CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
         StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
