@@ -87,19 +87,19 @@ public class AcrXsbS3Util implements XsbSource {
 
     }
 
-    Flux<String> list(String sourceFolder, String fileNamePattern) {
+    public Flux<String> list(String sourceFolder, String fileNamePattern) {
         try {
             ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
                     .bucket(s3config.getBucket())
                     .prefix(s3config.getBaseDir() + sourceFolder + fileNamePattern)
                     .build();
-            CompletableFuture<ListObjectsResponse> future = s3client.listObjects(listObjectsRequest);
+            CompletableFuture<ListObjectsResponse> listingFuture = s3client.listObjects(listObjectsRequest);
 
-            return Mono.fromFuture(future)
+            return Mono.fromFuture(listingFuture)
                     .flatMapMany(response -> Flux.fromIterable(response.contents()))
                     .map(S3Object::key)
                     .onErrorResume(e -> {
-                        log.error("Error while listing files from S3", e);
+                        log.error("Error while listing files from S3. Ignoring.", e);
                         return Flux.empty();
                     });
         } catch (Exception e) {
@@ -108,7 +108,7 @@ public class AcrXsbS3Util implements XsbSource {
         }
     }
 
-    private Mono<Path> downloadFromS3(String key, String destinationFolder) {
+    public Mono<Path> downloadFromS3(String key, String destinationFolder) {
         try {
             Path sourcePath = Path.of(key);
             Path destinationPath = Path.of(destinationFolder + "/" + sourcePath.getFileName());

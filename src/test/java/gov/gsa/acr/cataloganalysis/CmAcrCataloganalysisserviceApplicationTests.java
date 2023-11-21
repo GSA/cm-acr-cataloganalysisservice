@@ -22,6 +22,7 @@ class CmAcrCataloganalysisserviceApplicationTests {
 
     @Test
     void firstTest(){
+        CmAcrCataloganalysisserviceApplication cmAcrCataloganalysisserviceApplication = new CmAcrCataloganalysisserviceApplication();
         Flux<String> strFlux = Flux.just("These","Strings","will","create","flux").log();
         StepVerifier.create(strFlux)
                 .expectNext("These")

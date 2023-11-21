@@ -74,22 +74,11 @@ public class AcrXsbSftpUtil implements XsbSource {
         return (ChannelSftp) channel;
     }
 
-    private ChannelSftp createUploadChannelSftp() throws Exception {
-        return getChannelSftp(sftpCatalogUploadDir);
-
-    }
-
     private void disconnectChannelSftp(ChannelSftp channelSftp) {
         try {
-            if (channelSftp == null)
-                return;
-
-            if (channelSftp.isConnected())
-                channelSftp.disconnect();
-
-            if (channelSftp.getSession() != null)
-                channelSftp.getSession().disconnect();
-
+            if (channelSftp == null) return;
+            if (channelSftp.isConnected()) channelSftp.disconnect();
+            if (channelSftp.getSession() != null) channelSftp.getSession().disconnect();
         } catch (Exception ex) {
             log.error("SFTP disconnect error", ex);
         }

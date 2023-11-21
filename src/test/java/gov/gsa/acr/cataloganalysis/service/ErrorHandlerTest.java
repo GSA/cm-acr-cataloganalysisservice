@@ -12,6 +12,7 @@ import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -565,5 +566,24 @@ class ErrorHandlerTest {
         assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
     }
 
+    @Test
+    void testBoundedPrintWWriter_messageExceedingLimit() {
+        PrintWriter printWriter = errorHandler.testBoundedPrintWriter(100);
+        String longMessage = getAlphaNumericString(101);
 
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> printWriter.println(longMessage));
+        assertEquals("Error message is too long (101 bytes) and exceeds the maximum allowed size for the error file (100 bytes)", thrown.getMessage());
+    }
+
+    @Test
+    void testBoundedPrintWWriter_messageExceedingRemainingFileSize() {
+        PrintWriter printWriter = errorHandler.testBoundedPrintWriter(100);
+        String message = getAlphaNumericString(50);
+
+        assertDoesNotThrow(() -> printWriter.println(message));
+
+        String longMessage = getAlphaNumericString(51);
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> printWriter.println(longMessage));
+        assertEquals("File size exceeded: 105 > 100", thrown.getMessage());
+    }
 }

@@ -1,19 +1,23 @@
 package gov.gsa.acr.cataloganalysis.util;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
+import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
 import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -22,14 +26,21 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
 @ContextConfiguration(classes ={AcrXsbS3Util.class, S3ClientConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
+@EnableConfigurationProperties(S3ClientConfigurationProperties.class)
 class AcrXsbS3UtilTest {
+    @Autowired
+    S3ClientConfigurationProperties props;
+
+    @Autowired
+    S3ClientConfiguration s3ClientConfiguration;
+
     @Autowired
     private AcrXsbS3Util acrXsbS3Util;
 
@@ -53,6 +64,44 @@ class AcrXsbS3UtilTest {
             log.error("Unable to delete error files.", e);
         }
         Files.deleteIfExists(Path.of("tmp"));
+    }
+
+    @Test
+    void testConfigurationProperties() {
+        assertEquals("us-east-1", props.getRegion().toString());
+        assertNull(props.getEndpoint());
+        assertNull(props.getKey());
+        assertNull(props.getSecret());
+        assertEquals("gsa-acr-dev-bucket", props.getBucket());
+    }
+
+
+    @Test
+    void testS3ClientConfiguration() {
+        S3ClientConfiguration s3ClientConfiguration1 = new S3ClientConfiguration();
+        assertNotNull(s3ClientConfiguration1.awsCredentialsProvider(props));
+
+        S3ClientConfigurationProperties newProps = new S3ClientConfigurationProperties();
+        newProps.setKey("key");
+        newProps.setBucket(props.getBucket());
+        newProps.setSecret("secret");
+        newProps.setRegion(props.getRegion());
+        newProps.setEndpoint(props.getEndpoint());
+        newProps.setBucket(props.getBaseDir());
+
+        AwsCredentialsProvider awsCredentialsProvider = s3ClientConfiguration1.awsCredentialsProvider(newProps);
+        assertNotNull(awsCredentialsProvider);
+        awsCredentialsProvider.resolveCredentials();
+
+        newProps.setKey(props.getKey());
+        newProps.setSecret(props.getSecret());
+        newProps.setEndpoint(URI.create("s3://s3.us-east-1.amazonaws.com"));
+
+        awsCredentialsProvider = s3ClientConfiguration1.awsCredentialsProvider(newProps);
+        assertNotNull(awsCredentialsProvider);
+
+        assertNotNull(s3ClientConfiguration1.s3client(newProps, awsCredentialsProvider));
+
     }
 
     @Test

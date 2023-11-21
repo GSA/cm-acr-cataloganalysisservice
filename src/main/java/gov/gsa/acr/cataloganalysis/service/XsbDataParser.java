@@ -4,7 +4,6 @@ import gov.gsa.acr.cataloganalysis.model.XsbData;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,6 @@ public class XsbDataParser {
     @Value("${xsb.report.file.header}")
     private String defaultHeader;
     @Getter
-    @Setter
     private String delimRegex;
     @Getter
     private String delimString;
@@ -45,21 +43,19 @@ public class XsbDataParser {
         return headerString.equals(rawHeaderString);
     }
 
-    private boolean validateRequest(String xsbDataString){
+    private void validateRequest(String xsbDataString){
         if (xsbDataString == null || xsbDataString.isBlank()) throw new IllegalArgumentException("A Blank XSB data row.");
         if (!xsbDataString.contains(delimString))
             throw new IllegalArgumentException("Input string is not formatted correctly. it is not delimited with expected delimiter, " + delimString);
-        return true;
     }
 
     public String[] parseXsbDataToArray(String xsbDataString){
-        if (validateRequest(xsbDataString)) {
-            String [] xsbDataAsArray = xsbDataString.split(delimRegex, -1);
-            if (xsbDataAsArray.length != header.length)
-                throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + header.length + ", found " + xsbDataAsArray.length);
-            return xsbDataAsArray;
-        }
-        else return null;
+        // Validate the string. Throw exception if not valid. Otherwise, continue parsing.
+        validateRequest(xsbDataString);
+        String [] xsbDataAsArray = xsbDataString.split(delimRegex, -1);
+        if (xsbDataAsArray.length != header.length)
+            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + header.length + ", found " + xsbDataAsArray.length);
+        return xsbDataAsArray;
     }
 
     public Map<String, String> parseXsbDataToMap(String xsbDataString){
