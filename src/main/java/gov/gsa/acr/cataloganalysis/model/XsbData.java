@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.Data;
@@ -80,9 +79,6 @@ public class XsbData {
             XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap, taaCountryCodes);
             ObjectMapper objectMapper = new ObjectMapper();
             this.setXsbData(Json.of(objectMapper.writeValueAsString(xsbDataJsonRecord)));
-        } catch (JsonProcessingException e) {
-            sb.append("Could not convert XSB response data to JSON. ").append(e.getMessage());
-            sb.append(ls);
         }
         catch (Exception e){
             sb.append(e.getMessage());

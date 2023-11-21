@@ -11,6 +11,7 @@ import reactor.core.publisher.Flux;
 
 import java.io.BufferedWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +44,17 @@ public class ErrorHandler {
             this.currentFileSizeInBytes = 0;
         }
 
-        public void println(String x, long len) {
-            ensureFileSizeWithinBounds(len);
-            super.println(x);
+        @Override
+        public void println(String x) {
+            long bytesAllowed = numBytesAllowed(x);
+            if (bytesAllowed > 0) {
+                this.currentFileSizeInBytes = this.currentFileSizeInBytes + bytesAllowed + lsBytes;
+                super.println(x);
+            }
+            else {
+                long numBytesRequested = this.currentFileSizeInBytes + x.getBytes().length + lsBytes;
+                throw new IllegalArgumentException("File size exceeded: " + numBytesRequested + " > " + this.maxBytes);
+            }
         }
 
         public long numBytesAllowed(String x){
@@ -53,19 +62,12 @@ public class ErrorHandler {
             if (numBytesRequested > maxBytes)
                 throw new IllegalArgumentException("Error message is too long ("
                                                    + numBytesRequested
-                                                   +" bytes) and exceeds the maximum size of the file ("
+                                                   +" bytes) and exceeds the maximum allowed size for the error file ("
                                                    +maxBytes
                                                    +" bytes)");
             if ( (this.currentFileSizeInBytes + numBytesRequested + lsBytes) < maxBytes)
                 return numBytesRequested;
             return 0;
-        }
-
-        private void ensureFileSizeWithinBounds(long len) {
-            long newFileSizeInBytes = this.currentFileSizeInBytes + len + lsBytes;
-            if (newFileSizeInBytes >= this.maxBytes)
-                throw new IllegalArgumentException("File size exceeded: " + newFileSizeInBytes + " > " + this.maxBytes);
-            this.currentFileSizeInBytes = newFileSizeInBytes;
         }
 
     }
@@ -247,11 +249,11 @@ public class ErrorHandler {
                 handleError(xsbRecord, srcFileName, error, errorType);
             }
             else {
-                errorMsgWriter.println(sb.toString(), numAllowedErrorMessageBytes);
+                errorMsgWriter.println(sb.toString());
                 if (errorType.equals("DB") && numAllowedDbErrorBytes > 0)
-                    dbErrorWriter.println(xsbRecord, numAllowedDbErrorBytes);
+                    dbErrorWriter.println(xsbRecord);
                 else if (errorType.equals("PARSE") && numAllowedParseErrorBytes > 0)
-                    parseErrorWriter.println(xsbRecord, numAllowedParseErrorBytes);
+                    parseErrorWriter.println(xsbRecord);
             }
 
         } catch (Exception e) {
@@ -278,6 +280,10 @@ public class ErrorHandler {
     private String getDBErrorFileName(){
         String dbErrorSuffix = ".gsa";
         return errorDirectory + "/xsb_error_db_" + timeStamp + "_" + dbErrorChunk++ + dbErrorSuffix;
+    }
+
+    PrintWriter testBoundedPrintWriter(int maxAllowedBytes){
+        return new BoundedPrintWriter(new StringWriter(maxAllowedBytes), maxAllowedBytes);
     }
 
 }

@@ -230,6 +230,19 @@ class XsbDataServiceTest {
     }
 
     @Test
+    void testDontMoveDataFromStagingToFinal_totalErrorsWithinAcceptableThresholdException() {
+        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String errMsg = "Error: " + msg;
+        Exception e = new RuntimeException("Dummy");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal())
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+    }
+
+    @Test
     void testMoveDataFromStagingToFinal_deleteAllException() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
@@ -745,4 +758,28 @@ class XsbDataServiceTest {
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
 
     }
+
+
+    @Test
+    void testDownload_getXsbFiles() throws IOException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("dummy.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+
+        StepVerifier.create(xsbDataService.downloadReports(trigger))
+                .verifyComplete();
+
+        uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("test*.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        StepVerifier.create(xsbDataService.downloadReports(trigger))
+                .expectNextCount(4)
+                .verifyComplete();
+
+    }
+
 }

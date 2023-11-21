@@ -105,16 +105,19 @@ public class XsbDataController extends BaseController{
                     .body(Mono.just("\nTriggered\n"));
         }
         catch (ConcurrentModificationException e){
+            log.error("Process already executing", e);
             return ResponseEntity
                     .status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Mono.just("\n"+e.getMessage()+"\n"));
         }
         catch (IllegalArgumentException e){
+            log.error("The request is illegal.", e);
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(Mono.just("\n"+e.getMessage()+"\n"));
         }
         catch (Exception e) {
+            log.error("Unexpected error", e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Mono.just("\n"+e.getMessage()+"\n"));

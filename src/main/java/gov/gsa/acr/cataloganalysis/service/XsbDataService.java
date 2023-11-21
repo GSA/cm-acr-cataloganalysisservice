@@ -284,10 +284,14 @@ public class XsbDataService {
                     try {
                         return Mono.just(Files.deleteIfExists(tmpDir));
                     } catch (Exception e) {
-                        log.error("Unable to delete the folder " + tmpDir);
-                        return Mono.error(e);
+                        log.error("Unable to delete the folder " + tmpDir, e);
+                        return Mono.just(false);
                     }
                 }))
+                .onErrorResume(e -> {
+                    log.error("Error deleting tmp dir", e);
+                    return Mono.just(false);
+                })
                 .doOnSuccess(b -> log.info("Deleted temporary folder successfully " + tmpDir));
     }
 
@@ -332,16 +336,13 @@ public class XsbDataService {
         try {
             tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unexpected Error creating tmp directory", e);
         }
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        if (uniqueFileNames != null && !uniqueFileNames.isEmpty())
-            return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
-                    .doOnComplete(() -> log.info("Finished downloading all files."))
-                    .doFinally(s -> errorHandler.close());
-        else
-            return Flux.error(new IllegalArgumentException("Invalid request body in POST. Either an array of file names or a file pattern is required."));
+        return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+                .doOnComplete(() -> log.info("Finished downloading all files."))
+                .doFinally(s -> errorHandler.close());
     }
 
 }
