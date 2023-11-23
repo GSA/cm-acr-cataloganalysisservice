@@ -21,8 +21,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -41,10 +41,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
+@ActiveProfiles("junit")
 @Slf4j
 @MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, AcrXsbFilesUtil.class, XsbSourceFactory.class})
-@TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataServiceTest {
 
     @Value("${error.file.directory}")
@@ -782,4 +782,56 @@ class XsbDataServiceTest {
 
     }
 
+    @Test
+    void testProgressMonitoring() {
+        assertEquals(1, xsbDataService.getProgressReportingIntervalSeconds());
+
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("test*.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        doCallRealMethod().when(errorHandler).setNumRecordsSavedInTempDB(any());
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenAnswer((Answer<Mono<Integer>>) invocationOnMock -> {
+            Thread.sleep(200);
+            return Mono.just(123);
+        });
+
+        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
+        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
+
+    }
 }

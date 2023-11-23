@@ -44,8 +44,8 @@ public class AcrXsbSftpUtil implements XsbSource {
     @Value("${xsb.sftp.gsa.file.upload.dir}")
     private String sftpCatalogUploadDir;
 
-    @Value("${sftp.progress.monitor.duration.seconds:30}")
-    private int progressMonitorSeconds;
+    @Value("${progress.reporting.interval.seconds:30}")
+    private int progressReportingIntervalSeconds;
 
     public AcrXsbSftpUtil(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
@@ -84,7 +84,7 @@ public class AcrXsbSftpUtil implements XsbSource {
         }
     }
 
-    private SftpProgressMonitor getSftpProgressMonitor() {
+    SftpProgressMonitor getSftpProgressMonitor() {
         return new SftpProgressMonitor() {
             private long totalBytesDownloadedUntilNow;
             private long totalDownloadFileSize;
@@ -103,7 +103,7 @@ public class AcrXsbSftpUtil implements XsbSource {
                 lastProgressReportTime = start;
 
                 // Provide a progress report every so many minutes
-                progressMonitorInterval = Duration.ofSeconds(progressMonitorSeconds);
+                progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
                 log.info(MN + "Starting to download {} file {} ({} Bytes in size) to {}, reporting progress approximately every {} seconds", i, s, l, s1, progressMonitorInterval.getSeconds());
             }
 
@@ -130,7 +130,7 @@ public class AcrXsbSftpUtil implements XsbSource {
     }
 
 
-    private Mono<Path> downloadFromXSBToLocal(String sftpGsaFilesReportDir, ChannelSftp.LsEntry entry, String destinationFolder) {
+    Mono<Path> downloadFromXSBToLocal(String sftpGsaFilesReportDir, ChannelSftp.LsEntry entry, String destinationFolder, ChannelSftp defaultChannelSftp) {
         final String MN = "downloadFromXSBToLocal: ";
         Sinks.One<Path> sinks = Sinks.one();
         Mono<Path> downloadedPath = sinks.asMono();
@@ -140,10 +140,10 @@ public class AcrXsbSftpUtil implements XsbSource {
                     SftpProgressMonitor sftpProgressMonitor = getSftpProgressMonitor();
                     String sourceFileName = entry.getFilename();
                     String destFileName = destinationFolder + File.separator + sourceFileName;
-                    ChannelSftp channelSftp = null;
+                    ChannelSftp channelSftp = defaultChannelSftp;
                     Path dest = Path.of(destFileName);
                     try {
-                        channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
+                        if (channelSftp == null) channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
                         channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
                         sinks.tryEmitValue(dest);
                     } catch (Exception exception) {
@@ -178,22 +178,24 @@ public class AcrXsbSftpUtil implements XsbSource {
     private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
         final String MN = "getXSBFiles: ";
         ChannelSftp channelSftp = null;
+        Flux<Path> rtrn = Flux.empty();
         try {
             channelSftp = createDownloadChannelSftp(sourceFolder);
             Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
-            return Flux.fromIterable(lsEntries)
+            rtrn = Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
                     .publishOn(Schedulers.parallel())
-                    .flatMap(entry -> downloadFromXSBToLocal(sourceFolder, entry, destinationFolder));
-        } catch (Exception e) {
+                    .flatMap(entry -> downloadFromXSBToLocal(sourceFolder, entry, destinationFolder, null));
+        }
+        catch (Exception e) {
             log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
             errorHandler.handleFileError(fileNamePattern, "SFTP failed. " + e.getMessage(), e);
-            return Flux.empty();
-        } finally {
+        }
+        finally {
             log.debug(MN + "Disconnecting from SFTP for " + fileNamePattern);
             disconnectChannelSftp(channelSftp);
         }
-
+        return rtrn;
     }
 
     /**
