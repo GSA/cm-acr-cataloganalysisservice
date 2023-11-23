@@ -6,8 +6,10 @@ import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -17,25 +19,31 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class XsbDataService {
+    @Value("${progress.reporting.interval.seconds:30}")
+    @Getter
+    private int progressReportingIntervalSeconds;
+
     private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
     private final XsbSourceFactory xsbSourceFactory;
     private final AcrXsbS3Util acrXsbS3Util;
     private final XsbDataParser xsbDataParser;
-
 
     /**
      * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
@@ -47,12 +55,19 @@ public class XsbDataService {
         // Already executing? Exit if it is already executing.
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
 
+        // Variables needed for reporting Progress every so often
+        Instant start = Instant.now();
+        final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
+        // Provide a progress report every so many minutes
+        final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
+        // Counter to count the number of records saved in the database
+        AtomicInteger dbCounter = new AtomicInteger(0);
+
         // Trigger validation throws an IllegalArgumentException if invalid.
         Trigger.validate(trigger);
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
 
-        // Counter to count the number of records saved in the database
-        AtomicInteger dbCounter = new AtomicInteger(0);
+
 
         // A temporary directory for downloading and staging all XSB files that need to be processed.
         String tmpdir;
@@ -75,8 +90,12 @@ public class XsbDataService {
                 .onBackpressureBuffer()
                 .flatMap(this::saveDataRecordToStaging)
                 .doOnNext(e -> {
-                    // TBD change the frequency of reporting
-                    if (dbCounter.incrementAndGet() % 1000 == 0) log.info("Saved {} records", dbCounter.get());
+                    Instant currentTime = Instant.now();
+                    int numRecordsSavedSoFar = dbCounter.incrementAndGet();
+                    if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
+                        log.info("Saved {} records", numRecordsSavedSoFar);
+                        lastProgressReportTime.set(currentTime);
+                    }
                 })
                 .doOnComplete(() -> {
                     errorHandler.setNumRecordsSavedInTempDB(dbCounter);
@@ -154,15 +173,23 @@ public class XsbDataService {
      * stream from all the files
      */
     Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes) {
+        // Variables needed for reporting Progress every so often
+        Instant start = Instant.now();
+        final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
+        // Provide a progress report every so many minutes
+        final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles.doOnNext(path -> log.info("Parsing file: " + path))
                 .doOnComplete(() -> log.info("Parsed ALL files!!"))
                 .flatMap(path -> parseXsbFile(path, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
-                    // TBD adjust the frequency of reporting
-                    if (counter.incrementAndGet() % 1000 == 0)
-                        log.info("{} ... {} records", xsbData.getSourceXsbDataFileName(), counter.get());
+                    Instant currentTime = Instant.now();
+                    int numRecordsParsed = counter.incrementAndGet();
+                    if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
+                        log.info("{}: parsed {} records", xsbData.getSourceXsbDataFileName(), numRecordsParsed);
+                        lastProgressReportTime.set(currentTime);
+                    }
                 })
                 .doOnComplete(() -> log.info("Finished Parsing. Parsed and converted to JSON a total of {} records", counter.get()));
     }

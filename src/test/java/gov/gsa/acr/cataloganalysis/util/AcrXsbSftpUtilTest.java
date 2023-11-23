@@ -1,14 +1,13 @@
 package gov.gsa.acr.cataloganalysis.util;
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpATTRS;
-import com.jcraft.jsch.SftpException;
+import com.jcraft.jsch.*;
 import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,11 +24,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
 @ContextConfiguration(classes ={AcrXsbSftpUtil.class,  AcrXsbFilesUtil.class})
-@TestPropertySource(locations="classpath:application-test.properties")
+@TestPropertySource(locations="classpath:application-junit.properties")
 class AcrXsbSftpUtilTest {
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
@@ -39,7 +41,8 @@ class AcrXsbSftpUtilTest {
     private AcrXsbSftpUtil acrXsbSftpUtil;
 
     @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
+    ErrorHandler errorHandler;
+
 
     @BeforeEach
     void setUp() throws IOException {
@@ -83,7 +86,7 @@ class AcrXsbSftpUtilTest {
                 String fileNamePattern = fileName.substring(0, Math.min(fileName.length(), 13));
                 // If we have already encountered this file pattern
                 if (potentialFiles.containsKey(fileNamePattern)) {
-                    // Put a high number if the size of the file size is over our limit, so it gets igmored
+                    // Put a high number if the size of the file size is over our limit, so it is ignored
                     if (attrs.getSize() > 50000) potentialFiles.put(fileNamePattern, 1000);
                     else {
                         int count = potentialFiles.get(fileNamePattern);
@@ -196,5 +199,84 @@ class AcrXsbSftpUtilTest {
                 .expectComplete()
                 .verify();
     }
+
+
+    @Test
+    void testProgressMonitorProgressReporting() throws InterruptedException {
+        SftpProgressMonitor sftpProgressMonitor = acrXsbSftpUtil.getSftpProgressMonitor();
+        sftpProgressMonitor.init(1, "file1", "file2", 100);
+        sftpProgressMonitor.count(20);
+        Thread.sleep(300);
+        sftpProgressMonitor.count(20);
+        Thread.sleep(300);
+        sftpProgressMonitor.count(20);
+        Thread.sleep(300);
+        sftpProgressMonitor.count(10);
+        Thread.sleep(300);
+        sftpProgressMonitor.count(20);
+        Thread.sleep(100);
+        sftpProgressMonitor.count(10);
+        sftpProgressMonitor.end();
+    }
+
+    @Test
+    void testDownloadFromXsbToLocalWithExceptions() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        ChannelSftp.LsEntry entry = Mockito.mock(ChannelSftp.LsEntry.class);
+        Mockito.when(entry.getFilename()).thenReturn("aDummyFile");
+        RuntimeException r = new RuntimeException("Dummy");
+        doThrow(r).when(channelSftp).get(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+                .verifyComplete();
+
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );
+
+    }
+
+    @Test
+    void testDownloadFromXsbToLocalWithExceptionCleanupFails() throws SftpException, JSchException, IOException {
+        MockedStatic<Files> mockedSettings;
+        mockedSettings = mockStatic(Files.class);
+        when(Files.deleteIfExists(any())).thenThrow(new IOException("Dummy"));
+
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        ChannelSftp.LsEntry entry = Mockito.mock(ChannelSftp.LsEntry.class);
+        Mockito.when(entry.getFilename()).thenReturn("aDummyFile");
+        RuntimeException r = new RuntimeException("Dummy");
+        doThrow(r).when(channelSftp).get(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+                .verifyComplete();
+
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );
+        mockedSettings.close();
+    }
+
+
+    @Test
+    void testDownloadFromXsbToLocalWithDisconnectException() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        ChannelSftp.LsEntry entry = Mockito.mock(ChannelSftp.LsEntry.class);
+        Mockito.when(entry.getFilename()).thenReturn("aDummyFile");
+        RuntimeException r = new RuntimeException("Dummy");
+        doThrow(r).when(channelSftp).get(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+        Mockito.when(channelSftp.isConnected()).thenReturn(true);
+        doThrow(r).when(channelSftp).disconnect();
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+                .verifyComplete();
+
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );
+
+    }
+
+
+
 
 }

@@ -16,8 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,16 +36,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ActiveProfiles("junit")
 @Slf4j
 @MockBeans({@MockBean(XsbDataParser.class), @MockBean(AcrXsbFilesUtil.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbSourceFactory.class})
-@TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataService2Test {
     private MockedStatic<Files> mockedSettings;
 
     @Autowired
     private XsbDataService xsbDataService;
-
 
     @BeforeEach
     void setUp() {mockedSettings = mockStatic(Files.class);}
