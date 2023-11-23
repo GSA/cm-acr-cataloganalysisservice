@@ -43,8 +43,6 @@ class AcrXsbSftpUtilTest {
     @Autowired
     ErrorHandler errorHandler;
 
-    @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
 
     @BeforeEach
     void setUp() throws IOException {
