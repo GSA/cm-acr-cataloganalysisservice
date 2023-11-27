@@ -16,13 +16,10 @@ public class XsbSourceFactory {
     }
 
     public XsbSource xsbSource(Trigger trigger){
-        Trigger.XsbSourceType sourceType = trigger.getSourceType();
-        if (sourceType == null) throw new IllegalArgumentException("Invalid Source type: null");
-        switch (sourceType) {
-            case SFTP  -> {return acrXsbSftpUtil;}
-            case S3    -> {return acrXsbS3Util;}
-            case LOCAL -> {return acrXsbFilesUtil;}
-            default    -> throw new IllegalStateException("Invalid source type: " + sourceType);
-        }
+        return switch (trigger.getSourceType()) {
+            case SFTP  -> acrXsbSftpUtil;
+            case S3    -> acrXsbS3Util;
+            case LOCAL -> acrXsbFilesUtil;
+        };
     }
 }
