@@ -36,6 +36,20 @@ class XsbDataController2Test {
     ErrorHandler errorHandler;
 
     @Test
+    void trigger_useJson() {
+        Trigger trigger= new Trigger();
+
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true}"), String.class)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP)."));
+    }
+
+    @Test
     void trigger_NoSourceType() {
         Trigger trigger= new Trigger();
 
