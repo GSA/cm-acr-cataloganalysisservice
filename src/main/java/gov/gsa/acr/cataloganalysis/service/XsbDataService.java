@@ -103,6 +103,8 @@ public class XsbDataService {
                     log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
                 })
                 .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger.getPurgeOldData())))
+                // TBD Do proper error handling
+                .onErrorResume(e -> Mono.empty())
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
