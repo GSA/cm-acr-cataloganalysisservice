@@ -19,6 +19,7 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ConcurrentModificationException;
@@ -101,7 +102,7 @@ public class XsbDataService {
                     errorHandler.setNumRecordsSavedInTempDB(dbCounter);
                     log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
                 })
-                .then(Mono.defer(this::moveDataFromStagingToFinal))
+                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger.getPurgeOldData())))
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
@@ -180,7 +181,6 @@ public class XsbDataService {
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles.doOnNext(path -> log.info("Parsing file: " + path))
-                .doOnComplete(() -> log.info("Parsed ALL files!!"))
                 .flatMap(path -> parseXsbFile(path, taaCountryCodes))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
@@ -191,7 +191,7 @@ public class XsbDataService {
                         lastProgressReportTime.set(currentTime);
                     }
                 })
-                .doOnComplete(() -> log.info("Finished Parsing. Parsed and converted to JSON a total of {} records", counter.get()));
+                .doOnComplete(() -> log.info("Finished Parsing all files. Parsed and converted to JSON a total of {} records", counter.get()));
     }
 
 
@@ -262,7 +262,7 @@ public class XsbDataService {
      * @return Asynchronously return void once completed
      */
     @Transactional
-    public Mono<Void> moveDataFromStagingToFinal() {
+    public Mono<Void> moveDataFromStagingToFinal(Boolean purgeOldData) {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         try {
@@ -270,18 +270,25 @@ public class XsbDataService {
             return Mono.just(errorHandler.totalErrorsWithinAcceptableThreshold())
                     .filter(proceed -> proceed)
                     // TBD add functionality if it's a complete replacement or an incremental update
-                    .flatMap(proceed -> xsbDataRepository.deleteAll()
+                    .flatMap(proceed -> {
+                        if (purgeOldData)
+                         return xsbDataRepository.deleteAll()
                             .doFirst(() -> log.info(msg))
-                            .then(Mono.defer(xsbDataRepository::moveXsbData)))
-                    .onErrorResume(e -> {
-                        log.error(errMsg, e);
+                            .then(Mono.defer(xsbDataRepository::moveXsbData));
+                        else
+                            return xsbDataRepository.moveXsbData();
+                    })
+                    .doOnError(e -> {
+                        log.error("Mono " + errMsg, e);
                         errorHandler.handleFileError("", errMsg, e);
-                        return Mono.empty();
+                        // Convert to RuntimeException so the Transaction fails
+                        throw new RuntimeException(e);
                     });
         } catch (Exception e) {
-            log.error(errMsg, e);
+            log.error("Caught " + errMsg, e);
             errorHandler.handleFileError("", errMsg, e);
-            return Mono.empty();
+            // Convert to RuntimeException so the Transaction fails
+            throw new RuntimeException(e);
         }
     }
 
