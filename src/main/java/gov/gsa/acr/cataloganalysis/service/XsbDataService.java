@@ -19,7 +19,6 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ConcurrentModificationException;
@@ -45,6 +44,7 @@ public class XsbDataService {
     private final XsbSourceFactory xsbSourceFactory;
     private final AcrXsbS3Util acrXsbS3Util;
     private final XsbDataParser xsbDataParser;
+    private final TransactionalDataService transactionalDataService;
 
     /**
      * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
@@ -67,8 +67,6 @@ public class XsbDataService {
         // Trigger validation throws an IllegalArgumentException if invalid.
         Trigger.validate(trigger);
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-
-
 
         // A temporary directory for downloading and staging all XSB files that need to be processed.
         String tmpdir;
@@ -102,9 +100,8 @@ public class XsbDataService {
                     errorHandler.setNumRecordsSavedInTempDB(dbCounter);
                     log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
                 })
-                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger.getPurgeOldData())))
+                .then(Mono.defer(() -> transactionalDataService.moveDataFromStagingToFinal(trigger)))
                 // TBD Do proper error handling
-                .onErrorResume(e -> Mono.empty())
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
@@ -263,11 +260,13 @@ public class XsbDataService {
      *
      * @return Asynchronously return void once completed
      */
-    @Transactional
-    public Mono<Void> moveDataFromStagingToFinal(Boolean purgeOldData) {
+    @Transactional(rollbackFor = {RuntimeException.class})
+    public Mono<Void> moveDataFromStagingToFinal(Trigger trigger) {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         try {
+            if (trigger == null) throw new NullPointerException("Trigger argument cannot be null.");
+            Boolean purgeOldData = trigger.getPurgeOldData();
             // If there are too many errors, do not move the data to the final tables.
             return Mono.just(errorHandler.totalErrorsWithinAcceptableThreshold())
                     .filter(proceed -> proceed)
@@ -276,7 +275,19 @@ public class XsbDataService {
                         if (purgeOldData)
                          return xsbDataRepository.deleteAll()
                             .doFirst(() -> log.info(msg))
-                            .then(Mono.defer(xsbDataRepository::moveXsbData));
+                            .then(Mono.defer(xsbDataRepository::moveXsbData))
+                                 .then(Mono.defer(()-> {
+                                     Integer forcedError = trigger.getForcedError();
+                                     if (forcedError == 1) {
+                                         log.info("Triggering a forced Error 1");
+                                         return Mono.error(new Exception("Forced Error 1" ));
+                                     }
+                                     else if (forcedError == 2) {
+                                         log.info("Triggering a forced Error 2");
+                                         throw new RuntimeException("Forced Error 2");
+                                     }
+                                     else return Mono.empty();
+                                 }));
                         else
                             return xsbDataRepository.moveXsbData();
                     })
@@ -284,7 +295,7 @@ public class XsbDataService {
                         log.error("Mono " + errMsg, e);
                         errorHandler.handleFileError("", errMsg, e);
                         // Convert to RuntimeException so the Transaction fails
-                        throw new RuntimeException(e);
+                        //throw new RuntimeException(e);
                     });
         } catch (Exception e) {
             log.error("Caught " + errMsg, e);

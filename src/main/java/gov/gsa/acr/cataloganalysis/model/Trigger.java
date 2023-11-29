@@ -47,6 +47,9 @@ public class Trigger {
     @Schema(hidden = true)
     private Set<String> uniqueFileNames;
 
+    @Schema(hidden = true)
+    private Integer forcedError = 0;
+
     public void setFiles(String[] newFiles){
         files = newFiles;
         uniqueFileNames = null;

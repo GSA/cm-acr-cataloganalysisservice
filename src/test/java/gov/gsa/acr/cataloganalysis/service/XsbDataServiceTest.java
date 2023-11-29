@@ -221,8 +221,9 @@ class XsbDataServiceTest {
 
     @Test
     void testDontMoveDataFromStagingToFinal() {
+        Trigger trigger = new Trigger();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -233,9 +234,10 @@ class XsbDataServiceTest {
     void testDontMoveDataFromStagingToFinal_totalErrorsWithinAcceptableThresholdException() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
+        Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
-        assertThrows(RuntimeException.class, () -> StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        assertThrows(RuntimeException.class, () -> StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .expectError(RuntimeException.class)
                 .verify());
 
@@ -248,10 +250,11 @@ class XsbDataServiceTest {
     void testMoveDataFromStagingToFinal_deleteAllException() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
+        Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenThrow(e);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
@@ -264,9 +267,10 @@ class XsbDataServiceTest {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Exception e = new Exception("Dummy");
+        Trigger trigger = new Trigger();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
@@ -278,11 +282,12 @@ class XsbDataServiceTest {
     void testMoveDataFromStagingToFinal_movXsbDataException() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
+        Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenThrow(e);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
@@ -294,11 +299,12 @@ class XsbDataServiceTest {
     void testMoveDataFromStagingToFinal_moveXsbDataError() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
+        Trigger trigger = new Trigger();
         Exception e = new Exception("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
@@ -310,10 +316,11 @@ class XsbDataServiceTest {
     void testMoveDataFromStagingToFinal_movXsbDataSuccess() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
+        Trigger trigger = new Trigger();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(Boolean.TRUE))
+        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
