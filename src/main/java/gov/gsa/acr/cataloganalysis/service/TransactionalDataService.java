@@ -7,6 +7,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
+
+/**
+ * In order for annotated transactions to work, the @Transactional annotation had to be applied at the Bean level.
+ * Previously this annotation was applied to a method within the XsbDataService bean. But the AOP code was not
+ * generated or inserted correctly.
+ * According to the documentation found at
+ * https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
+ * In proxy mode (which is the default), only external method calls coming in through the proxy are intercepted. This
+ * means that self-invocation (in effect, a method within the target object calling another method of the target object)
+ * does not lead to an actual transaction at runtime even if the invoked method is marked with @Transactional. Also, the
+ * proxy must be fully initialized to provide the expected behavior, so you should not rely on this feature in your
+ * initialization code (that is, @PostConstruct).
+ * Also,
+ * The @Transactional annotation is typically used on methods with public visibility. As of 6.0, protected or
+ * package-visible methods can also be made transactional for class-based proxies by default. Note that transactional
+ * methods in interface-based proxies must always be public and defined in the proxied interface. For both kinds of
+ * proxies, only external method calls coming in through the proxy are intercepted.
+ */
 @Service
 @Transactional(rollbackFor = {Exception.class})
 @Slf4j
