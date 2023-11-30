@@ -88,8 +88,8 @@ public class XsbDataController extends BaseController{
                             """,
                             value = """
                                     {"sourceType": "LOCAL",
-                                    "sourceFolder":"/app/testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]
+                                    "sourceFolder":"testData",
+                                     "files": ["47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"]
                                     }
                                     """
                     )

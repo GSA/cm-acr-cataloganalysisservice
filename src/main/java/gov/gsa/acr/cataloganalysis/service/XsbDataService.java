@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -100,7 +99,7 @@ public class XsbDataService {
                     errorHandler.setNumRecordsSavedInTempDB(dbCounter);
                     log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
                 })
-                .then(Mono.defer(() -> transactionalDataService.moveDataFromStagingToFinal(trigger)))
+                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger)))
                 // TBD Do proper error handling
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
@@ -258,52 +257,53 @@ public class XsbDataService {
      * Once all the data from all the XSB files have been saved into the staging table, bulk move it into the final
      * table. This is an atomic operation, performed in a DB transaction and succeeds or fails as an atomic operation.
      *
-     * @return Asynchronously return void once completed
+     * @return Asynchronously return void once completed, or rolls back if an exception is thrown.
      */
-    @Transactional(rollbackFor = {RuntimeException.class})
-    public Mono<Void> moveDataFromStagingToFinal(Trigger trigger) {
+     Mono<Void> moveDataFromStagingToFinal(Trigger trigger) {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
-        try {
-            if (trigger == null) throw new NullPointerException("Trigger argument cannot be null.");
-            Boolean purgeOldData = trigger.getPurgeOldData();
-            // If there are too many errors, do not move the data to the final tables.
-            return Mono.just(errorHandler.totalErrorsWithinAcceptableThreshold())
-                    .filter(proceed -> proceed)
-                    // TBD add functionality if it's a complete replacement or an incremental update
-                    .flatMap(proceed -> {
-                        if (purgeOldData)
-                         return xsbDataRepository.deleteAll()
-                            .doFirst(() -> log.info(msg))
-                            .then(Mono.defer(xsbDataRepository::moveXsbData))
-                                 .then(Mono.defer(()-> {
-                                     Integer forcedError = trigger.getForcedError();
-                                     if (forcedError == 1) {
-                                         log.info("Triggering a forced Error 1");
-                                         return Mono.error(new Exception("Forced Error 1" ));
-                                     }
-                                     else if (forcedError == 2) {
-                                         log.info("Triggering a forced Error 2");
-                                         throw new RuntimeException("Forced Error 2");
-                                     }
-                                     else return Mono.empty();
-                                 }));
-                        else
-                            return xsbDataRepository.moveXsbData();
-                    })
-                    .doOnError(e -> {
-                        log.error("Mono " + errMsg, e);
-                        errorHandler.handleFileError("", errMsg, e);
-                        // Convert to RuntimeException so the Transaction fails
-                        //throw new RuntimeException(e);
-                    });
-        } catch (Exception e) {
-            log.error("Caught " + errMsg, e);
-            errorHandler.handleFileError("", errMsg, e);
-            // Convert to RuntimeException so the Transaction fails
-            throw new RuntimeException(e);
-        }
-    }
+        Mono<Void> rtrn;
+
+         try {
+             Integer forcedError = trigger.getForcedError();
+             if (errorHandler.totalErrorsWithinAcceptableThreshold()){
+                 log.info(msg);
+                 if (trigger.getPurgeOldData()) {
+                     // TBD Delete thr test rollback code
+                     if (forcedError == 0) rtrn = transactionalDataService.replace();
+                     else rtrn = transactionalDataService.testRollbackReplace();
+                 }
+                 else {
+                     // TBD Delete thr test rollback code
+                     if (forcedError == 0) rtrn = transactionalDataService.update();
+                     else rtrn = transactionalDataService.testRollbackUpdate();
+                 }
+
+                 return rtrn
+                         .doOnSuccess(s -> {
+                             log.info("Successfully moved data from staging to final tables!");
+                             //TBD add counts
+                         })
+                         .onErrorResume(e -> {
+                             log.error("Mono " + errMsg, e);
+                             errorHandler.handleFileError("", errMsg, e);
+                             return Mono.empty();
+                         });
+             }
+             else{
+                 String reason = "Too many parsing/db errors. Stopping the process. The process will stop and not save the data to the final table!";
+                 log.error(reason);
+                 // TBD errorhandler add a method for this information
+                 errorHandler.handleFileError("", errMsg, new RuntimeException(reason));
+                 return Mono.empty();
+             }
+         } catch (Exception e) {
+             log.error("Unexpected exception. ", e);
+             errorHandler.handleFileError("", errMsg, e);
+             return Mono.empty();
+         }
+     }
+
 
 
     /**

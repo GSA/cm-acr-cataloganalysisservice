@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(XsbDataParser.class),@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class) })
+@MockBeans({@MockBean(XsbDataParser.class),@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class), @MockBean(TransactionalDataService.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, AcrXsbFilesUtil.class, XsbSourceFactory.class})
 class ProgressReportingTest {
     @Autowired
