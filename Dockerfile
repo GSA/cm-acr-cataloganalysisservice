@@ -6,7 +6,6 @@ RUN mvn -DskipTests clean install verify
 RUN find $M2_HOME/ -iname '*.jar'
 RUN rm -rf /home/gsa-user/.m2/repository
 
-
 # --- copy jar file from previous stage
 RUN cp ./target/*.jar app.jar
 # ENV JAVA_TOOL_OPTIONS "-XX:MaxRAMPercentage=80"
