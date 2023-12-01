@@ -392,4 +392,25 @@ public class XsbDataService {
                 .doFinally(s -> errorHandler.close());
     }
 
+
+    // TBD: Only for the demo. Delete later
+    public Flux<XsbData> parseXsbFiles(Trigger trigger) {
+        errorHandler.init(null);
+        String tmpdir;
+        Trigger.validate(trigger);
+        try {
+            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Unexpected Error creating tmp directory", e);
+        }
+
+        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+
+        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+
+        // Start the pipeline for parsing files and storing data in the database
+        return findTaaCompliantCountries()
+                .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes));
+    }
+
 }

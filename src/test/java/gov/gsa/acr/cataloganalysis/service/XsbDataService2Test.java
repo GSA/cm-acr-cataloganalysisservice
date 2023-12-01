@@ -137,7 +137,23 @@ class XsbDataService2Test {
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
         RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.downloadReports(trigger));
 
+        assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
+
     }
 
+
+    @Test
+    void testParse_ErrorCreatingTmpDir() throws IOException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.parseXsbFiles(trigger));
+
+        assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
+    }
 
 }

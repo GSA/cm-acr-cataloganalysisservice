@@ -835,7 +835,7 @@ class XsbDataServiceTest {
         uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
-        StepVerifier.create(xsbDataService.downloadReports(trigger))
+        StepVerifier.create(xsbDataService.downloadReports(trigger).doOnNext(p -> log.info("File: {}", p)))
                 .expectNextCount(4)
                 .verifyComplete();
 
@@ -893,4 +893,27 @@ class XsbDataServiceTest {
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
 
     }
+
+
+    @Test
+    void testParse_getXsbFiles() throws IOException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("dummy.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(taaCountryCodes));
+        StepVerifier.create(xsbDataService.parseXsbFiles(trigger))
+                .verifyComplete();
+
+        uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("testValidFile.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        StepVerifier.create(xsbDataService.parseXsbFiles(trigger).doOnNext(x->log.info("xsbData: " + x.getXsbData())))
+                .expectNextCount(10)
+                .verifyComplete();
+
+    }
+
 }

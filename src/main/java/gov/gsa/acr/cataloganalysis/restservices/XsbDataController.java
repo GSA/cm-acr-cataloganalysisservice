@@ -2,6 +2,7 @@ package gov.gsa.acr.cataloganalysis.restservices;
 
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
+import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -205,6 +206,84 @@ public class XsbDataController extends BaseController{
                     .map(s -> s + "\n");
         } catch (Exception e) {
             return Flux.just(e.getMessage());
+        }
+    }
+
+
+    @Operation(summary = "Trigger (start) the SFTP file download process.",
+            description = """
+    This API endpoint is used to trigger the Catalog Analysis Service to start downloading the bi-monthly XSB report files from XSB. The end point expects
+    a trigger message. The examples listed below explains the structure of the trigger message and explains what each attribute means.
+    It is important to read the description for each example to understand the nuances for different options for getting XSB source files.
+    """
+    )
+    @PostMapping(value = "/parse", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> parse(@io.swagger.v3.oas.annotations.parameters.RequestBody(content = {
+            @Content(
+                    schema = @Schema(implementation = Trigger.class),
+                    examples = {
+                            @ExampleObject(
+                                    name = "Download individual files from the SFTP server",
+                                    summary = "SFTP Example - Individual Files",
+                                    description = """
+                                            To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
+                                            default value is configured already in the system. The "files" property could be an array of full file names
+                                            or glob like patterns.
+                                            """,
+                                    value = """
+                                            {"sourceType": "SFTP",
+                                             "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
+                                             "47QSEA18D0085-3008870_20231010180915_2847181293179224282_report_1.gsa",
+                                             "47QSMA19D08P6-3008918_20231023124520_8813056341555794877_report_1.gsa"
+                                             ]
+                                            }
+                                            """
+                            )
+                            ,
+                            @ExampleObject(
+                                    name = "Download files using a wildcard from the SFTP server",
+                                    summary = "SFTP Example - Using a wild card",
+                                    description = """
+                                            To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
+                                            default value is configured already in the system. The "files" property could be an array of full file names
+                                            or glob like patterns.
+                                            """,
+                                    value = """
+                                            {"sourceType": "SFTP",
+                                             "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
+                                             "47QSWA19D0073-3003521*"
+                                             ]
+                                            }
+                                            """
+                            )
+                            ,
+                            @ExampleObject(
+                                    name = "Download files from any other folder on the SFTP server",
+                                    summary = "SFTP Example - Any folder",
+                                    description = """
+                                            To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
+                                            default value is configured already in the system. The "files" property could be an array of full file names
+                                            or glob like patterns.
+                                            """,
+                                    value = """
+                                            {"sourceType": "SFTP",
+                                            "sourceFolder": "/ACR/catalog_upload",
+                                             "files": [
+                                             "47QSEA19D007N-3008951_20231031174025.gsa",
+                                             "47QSCA18D000Z-3008957_20231101135517.gsa"
+                                             ]
+                                            }
+                                            """
+                            )
+                    })})
+
+                             @RequestBody Trigger trigger) {
+        if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
+        log.info("Trigger: " + trigger);
+        try {
+            return xsbDataService.parseXsbFiles(trigger);
+        } catch (Exception e) {
+            return Flux.error(e);
         }
     }
 
