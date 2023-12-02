@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.error;
 
-import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -581,14 +580,14 @@ class ErrorHandlerTest {
     @Test
     void testBoundedPrintWWriter_messageExceedingRemainingFileSize() {
         IllegalArgumentException thrown;
-        try (PrintWriter printWriter = errorHandler.testBoundedPrintWriter(100)) {
+        try (PrintWriter printWriter = errorHandler.testBoundedPrintWriter(101)) {
             String message = getAlphaNumericString(50);
 
             assertDoesNotThrow(() -> printWriter.println(message));
 
-            String longMessage = getAlphaNumericString(51);
+            String longMessage = getAlphaNumericString(52);
             thrown = assertThrows(IllegalArgumentException.class, () -> printWriter.println(longMessage));
         }
-        assertEquals("File size exceeded: 105 > 100", thrown.getMessage());
+        assertEquals("File size exceeded: 106 > 101", thrown.getMessage());
     }
 }

@@ -105,7 +105,7 @@ class AcrXsbSftpUtilTest {
         }
 
         String pattern1 = null, pattern2 = null;
-        Integer numFiles1 = 0, numFiles2 = 0;
+        int numFiles1 = 0, numFiles2 = 0;
         for (Map.Entry<String, Integer> entry : potentialFiles.entrySet()) {
             if (entry.getValue() > 2 && entry.getValue() < 10 && pattern1 == null) {
                 pattern1 = entry.getKey(); numFiles1 = entry.getValue();

@@ -571,6 +571,7 @@ class XsbDataServiceTest {
         doThrow(e).when(errorHandler).init(anyString());
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        assertEquals("Dummy", thrown.getMessage());
     }
 
     @Test
@@ -829,7 +830,7 @@ class XsbDataServiceTest {
 
 
     @Test
-    void testDownload_getXsbFiles() throws IOException {
+    void testDownload_getXsbFiles() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
@@ -906,7 +907,7 @@ class XsbDataServiceTest {
 
 
     @Test
-    void testParse_getXsbFiles() throws IOException {
+    void testParse_getXsbFiles(){
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");

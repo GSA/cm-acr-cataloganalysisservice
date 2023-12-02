@@ -28,8 +28,6 @@ class TransactionalDataServiceTest {
     @Autowired
     private XsbDataRepository xsbDataRepository;
     @Autowired
-    private ErrorHandler errorHandler;
-    @Autowired
     private TransactionalDataService transactionalDataService;
 
 

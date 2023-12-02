@@ -1,7 +1,7 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
-import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -37,8 +37,6 @@ class XsbDataController2Test {
 
     @Test
     void trigger_useJson() {
-        Trigger trigger= new Trigger();
-
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")

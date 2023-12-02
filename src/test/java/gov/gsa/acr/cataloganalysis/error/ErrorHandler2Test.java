@@ -1,6 +1,5 @@
 package gov.gsa.acr.cataloganalysis.error;
 
-import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
