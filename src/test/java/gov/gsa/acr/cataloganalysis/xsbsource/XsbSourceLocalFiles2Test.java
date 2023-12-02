@@ -1,8 +1,11 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.xsbsource;
 
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
+import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceLocalFiles;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -53,7 +56,7 @@ class XsbSourceLocalFiles2Test {
 
     @Test
     void globToRegex() {
-        assertEquals("file.*\\\\\\.gsa", StringUtils.globToRegex("file*\\.gsa") );
+        Assertions.assertEquals("file.*\\\\\\.gsa", StringUtils.globToRegex("file*\\.gsa") );
         assertEquals("file\\[\\]\\^\\$\\(\\)\\{\\}\\+\\|\\.gsa", StringUtils.globToRegex("file[]^$(){}+|.gsa"));
     }
 

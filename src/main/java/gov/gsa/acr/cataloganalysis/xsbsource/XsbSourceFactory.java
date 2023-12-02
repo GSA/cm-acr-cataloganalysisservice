@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.xsbsource;
 
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.xsbsource;
 
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
