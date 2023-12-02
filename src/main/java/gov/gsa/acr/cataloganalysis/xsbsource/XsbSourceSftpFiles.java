@@ -2,7 +2,6 @@ package gov.gsa.acr.cataloganalysis.xsbsource;
 
 import com.jcraft.jsch.*;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

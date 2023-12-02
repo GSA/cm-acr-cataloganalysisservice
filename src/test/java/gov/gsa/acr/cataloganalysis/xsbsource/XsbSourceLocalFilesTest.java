@@ -2,7 +2,6 @@ package gov.gsa.acr.cataloganalysis.xsbsource;
 
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.util.StringUtils;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceLocalFiles;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;

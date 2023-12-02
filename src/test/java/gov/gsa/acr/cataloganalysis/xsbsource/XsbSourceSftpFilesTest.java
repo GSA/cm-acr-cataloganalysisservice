@@ -3,8 +3,6 @@ package gov.gsa.acr.cataloganalysis.xsbsource;
 import com.jcraft.jsch.*;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.util.StringUtils;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceLocalFiles;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceSftpFiles;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
