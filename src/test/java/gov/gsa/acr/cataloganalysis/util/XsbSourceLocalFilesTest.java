@@ -26,11 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes = {AcrXsbFilesUtil.class})
+@ContextConfiguration(classes = {XsbSourceLocalFiles.class})
 @TestPropertySource(locations="classpath:application-test.properties")
-class AcrXsbFilesUtilTest {
+class XsbSourceLocalFilesTest {
     @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
+    private XsbSourceLocalFiles xsbSourceLocalFiles;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -65,7 +65,7 @@ class AcrXsbFilesUtilTest {
     void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_*.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_2.gsa"))
                 .expectComplete()
@@ -86,7 +86,7 @@ class AcrXsbFilesUtilTest {
 
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectComplete()
                 .verify();
@@ -103,15 +103,15 @@ class AcrXsbFilesUtilTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -119,12 +119,12 @@ class AcrXsbFilesUtilTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -133,7 +133,7 @@ class AcrXsbFilesUtilTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -143,15 +143,15 @@ class AcrXsbFilesUtilTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -160,7 +160,7 @@ class AcrXsbFilesUtilTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }

@@ -22,7 +22,7 @@ import java.util.Vector;
 
 @Component
 @Slf4j
-public class AcrXsbSftpUtil implements XsbSource {
+public class XsbSourceSftpFiles implements XsbSource {
 
     private final ErrorHandler errorHandler;
 
@@ -47,7 +47,7 @@ public class AcrXsbSftpUtil implements XsbSource {
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
 
-    public AcrXsbSftpUtil(ErrorHandler errorHandler) {
+    public XsbSourceSftpFiles(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 

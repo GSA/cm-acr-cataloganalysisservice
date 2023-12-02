@@ -5,21 +5,21 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class XsbSourceFactory {
-    private final AcrXsbSftpUtil acrXsbSftpUtil;
-    private final AcrXsbFilesUtil acrXsbFilesUtil;
-    private final AcrXsbS3Util acrXsbS3Util;
+    private final XsbSourceSftpFiles xsbSourceSftpFiles;
+    private final XsbSourceLocalFiles xsbSourceLocalFiles;
+    private final XsbSourceS3Files xsbSourceS3Files;
 
-    public XsbSourceFactory(AcrXsbSftpUtil acrXsbSftpUtil, AcrXsbFilesUtil acrXsbFilesUtil, AcrXsbS3Util acrXsbS3Util) {
-        this.acrXsbSftpUtil = acrXsbSftpUtil;
-        this.acrXsbFilesUtil = acrXsbFilesUtil;
-        this.acrXsbS3Util = acrXsbS3Util;
+    public XsbSourceFactory(XsbSourceSftpFiles xsbSourceSftpFiles, XsbSourceLocalFiles xsbSourceLocalFiles, XsbSourceS3Files xsbSourceS3Files) {
+        this.xsbSourceSftpFiles = xsbSourceSftpFiles;
+        this.xsbSourceLocalFiles = xsbSourceLocalFiles;
+        this.xsbSourceS3Files = xsbSourceS3Files;
     }
 
     public XsbSource xsbSource(Trigger trigger){
         return switch (trigger.getSourceType()) {
-            case SFTP  -> acrXsbSftpUtil;
-            case S3    -> acrXsbS3Util;
-            case LOCAL -> acrXsbFilesUtil;
+            case SFTP  -> xsbSourceSftpFiles;
+            case S3    -> xsbSourceS3Files;
+            case LOCAL -> xsbSourceLocalFiles;
         };
     }
 }

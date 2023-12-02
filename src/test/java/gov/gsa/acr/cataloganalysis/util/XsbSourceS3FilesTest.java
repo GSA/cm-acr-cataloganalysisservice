@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes ={AcrXsbS3Util.class, S3ClientConfiguration.class})
+@ContextConfiguration(classes ={XsbSourceS3Files.class, S3ClientConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 @EnableConfigurationProperties(S3ClientConfigurationProperties.class)
-class AcrXsbS3UtilTest {
+class XsbSourceS3FilesTest {
     @Autowired
     S3ClientConfigurationProperties props;
 
@@ -42,7 +42,7 @@ class AcrXsbS3UtilTest {
     S3ClientConfiguration s3ClientConfiguration;
 
     @Autowired
-    private AcrXsbS3Util acrXsbS3Util;
+    private XsbSourceS3Files xsbSourceS3Files;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -106,17 +106,17 @@ class AcrXsbS3UtilTest {
 
     @Test
     void testScrubbedName() {
-        assertEquals("file_name/", acrXsbS3Util.getScrubbedSourceDir("/file_name/"));
-        assertEquals("file_name/", acrXsbS3Util.getScrubbedSourceDir("????*<><>file_name*/*////*?"));
-        assertEquals("file_name/", acrXsbS3Util.getScrubbedSourceDir("file_name"));
-        assertEquals("file_name/", acrXsbS3Util.getScrubbedSourceDir("/file_name"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name/"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("????*<><>file_name*/*////*?"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("file_name"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name"));
     }
 
     @Test
     void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_");
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
                 .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
                 .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
                 .expectComplete()
@@ -137,7 +137,7 @@ class AcrXsbS3UtilTest {
 
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectComplete()
                 .verify();
@@ -153,15 +153,15 @@ class AcrXsbS3UtilTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(acrXsbS3Util.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -169,12 +169,12 @@ class AcrXsbS3UtilTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -183,7 +183,7 @@ class AcrXsbS3UtilTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -193,15 +193,15 @@ class AcrXsbS3UtilTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -210,7 +210,7 @@ class AcrXsbS3UtilTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbS3Util.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }
@@ -219,14 +219,14 @@ class AcrXsbS3UtilTest {
     @Test
     void testDeleteNonExistentObject() {
         // Did not exist before
-        StepVerifier.create(acrXsbS3Util.list("", "non-existent" ))
+        StepVerifier.create(xsbSourceS3Files.list("", "non-existent" ))
                         .verifyComplete();
-        StepVerifier.create (acrXsbS3Util.deleteFromS3("non-existent"))
+        StepVerifier.create (xsbSourceS3Files.deleteFromS3("non-existent"))
                 .expectNext(true)
                 .verifyComplete();
 
         // Does not exist after
-        StepVerifier.create(acrXsbS3Util.list("", "non-existent" ))
+        StepVerifier.create(xsbSourceS3Files.list("", "non-existent" ))
                 .verifyComplete();
 
     }
@@ -235,38 +235,38 @@ class AcrXsbS3UtilTest {
     @Test
     void testUploadToS3AndDeleteFromS3() {
         // Did not exist before
-        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
                 .verifyComplete();
 
         // upload a test file
-        StepVerifier.create (acrXsbS3Util.uploadToS3(Path.of("junitTestData/testErrorFile.txt"), "errors/testErrorFile.txt"))
+        StepVerifier.create (xsbSourceS3Files.uploadToS3(Path.of("junitTestData/testErrorFile.txt"), "errors/testErrorFile.txt"))
                 .expectNext("errors/testErrorFile.txt")
                 .verifyComplete();
 
         // Make sure file uploaded correctly
-        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
                 .expectNext("catalogAnalysis/errors/testErrorFile.txt")
                 .verifyComplete();
 
 
-        StepVerifier.create (acrXsbS3Util.deleteFromS3("errors/testErrorFile.txt"))
+        StepVerifier.create (xsbSourceS3Files.deleteFromS3("errors/testErrorFile.txt"))
                 .expectNext(true)
                 .verifyComplete();
 
         // Does not exist after
-        StepVerifier.create(acrXsbS3Util.list("errors/", "testErrorFile.txt" ))
+        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
                 .verifyComplete();
 
     }
 
     @Test
     void testUploadNonExistentFile() {
-        StepVerifier.create(acrXsbS3Util.list("errors/", "non-existent" ))
+        StepVerifier.create(xsbSourceS3Files.list("errors/", "non-existent" ))
                 .verifyComplete();
-        StepVerifier.create (acrXsbS3Util.uploadToS3(Path.of("non-existent"), "errors/non-existent"))
+        StepVerifier.create (xsbSourceS3Files.uploadToS3(Path.of("non-existent"), "errors/non-existent"))
                 .verifyComplete();
 
-        StepVerifier.create(acrXsbS3Util.list("errors/", "non-existent" ))
+        StepVerifier.create(xsbSourceS3Files.list("errors/", "non-existent" ))
                 .verifyComplete();
 
     }

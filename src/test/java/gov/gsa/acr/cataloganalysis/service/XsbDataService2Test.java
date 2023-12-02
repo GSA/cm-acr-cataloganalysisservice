@@ -4,10 +4,10 @@ import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceLocalFiles;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceS3Files;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceSftpFiles;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(XsbDataParser.class), @MockBean(AcrXsbFilesUtil.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class), @MockBean(TransactionalDataService.class) })
+@MockBeans({@MockBean(XsbDataParser.class), @MockBean(XsbSourceLocalFiles.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(XsbSourceSftpFiles.class), @MockBean(XsbSourceS3Files.class), @MockBean(TransactionalDataService.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbSourceFactory.class})
 class XsbDataService2Test {
     private MockedStatic<Files> mockedSettings;

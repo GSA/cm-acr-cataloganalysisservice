@@ -28,14 +28,14 @@ import static org.mockito.Mockito.any;
 @SpringBootTest
 @Slf4j
 @MockBeans({@MockBean(ErrorHandler.class), @MockBean(S3AsyncClient.class), @MockBean(S3ClientConfiguration.class)})
-@ContextConfiguration(classes ={AcrXsbS3Util.class, S3ClientConfigurationProperties.class })
+@ContextConfiguration(classes ={XsbSourceS3Files.class, S3ClientConfigurationProperties.class })
 @TestPropertySource(locations="classpath:application-test.properties")
-class AcrXsbS3Util2Test {
+class XsbSourceS3Files2Test {
     @Autowired
     S3ClientConfiguration s3ClientConfiguration;
 
     @Autowired
-    AcrXsbS3Util acrXsbS3Util;
+    XsbSourceS3Files xsbSourceS3Files;
 
     @Autowired
     S3AsyncClient s3AsyncClient;
@@ -50,7 +50,7 @@ class AcrXsbS3Util2Test {
             throw new RuntimeException("Dummy exception");
         });
         Mockito.when(s3AsyncClient.listObjects(any(ListObjectsRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.list("source", "pattern"))
+        StepVerifier.create(xsbSourceS3Files.list("source", "pattern"))
                 .verifyComplete();
     }
 
@@ -58,14 +58,14 @@ class AcrXsbS3Util2Test {
     @Test
     void testListS3ClientThrowsException() {
         Mockito.when(s3AsyncClient.listObjects(any(ListObjectsRequest.class))).thenThrow(new RuntimeException("Another dummy exception"));
-        StepVerifier.create(acrXsbS3Util.list("source", "pattern"))
+        StepVerifier.create(xsbSourceS3Files.list("source", "pattern"))
                 .verifyComplete();
     }
 
     @Test
     void testListS3ClientReturnsNullFuture() {
         Mockito.when(s3AsyncClient.listObjects(any(ListObjectsRequest.class))).thenReturn(null);
-        StepVerifier.create(acrXsbS3Util.list("source", "pattern"))
+        StepVerifier.create(xsbSourceS3Files.list("source", "pattern"))
                 .verifyComplete();
     }
 
@@ -73,7 +73,7 @@ class AcrXsbS3Util2Test {
     void testListEmpty() {
         CompletableFuture<ListObjectsResponse> future = CompletableFuture.supplyAsync(() -> ListObjectsResponse.builder().build());
         Mockito.when(s3AsyncClient.listObjects(any(ListObjectsRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.list("source", "pattern"))
+        StepVerifier.create(xsbSourceS3Files.list("source", "pattern"))
                 .verifyComplete();
     }
 
@@ -85,7 +85,7 @@ class AcrXsbS3Util2Test {
                         .contents(S3Object.builder().key("one").build(), S3Object.builder().key("two").build())
                         .build());
         Mockito.when(s3AsyncClient.listObjects(any(ListObjectsRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.list("source", "pattern"))
+        StepVerifier.create(xsbSourceS3Files.list("source", "pattern"))
                 .expectNext("one")
                 .expectNext("two")
                 .verifyComplete();
@@ -99,7 +99,7 @@ class AcrXsbS3Util2Test {
             throw new RuntimeException("Dummy exception");
         });
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -108,7 +108,7 @@ class AcrXsbS3Util2Test {
     @Test
     void testDeleteS3ClientThrowsException() {
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenThrow(new RuntimeException("Another dummy exception"));
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -116,7 +116,7 @@ class AcrXsbS3Util2Test {
     @Test
     void testDelete3ClientReturnsNullFuture() {
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(null);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -125,7 +125,7 @@ class AcrXsbS3Util2Test {
     void testDeleteEmpty() {
         CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() -> DeleteObjectResponse.builder().build());
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -134,7 +134,7 @@ class AcrXsbS3Util2Test {
     void testDeleteNullResponse() {
         CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() -> null);
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .verifyComplete();
     }
 
@@ -145,7 +145,7 @@ class AcrXsbS3Util2Test {
                 .build();
         CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -161,7 +161,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (DeleteObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -176,7 +176,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<DeleteObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (DeleteObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.deleteFromS3("fileToDelete"))
+        StepVerifier.create(xsbSourceS3Files.deleteFromS3("fileToDelete"))
                 .expectNext(true)
                 .verifyComplete();
     }
@@ -189,7 +189,7 @@ class AcrXsbS3Util2Test {
             throw new RuntimeException("Dummy exception");
         });
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -197,14 +197,14 @@ class AcrXsbS3Util2Test {
     @Test
     void testUploadS3ClientThrowsException() {
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenThrow(new RuntimeException("Another dummy exception"));
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
     @Test
     void testUpload3ClientReturnsNullFuture() {
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(null);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -212,7 +212,7 @@ class AcrXsbS3Util2Test {
     void testUploadEmpty() {
         CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() -> PutObjectResponse.builder().build());
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -220,7 +220,7 @@ class AcrXsbS3Util2Test {
     void testUploadNullResponse() {
         CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() -> null);
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -231,7 +231,7 @@ class AcrXsbS3Util2Test {
                 .build();
         CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -246,7 +246,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (PutObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .verifyComplete();
     }
 
@@ -260,7 +260,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<PutObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (PutObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.putObject(any(PutObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.uploadToS3(Path.of("fileToUpload"), "destination"))
+        StepVerifier.create(xsbSourceS3Files.uploadToS3(Path.of("fileToUpload"), "destination"))
                 .expectNext("destination")
                 .verifyComplete();
     }
@@ -274,7 +274,7 @@ class AcrXsbS3Util2Test {
             throw new RuntimeException("Dummy exception");
         });
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. Dummy exception" ), Mockito.any(RuntimeException.class) );
     }
@@ -283,7 +283,7 @@ class AcrXsbS3Util2Test {
     @Test
     void testDownloadS3ClientThrowsException() {
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenThrow(new RuntimeException("Another dummy exception"));
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. Another dummy exception" ), Mockito.any(RuntimeException.class) );
     }
@@ -291,7 +291,7 @@ class AcrXsbS3Util2Test {
     @Test
     void testDownload3ClientReturnsNullFuture() {
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(null);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. future" ), Mockito.any(NullPointerException.class) );
 
@@ -301,7 +301,7 @@ class AcrXsbS3Util2Test {
     void testDownloadEmpty() {
         CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() -> GetObjectResponse.builder().build());
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. GetObjectResponse()" ), Mockito.any(RuntimeException.class) );
     }
@@ -310,7 +310,7 @@ class AcrXsbS3Util2Test {
     void testDownloadNullResponse() {
         CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() -> null);
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class) );
 
@@ -323,7 +323,7 @@ class AcrXsbS3Util2Test {
                 .build();
         CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() -> deleteObjectResponse);
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. GetObjectResponse(VersionId=ab)" ), Mockito.any(RuntimeException.class) );
     }
@@ -339,7 +339,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (GetObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("fileToDownload"), eq("Download to local file system from S3 FAILED. GetObjectResponse(VersionId=ab)" ), Mockito.any(RuntimeException.class) );
     }
@@ -354,7 +354,7 @@ class AcrXsbS3Util2Test {
         CompletableFuture<GetObjectResponse> future = CompletableFuture.supplyAsync(() ->
                 (GetObjectResponse) deleteObjectResponse);
         Mockito.when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(Path.class))).thenReturn(future);
-        StepVerifier.create(acrXsbS3Util.downloadFromS3("fileToDownload", "destination"))
+        StepVerifier.create(xsbSourceS3Files.downloadFromS3("fileToDownload", "destination"))
                 .expectNext(Path.of("destination/fileToDownload"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class) );

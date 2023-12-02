@@ -5,8 +5,8 @@ import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceS3Files;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public class XsbDataService {
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
     private final XsbSourceFactory xsbSourceFactory;
-    private final AcrXsbS3Util acrXsbS3Util;
+    private final XsbSourceS3Files xsbSourceS3Files;
     private final XsbDataParser xsbDataParser;
     private final TransactionalDataService transactionalDataService;
 
@@ -353,7 +353,7 @@ public class XsbDataService {
     Flux<String> uploadErrorFilesToS3() {
         return errorHandler.getErrorFiles()
                 .doFirst(errorHandler::close)
-                .flatMap(p -> acrXsbS3Util.uploadToS3(p, "errors/" + p.getFileName()));
+                .flatMap(p -> xsbSourceS3Files.uploadToS3(p, "errors/" + p.getFileName()));
     }
 
 

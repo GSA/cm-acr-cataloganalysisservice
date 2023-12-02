@@ -16,13 +16,13 @@ import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
-public class AcrXsbS3Util implements XsbSource {
+public class XsbSourceS3Files implements XsbSource {
     private final S3AsyncClient s3client;
     private final S3ClientConfigurationProperties s3config;
 
     private final ErrorHandler errorHandler;
 
-    public AcrXsbS3Util(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
+    public XsbSourceS3Files(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
         this.errorHandler = errorHandler;

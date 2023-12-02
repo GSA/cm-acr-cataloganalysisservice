@@ -18,13 +18,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class XsbSourceFactoryTest {
 
     @MockBean
-    AcrXsbSftpUtil acrXsbSftpUtil;
+    XsbSourceSftpFiles xsbSourceSftpFiles;
 
     @MockBean
-    AcrXsbFilesUtil acrXsbFilesUtil;
+    XsbSourceLocalFiles xsbSourceLocalFiles;
 
     @MockBean
-    AcrXsbS3Util acrXsbS3Util;
+    XsbSourceS3Files xsbSourceS3Files;
 
     @Autowired
     XsbSourceFactory xsbSourceFactory;
@@ -47,20 +47,20 @@ class XsbSourceFactoryTest {
     void testXsbSourceTypeSFTP() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.XsbSourceType.SFTP);
-        assertEquals(acrXsbSftpUtil, xsbSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceSftpFiles, xsbSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeLOCAL() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
-        assertEquals(acrXsbFilesUtil, xsbSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceLocalFiles, xsbSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeS3() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.XsbSourceType.S3);
-        assertEquals(acrXsbS3Util, xsbSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceS3Files, xsbSourceFactory.xsbSource(trigger));
     }
 }

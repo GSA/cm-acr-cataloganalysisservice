@@ -13,10 +13,10 @@ import java.util.stream.Stream;
 
 @Component
 @Slf4j
-public class AcrXsbFilesUtil implements XsbSource {
+public class XsbSourceLocalFiles implements XsbSource {
     private final ErrorHandler errorHandler;
 
-    public AcrXsbFilesUtil(ErrorHandler errorHandler) {
+    public XsbSourceLocalFiles(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 

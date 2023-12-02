@@ -6,10 +6,10 @@ import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
 import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceLocalFiles;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceS3Files;
+import gov.gsa.acr.cataloganalysis.util.XsbSourceSftpFiles;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -44,8 +44,8 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, AcrXsbFilesUtil.class, XsbSourceFactory.class, TransactionalDataService.class})
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(XsbSourceSftpFiles.class), @MockBean(XsbSourceS3Files.class) })
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, XsbSourceLocalFiles.class, XsbSourceFactory.class, TransactionalDataService.class})
 class XsbDataServiceTest {
 
     @Value("${error.file.directory}")
@@ -58,7 +58,7 @@ class XsbDataServiceTest {
     @Autowired
     private ErrorHandler errorHandler;
     @Autowired
-    private AcrXsbS3Util acrXsbS3Util;
+    private XsbSourceS3Files xsbSourceS3Files;
     @Autowired
     private XsbDataService xsbDataService;
 
@@ -475,7 +475,7 @@ class XsbDataServiceTest {
     void testUploadErrorFilesToS3_Exception() {
         Exception e = new RuntimeException("Dummy");
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenThrow(e);
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenThrow(e);
         StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
                 .expectError(RuntimeException.class)
                 .verify();
@@ -486,7 +486,7 @@ class XsbDataServiceTest {
     void testUploadErrorFilesToS3_Error() {
         Exception e = new RuntimeException("Dummy");
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenReturn(Mono.error(e));
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.error(e));
         StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
                 .expectError(RuntimeException.class)
                 .verify();
@@ -496,7 +496,7 @@ class XsbDataServiceTest {
     @Test
     void testUploadErrorFilesToS3() {
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/dummy"));
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/dummy"));
         StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
                 .expectNext("errors/dummy")
                 .verifyComplete();
