@@ -1,6 +1,7 @@
 package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
@@ -512,14 +513,14 @@ class XsbDataServiceTest {
 
         Exception e = new RuntimeException("Dummy RuntimeException");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
-
+        errorHandler.setErrorDirectory(errorDirectory);
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenAnswer((Answer<Mono<Void>>) invocationOnMock -> {
             Thread.sleep(200);
             return Mono.error(e);
@@ -655,7 +656,7 @@ class XsbDataServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
         Exception e = new RuntimeException("Dummy");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -664,6 +665,8 @@ class XsbDataServiceTest {
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
+
+        errorHandler.setErrorDirectory(errorDirectory);
 
         StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
                 .expectError(RuntimeException.class)
@@ -683,7 +686,7 @@ class XsbDataServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
         Exception e = new RuntimeException("Dummy");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -692,6 +695,8 @@ class XsbDataServiceTest {
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+
+        errorHandler.setErrorDirectory(errorDirectory);
 
         StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
                 .expectError(RuntimeException.class)
@@ -710,7 +715,7 @@ class XsbDataServiceTest {
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -719,6 +724,8 @@ class XsbDataServiceTest {
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.empty());
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+
+        errorHandler.setErrorDirectory(errorDirectory);
 
         StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
                 .expectError(NoSuchElementException.class)
@@ -738,7 +745,7 @@ class XsbDataServiceTest {
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -750,6 +757,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
@@ -780,7 +788,7 @@ class XsbDataServiceTest {
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -796,6 +804,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
@@ -852,7 +861,7 @@ class XsbDataServiceTest {
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -872,6 +881,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());

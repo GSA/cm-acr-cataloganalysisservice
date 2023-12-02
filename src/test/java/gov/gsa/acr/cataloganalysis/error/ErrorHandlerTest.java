@@ -1,5 +1,6 @@
-package gov.gsa.acr.cataloganalysis.service;
+package gov.gsa.acr.cataloganalysis.error;
 
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +65,7 @@ class ErrorHandlerTest {
 
     @Test
     void init() throws IOException {
-        assertEquals(2000, errorHandler.maxErrorFileSizeBytes);
+        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
         assertEquals("testData/errors", errorHandler.getErrorDirectory());
         assertEquals(0, errorHandler.getNumParsingErrors().get());
         assertEquals(0, errorHandler.getNumDbErrors().get());

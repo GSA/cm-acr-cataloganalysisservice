@@ -1,7 +1,7 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
 import gov.gsa.acr.cataloganalysis.model.Trigger;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;

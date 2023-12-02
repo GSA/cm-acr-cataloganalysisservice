@@ -2,7 +2,7 @@ package gov.gsa.acr.cataloganalysis.util;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
