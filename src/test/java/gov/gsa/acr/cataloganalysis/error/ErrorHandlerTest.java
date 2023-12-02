@@ -1,7 +1,7 @@
 package gov.gsa.acr.cataloganalysis.error;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,8 +87,8 @@ class ErrorHandlerTest {
         String longMessage = getAlphaNumericString(2000);
         errorHandler.init("");
         errorHandler.handleParsingError("", "", longMessage);
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg*.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse*.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_parse*.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -116,8 +116,8 @@ class ErrorHandlerTest {
         String longMessage = getAlphaNumericString(2000);
         errorHandler.init("");
         errorHandler.handleDBError(new XsbData(),  longMessage);
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg*.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_db*.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_db*.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -144,7 +144,7 @@ class ErrorHandlerTest {
     void getErrorFiles_TooLongFileMessage() {
         String longMessage = getAlphaNumericString(2000);
         errorHandler.handleFileError("",  longMessage, new RuntimeException("Dummy"));
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg*.txt");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -168,8 +168,8 @@ class ErrorHandlerTest {
         errorHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
         message = getAlphaNumericString(100);
         errorHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse_"+timeStamp+"_0.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_0.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -203,8 +203,8 @@ class ErrorHandlerTest {
         errorHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
         message = getAlphaNumericString(1900);
         errorHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -255,8 +255,8 @@ class ErrorHandlerTest {
         errorHandler.handleParsingError(message, "dummyFile.gsa", "");
         message = getAlphaNumericString(1900);
         errorHandler.handleParsingError(message, "dummyFile.gsa", "");
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -329,8 +329,8 @@ class ErrorHandlerTest {
         message = getAlphaNumericString(100);
         errorHandler.handleDBError(xsbData, message);
 
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_db_"+timeStamp+"_0.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_db_"+timeStamp+"_0.gsa");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {
@@ -378,8 +378,8 @@ class ErrorHandlerTest {
         errorHandler.handleDBError(xsbData, message);
 
 
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_db_"+timeStamp+"_*.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_db_"+timeStamp+"_*.gsa");
 
 
         errorHandler.close();
@@ -453,9 +453,9 @@ class ErrorHandlerTest {
         errorHandler.handleParsingError(getAlphaNumericString(1700), "dummyFile", message);
 
 
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("*xsb_error_db_"+timeStamp+"_*.gsa");
-        String regEx3 = AcrXsbFilesUtil.globToRegex("*xsb_error_parse_"+timeStamp+"_*.gsa");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_db_"+timeStamp+"_*.gsa");
+        String regEx3 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_*.gsa");
 
 
         errorHandler.close();
@@ -533,7 +533,7 @@ class ErrorHandlerTest {
         errorHandler.handleFileError("dummyFile2.gsa", message, new RuntimeException("dummy exception2"));
         message = getAlphaNumericString(100);
         errorHandler.handleFileError("dummyFile3.gsa", message, new RuntimeException("dummy exception3"));
-        String regEx1 = AcrXsbFilesUtil.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg_" + timeStamp + "_0.txt");
         errorHandler.close();
         StepVerifier.create(errorHandler.getErrorFiles())
                 .expectNextMatches(p -> {

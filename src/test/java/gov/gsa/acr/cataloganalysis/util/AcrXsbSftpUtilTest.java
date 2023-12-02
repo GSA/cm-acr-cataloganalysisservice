@@ -124,8 +124,8 @@ class AcrXsbSftpUtilTest {
 
         final int expectedCount = numFiles1+numFiles2;
 
-        String regEx1 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern1 + "*");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern2 + "*");
+        String regEx1 = StringUtils.globToRegex("tmp*" + pattern1 + "*");
+        String regEx2 = StringUtils.globToRegex("tmp*" + pattern2 + "*");
 
         StepVerifier.Step<Path> step = StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, filePatterns, "tmp"));
         for (int i = 0; i < expectedCount; i++) step = step.expectNextMatches(p -> p.toString().matches(regEx1) || p.toString().matches(regEx2));

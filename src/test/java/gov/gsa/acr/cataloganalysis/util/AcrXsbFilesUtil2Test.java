@@ -53,8 +53,8 @@ class AcrXsbFilesUtil2Test {
 
     @Test
     void globToRegex() {
-        assertEquals("file.*\\\\\\.gsa", AcrXsbFilesUtil.globToRegex("file*\\.gsa") );
-        assertEquals("file\\[\\]\\^\\$\\(\\)\\{\\}\\+\\|\\.gsa", AcrXsbFilesUtil.globToRegex("file[]^$(){}+|.gsa"));
+        assertEquals("file.*\\\\\\.gsa", StringUtils.globToRegex("file*\\.gsa") );
+        assertEquals("file\\[\\]\\^\\$\\(\\)\\{\\}\\+\\|\\.gsa", StringUtils.globToRegex("file[]^$(){}+|.gsa"));
     }
 
 

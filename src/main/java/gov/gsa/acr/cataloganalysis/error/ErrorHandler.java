@@ -1,7 +1,7 @@
 package gov.gsa.acr.cataloganalysis.error;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -108,7 +108,7 @@ public class ErrorHandler {
     private AtomicInteger numRecordsSavedInTempDB;
 
     private void deleteOldErrorFiles(){
-        try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*")))) {
+        try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(StringUtils.globToRegex("xsb_error_*")))) {
             stream.forEach(p -> {
                 try {
                     log.info("Cleaning up error directory, deleting old error file, " + p + ", from a previous execution.");
@@ -164,7 +164,7 @@ public class ErrorHandler {
 
     public Flux<Path> getErrorFiles() {
         return Flux.using(
-                        () -> Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*_" + timeStamp + "_*"))),
+                        () -> Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(StringUtils.globToRegex("xsb_error_*_" + timeStamp + "_*"))),
                         Flux::fromStream,
                         Stream::close
                 )

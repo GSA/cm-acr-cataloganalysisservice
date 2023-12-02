@@ -14,48 +14,10 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 public class AcrXsbFilesUtil implements XsbSource {
-
     private final ErrorHandler errorHandler;
 
     public AcrXsbFilesUtil(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
-    }
-
-    public static String globToRegex(String string) {
-        StringBuilder buffer = new StringBuilder();
-
-        int z = 0;
-        while (z < string.length()) {
-            switch (string.charAt(z)) {
-                case '*' -> {
-                    buffer.append(".*");
-                    z++;
-                }
-                case '?' -> {
-                    buffer.append('.');
-                    z++;
-                }
-                case '.' -> {
-                    buffer.append("\\.");
-                    z++;
-                }
-                case '\\' -> {
-                    buffer.append("\\\\");
-                    z++;
-                }
-                case '[', ']', '^', '$', '(', ')', '{', '}', '+', '|' -> {
-                    buffer.append('\\');
-                    buffer.append(string.charAt(z));
-                    z++;
-                }
-                default -> {
-                    buffer.append(string.charAt(z));
-                    z++;
-                }
-            }
-        }
-
-        return buffer.toString();
     }
 
 
@@ -71,7 +33,7 @@ public class AcrXsbFilesUtil implements XsbSource {
      */
     private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
         return Flux.using(
-                        () -> Files.list(Path.of(sourceFolder)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(globToRegex(fileNamePattern))),
+                        () -> Files.list(Path.of(sourceFolder)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(StringUtils.globToRegex(fileNamePattern))),
                         Flux::fromStream,
                         Stream::close)
                 .onErrorResume(e -> {
