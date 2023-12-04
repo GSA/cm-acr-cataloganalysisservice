@@ -46,21 +46,21 @@ class AnalysisSourceFactoryTest {
     @Test
     void testXsbSourceTypeSFTP() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         assertEquals(xsbSourceSftpFiles, analysisSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeLOCAL() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         assertEquals(xsbSourceLocalFiles, analysisSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeS3() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
         assertEquals(xsbSourceS3Files, analysisSourceFactory.xsbSource(trigger));
     }
 }

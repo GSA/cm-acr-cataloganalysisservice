@@ -55,7 +55,7 @@ class XsbDataService2Test {
     @Test
     void testTmpDirectoryCreationError() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -130,7 +130,7 @@ class XsbDataService2Test {
     @Test
     void testDownload_ErrorCreatingTmpDir() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -146,7 +146,7 @@ class XsbDataService2Test {
     @Test
     void testParse_ErrorCreatingTmpDir() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);

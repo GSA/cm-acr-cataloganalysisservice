@@ -506,7 +506,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_alreadyExecuting() throws InterruptedException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -554,7 +554,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_nullUniqueFileNames() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
     }
@@ -562,7 +562,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_ErrorHandlerError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -585,7 +585,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_noSourceFolderForLocalSourceType() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -609,13 +609,13 @@ class XsbDataServiceTest {
         e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
 
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
 
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
         assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
 
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
 
@@ -651,7 +651,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_deleteOldStagingData_failure() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -681,7 +681,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_TAAError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -711,7 +711,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_NoTAACountriesFound() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -740,7 +740,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_noFiles() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
@@ -783,7 +783,7 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
@@ -832,7 +832,7 @@ class XsbDataServiceTest {
     @Test
     void testDownload_getXsbFiles() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("dummy.gsa");
@@ -856,7 +856,7 @@ class XsbDataServiceTest {
         assertEquals(1, xsbDataService.getProgressReportingIntervalSeconds());
 
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
@@ -909,7 +909,7 @@ class XsbDataServiceTest {
     @Test
     void testParse_getXsbFiles(){
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("dummy.gsa");

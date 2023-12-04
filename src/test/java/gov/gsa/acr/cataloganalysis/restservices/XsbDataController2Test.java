@@ -64,7 +64,7 @@ class XsbDataController2Test {
     @Test
     void trigger_NoFiles() {
         Trigger trigger= new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -80,7 +80,7 @@ class XsbDataController2Test {
     @Test
     void trigger_NoSourceFolder() {
         Trigger trigger= new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -96,7 +96,7 @@ class XsbDataController2Test {
     @Test
     void trigger_ErrorHandlerError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);

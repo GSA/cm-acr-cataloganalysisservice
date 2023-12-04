@@ -17,7 +17,7 @@ public class AnalysisSourceFactory {
 
     public AnalysisSource xsbSource(Trigger trigger){
         return switch (trigger.getSourceType()) {
-            case SFTP  -> analysisSourceXsb;
+            case XSB -> analysisSourceXsb;
             case S3    -> analysisSourceS3;
             case LOCAL -> analysisSourceLocal;
         };
