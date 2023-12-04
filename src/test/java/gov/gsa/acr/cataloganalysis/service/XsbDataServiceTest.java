@@ -3,7 +3,7 @@ package gov.gsa.acr.cataloganalysis.service;
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
-import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceSftp;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceSftp.class), @MockBean(AnalysisSourceS3.class) })
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class})
 class XsbDataServiceTest {
 

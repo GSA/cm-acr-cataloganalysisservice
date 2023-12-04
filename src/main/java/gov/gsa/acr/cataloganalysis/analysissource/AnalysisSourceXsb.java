@@ -22,7 +22,7 @@ import java.util.Vector;
 
 @Component
 @Slf4j
-public class AnalysisSourceSftp implements AnalysisSource {
+public class AnalysisSourceXsb implements AnalysisSource {
 
     private final ErrorHandler errorHandler;
 
@@ -47,7 +47,7 @@ public class AnalysisSourceSftp implements AnalysisSource {
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
 
-    public AnalysisSourceSftp(ErrorHandler errorHandler) {
+    public AnalysisSourceXsb(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 

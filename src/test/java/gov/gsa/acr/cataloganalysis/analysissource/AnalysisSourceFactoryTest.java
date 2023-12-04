@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class AnalysisSourceFactoryTest {
 
     @MockBean
-    AnalysisSourceSftp xsbSourceSftpFiles;
+    AnalysisSourceXsb xsbSourceSftpFiles;
 
     @MockBean
     AnalysisSourceLocal xsbSourceLocalFiles;

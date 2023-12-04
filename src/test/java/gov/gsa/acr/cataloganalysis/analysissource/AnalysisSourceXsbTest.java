@@ -31,15 +31,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes ={AnalysisSourceSftp.class,  AnalysisSourceLocal.class})
+@ContextConfiguration(classes ={AnalysisSourceXsb.class,  AnalysisSourceLocal.class})
 @TestPropertySource(locations="classpath:application-junit.properties")
-class AnalysisSourceSftpTest {
+class AnalysisSourceXsbTest {
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
     private String defaultSftpGsaFileReportDir;
 
     @Autowired
-    private AnalysisSourceSftp xsbSourceSftpFiles;
+    private AnalysisSourceXsb xsbSourceSftpFiles;
 
     @Autowired
     ErrorHandler errorHandler;
