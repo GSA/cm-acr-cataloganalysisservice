@@ -33,10 +33,10 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("junit")
 @Slf4j
 @MockBeans({@MockBean(XsbDataParser.class),@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class), @MockBean(TransactionalDataService.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class})
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class})
 class ProgressReportingTest {
     @Autowired
-    private XsbDataService xsbDataService;
+    private AnalysisDataProcessingService analysisDataProcessingService;
 
     @Autowired
     private XsbDataParser xsbDataParser;
@@ -45,7 +45,7 @@ class ProgressReportingTest {
 
     @Test
     void testProgressReporting() {
-        assertEquals(1, xsbDataService.getProgressReportingIntervalSeconds());
+        assertEquals(1, analysisDataProcessingService.getProgressReportingIntervalSeconds());
 
         Path[] filesToParse = {
                 Path.of("junitTestData/testFileWithErrors.gsa"),
@@ -58,7 +58,7 @@ class ProgressReportingTest {
             return new XsbData();
         });
 
-        StepVerifier.create(xsbDataService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
                 .expectNextCount(31)
                 .verifyComplete();
            }

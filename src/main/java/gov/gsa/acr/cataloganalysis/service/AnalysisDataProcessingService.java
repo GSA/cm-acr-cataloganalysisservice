@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class XsbDataService {
+public class AnalysisDataProcessingService {
     @Value("${progress.reporting.interval.seconds:30}")
     @Getter
     private int progressReportingIntervalSeconds;

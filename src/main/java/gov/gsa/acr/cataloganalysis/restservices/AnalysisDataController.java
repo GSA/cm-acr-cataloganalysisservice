@@ -3,7 +3,7 @@ package gov.gsa.acr.cataloganalysis.restservices;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.service.XsbDataService;
+import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -26,12 +26,12 @@ import java.util.concurrent.Executors;
 @Slf4j
 @RestController
 @Tag(name= "ACR Catalog Analysis Service", description = "A Service for analyzing catalogs.")
-public class XsbDataController extends BaseController{
-    final XsbDataService xsbDataService;
+public class AnalysisDataController extends BaseController{
+    final AnalysisDataProcessingService analysisDataProcessingService;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    public XsbDataController(XsbDataService xsbDataService) {
-        this.xsbDataService = xsbDataService;
+    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService) {
+        this.analysisDataProcessingService = analysisDataProcessingService;
     }
 
     @Operation(summary = "Trigger (start) the XSB data upload process.",
@@ -100,7 +100,7 @@ public class XsbDataController extends BaseController{
                                     @RequestBody Trigger trigger){
         log.info("Request body " + trigger);
         try {
-            Mono<DataUploadResults> dataUploadResultsMono =  xsbDataService.triggerDataUpload(trigger);
+            Mono<DataUploadResults> dataUploadResultsMono =  analysisDataProcessingService.triggerDataUpload(trigger);
             executorService.submit(() -> dataUploadResultsMono.subscribe(null, e -> log.error("Unexpected Error", e)));
             return ResponseEntity
                     .status(HttpStatus.OK)
@@ -203,7 +203,7 @@ public class XsbDataController extends BaseController{
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         log.info("Trigger: " + trigger);
         try {
-            return xsbDataService.downloadReports(trigger)
+            return analysisDataProcessingService.downloadReports(trigger)
                     .map(String::valueOf)
                     .map(s -> s + "\n");
         } catch (Exception e) {
@@ -265,7 +265,7 @@ public class XsbDataController extends BaseController{
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         log.info("Trigger: " + trigger);
         try {
-            return xsbDataService.parseXsbFiles(trigger);
+            return analysisDataProcessingService.parseXsbFiles(trigger);
         } catch (Exception e) {
             return Flux.error(e);
         }

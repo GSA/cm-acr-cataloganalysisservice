@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * In order for annotated transactions to work, the @Transactional annotation had to be applied at the Bean level.
- * Previously this annotation was applied to a method within the XsbDataService bean. But the AOP code was not
+ * Previously this annotation was applied to a method within the AnalysisDataProcessingService bean. But the AOP code was not
  * generated or inserted correctly.
  * According to the documentation found at
  * <a href="https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html">...</a>

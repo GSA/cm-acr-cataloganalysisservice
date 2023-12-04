@@ -2,8 +2,8 @@ package gov.gsa.acr.cataloganalysis.restservices;
 
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
+import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbDataParser;
-import gov.gsa.acr.cataloganalysis.service.XsbDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 @AutoConfigureWebTestClient
 @Slf4j
 @TestPropertySource(locations="classpath:application-test.properties")
-class XsbDataControllerTest {
+class AnalysisDataControllerTest {
     @Autowired
     WebTestClient webTestClient;
 
@@ -37,14 +37,14 @@ class XsbDataControllerTest {
     XsbDataParser xsbDataParser;
 
    @MockBean
-    private XsbDataService xsbDataService;
+    private AnalysisDataProcessingService analysisDataProcessingService;
 
     List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
 
 
     @Test
     void testTriggerEmptyBody() {
-        Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.empty());
+        Mockito.when(analysisDataProcessingService.triggerDataUpload(any())).thenReturn(Mono.empty());
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -57,7 +57,7 @@ class XsbDataControllerTest {
     @Test
     void triggerEndPoint() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.empty());
+        Mockito.when(analysisDataProcessingService.triggerDataUpload(any())).thenReturn(Mono.empty());
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -72,7 +72,7 @@ class XsbDataControllerTest {
     @Test
     void trigger_alreadyWorking() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.triggerDataUpload(any())).thenThrow(new ConcurrentModificationException("Working"));
+        Mockito.when(analysisDataProcessingService.triggerDataUpload(any())).thenThrow(new ConcurrentModificationException("Working"));
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
@@ -87,7 +87,7 @@ class XsbDataControllerTest {
     @Test
     void trigger_error() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.triggerDataUpload(any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
+        Mockito.when(analysisDataProcessingService.triggerDataUpload(any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
@@ -102,7 +102,7 @@ class XsbDataControllerTest {
     @Test
     void trigger_unexpectedException() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.triggerDataUpload(any())).thenThrow(new RuntimeException("Dummy"));
+        Mockito.when(analysisDataProcessingService.triggerDataUpload(any())).thenThrow(new RuntimeException("Dummy"));
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
@@ -118,7 +118,7 @@ class XsbDataControllerTest {
     @Test
     void sftp() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.empty());
+        Mockito.when(analysisDataProcessingService.downloadReports(any())).thenReturn(Flux.empty());
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/download")
@@ -134,7 +134,7 @@ class XsbDataControllerTest {
     void sftp_multiple() {
         Path [] dummyFiles = {Path.of("file1"), Path.of("file2")};
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.fromArray(dummyFiles));
+        Mockito.when(analysisDataProcessingService.downloadReports(any())).thenReturn(Flux.fromArray(dummyFiles));
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -150,7 +150,7 @@ class XsbDataControllerTest {
     @Test
     void sftp_error() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.downloadReports(any())).thenReturn(Flux.error(new RuntimeException("Dummy")));
+        Mockito.when(analysisDataProcessingService.downloadReports(any())).thenReturn(Flux.error(new RuntimeException("Dummy")));
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -165,7 +165,7 @@ class XsbDataControllerTest {
     @Test
     void sftp_exception() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.downloadReports(any())).thenThrow(new RuntimeException("Dummy Exception"));
+        Mockito.when(analysisDataProcessingService.downloadReports(any())).thenThrow(new RuntimeException("Dummy Exception"));
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -181,7 +181,7 @@ class XsbDataControllerTest {
     @Test
     void parse() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.parseXsbFiles(any())).thenReturn(Flux.empty());
+        Mockito.when(analysisDataProcessingService.parseXsbFiles(any())).thenReturn(Flux.empty());
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/parse")
@@ -199,7 +199,7 @@ class XsbDataControllerTest {
         XsbData x1 = xsbDataParser.parseXsbData("testFile.gsa", xsbDataString1, taaCountryCodes);
         XsbData [] dummyXsbData = {x1};
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.parseXsbFiles(any())).thenReturn(Flux.fromArray(dummyXsbData));
+        Mockito.when(analysisDataProcessingService.parseXsbFiles(any())).thenReturn(Flux.fromArray(dummyXsbData));
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -215,7 +215,7 @@ class XsbDataControllerTest {
     @Test
     void parse_error() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.parseXsbFiles(any())).thenReturn(Flux.error(new RuntimeException("Dummy")));
+        Mockito.when(analysisDataProcessingService.parseXsbFiles(any())).thenReturn(Flux.error(new RuntimeException("Dummy")));
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -230,7 +230,7 @@ class XsbDataControllerTest {
     @Test
     void parse_exception() {
         Trigger trigger= new Trigger();
-        Mockito.when(xsbDataService.parseXsbFiles(any())).thenThrow(new RuntimeException("Dummy Exception"));
+        Mockito.when(analysisDataProcessingService.parseXsbFiles(any())).thenThrow(new RuntimeException("Dummy Exception"));
 
         webTestClient
                 // Create a GET request to test an endpoint

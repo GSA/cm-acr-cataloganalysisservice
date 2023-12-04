@@ -39,12 +39,12 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("junit")
 @Slf4j
 @MockBeans({@MockBean(XsbDataParser.class), @MockBean(AnalysisSourceLocal.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class), @MockBean(TransactionalDataService.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, AnalysisSourceFactory.class})
-class XsbDataService2Test {
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, AnalysisSourceFactory.class})
+class AnalysisDataProcessingService2Test {
     private MockedStatic<Files> mockedSettings;
 
     @Autowired
-    private XsbDataService xsbDataService;
+    private AnalysisDataProcessingService analysisDataProcessingService;
 
     @BeforeEach
     void setUp() {mockedSettings = mockStatic(Files.class);}
@@ -61,7 +61,7 @@ class XsbDataService2Test {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
         assertEquals("Unexpected error, cannot create a temporary directory. Cannot proceed without a temporary directory.", thrown.getMessage());
     }
@@ -71,7 +71,7 @@ class XsbDataService2Test {
         Path tmpDir = Path.of("tmpDir");
         when(Files.list(tmpDir)).thenThrow(new IOException("Dummy"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -88,7 +88,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenThrow(new RuntimeException("Could not delete ugly"));
         when(Files.deleteIfExists(tmpDir)).thenThrow(new DirectoryNotEmptyException("tmpDir is not empty"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -105,7 +105,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenThrow(new RuntimeException("Could not delete tmpDir"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -121,7 +121,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenReturn(true);
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(true)
                 .verifyComplete();
     }
@@ -136,7 +136,7 @@ class XsbDataService2Test {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.downloadReports(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.downloadReports(trigger));
 
         assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
 
@@ -152,7 +152,7 @@ class XsbDataService2Test {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.parseXsbFiles(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.parseXsbFiles(trigger));
 
         assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
     }

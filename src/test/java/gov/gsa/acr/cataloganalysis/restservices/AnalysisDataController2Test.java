@@ -2,7 +2,7 @@ package gov.gsa.acr.cataloganalysis.restservices;
 
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
-import gov.gsa.acr.cataloganalysis.service.XsbDataService;
+import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +25,12 @@ import static org.mockito.Mockito.doThrow;
 @AutoConfigureWebTestClient
 @Slf4j
 @TestPropertySource(locations="classpath:application-test.properties")
-class XsbDataController2Test {
+class AnalysisDataController2Test {
     @Autowired
     WebTestClient webTestClient;
 
     @Autowired
-    XsbDataService xsbDataService;
+    AnalysisDataProcessingService analysisDataProcessingService;
 
     @MockBean
     ErrorHandler errorHandler;
@@ -44,7 +44,7 @@ class XsbDataController2Test {
                 .body(Mono.just("{\"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true}"), String.class)
                 .exchange()
                 .expectStatus().isBadRequest()
-                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP)."));
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
     }
 
     @Test
@@ -58,7 +58,7 @@ class XsbDataController2Test {
                 .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isBadRequest()
-                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP)."));
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
     }
 
     @Test

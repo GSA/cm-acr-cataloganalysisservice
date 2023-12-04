@@ -70,7 +70,7 @@ public class Trigger {
         // Trigger is required
         if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
         // Must have a valid source type
-        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
+        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).");
         // For LOCAL source type, source folder is required
         if (AnalysisSourceType.LOCAL.equals(trigger.getSourceType())){
             String sourceFolder = trigger.getSourceFolder();
