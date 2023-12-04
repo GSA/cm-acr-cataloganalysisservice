@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import com.jcraft.jsch.*;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
@@ -31,15 +31,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes ={XsbSourceSftpFiles.class,  XsbSourceLocalFiles.class})
+@ContextConfiguration(classes ={AnalysisSourceSftp.class,  AnalysisSourceLocal.class})
 @TestPropertySource(locations="classpath:application-junit.properties")
-class XsbSourceSftpFilesTest {
+class AnalysisSourceSftpTest {
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
     private String defaultSftpGsaFileReportDir;
 
     @Autowired
-    private XsbSourceSftpFiles xsbSourceSftpFiles;
+    private AnalysisSourceSftp xsbSourceSftpFiles;
 
     @Autowired
     ErrorHandler errorHandler;

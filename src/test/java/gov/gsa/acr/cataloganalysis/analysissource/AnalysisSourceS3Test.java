@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes ={XsbSourceS3Files.class, S3ClientConfiguration.class})
+@ContextConfiguration(classes ={AnalysisSourceS3.class, S3ClientConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 @EnableConfigurationProperties(S3ClientConfigurationProperties.class)
-class XsbSourceS3FilesTest {
+class AnalysisSourceS3Test {
     @Autowired
     S3ClientConfigurationProperties props;
 
@@ -42,7 +42,7 @@ class XsbSourceS3FilesTest {
     S3ClientConfiguration s3ClientConfiguration;
 
     @Autowired
-    private XsbSourceS3Files xsbSourceS3Files;
+    private AnalysisSourceS3 xsbSourceS3Files;
 
     @BeforeEach
     void setUp() throws IOException {

@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
@@ -28,14 +28,14 @@ import static org.mockito.Mockito.any;
 @SpringBootTest
 @Slf4j
 @MockBeans({@MockBean(ErrorHandler.class), @MockBean(S3AsyncClient.class), @MockBean(S3ClientConfiguration.class)})
-@ContextConfiguration(classes ={XsbSourceS3Files.class, S3ClientConfigurationProperties.class })
+@ContextConfiguration(classes ={AnalysisSourceS3.class, S3ClientConfigurationProperties.class })
 @TestPropertySource(locations="classpath:application-test.properties")
-class XsbSourceS3Files2Test {
+class AnalysisSourceS32Test {
     @Autowired
     S3ClientConfiguration s3ClientConfiguration;
 
     @Autowired
-    XsbSourceS3Files xsbSourceS3Files;
+    AnalysisSourceS3 xsbSourceS3Files;
 
     @Autowired
     S3AsyncClient s3AsyncClient;

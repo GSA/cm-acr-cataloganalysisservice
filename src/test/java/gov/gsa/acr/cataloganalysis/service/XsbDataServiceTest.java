@@ -1,15 +1,15 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceSftp;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceFactory;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceLocalFiles;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceS3Files;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceSftpFiles;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -44,8 +44,8 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(XsbSourceSftpFiles.class), @MockBean(XsbSourceS3Files.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, XsbSourceLocalFiles.class, XsbSourceFactory.class, TransactionalDataService.class})
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceSftp.class), @MockBean(AnalysisSourceS3.class) })
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class})
 class XsbDataServiceTest {
 
     @Value("${error.file.directory}")
@@ -58,7 +58,7 @@ class XsbDataServiceTest {
     @Autowired
     private ErrorHandler errorHandler;
     @Autowired
-    private XsbSourceS3Files xsbSourceS3Files;
+    private AnalysisSourceS3 xsbSourceS3Files;
     @Autowired
     private XsbDataService xsbDataService;
 

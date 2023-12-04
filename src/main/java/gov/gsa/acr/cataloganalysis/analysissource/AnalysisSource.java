@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
@@ -6,7 +6,7 @@ import reactor.core.publisher.Flux;
 import java.nio.file.Path;
 import java.util.Set;
 
-public interface XsbSource {
+public interface AnalysisSource {
     Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder);
     default boolean unexpectedFileNames(Set<String> fileNames, Logger log) {
         final String MN = "getXSBFiles: ";

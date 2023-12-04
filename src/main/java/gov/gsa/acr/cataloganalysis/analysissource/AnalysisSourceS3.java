@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
@@ -16,13 +16,13 @@ import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
-public class XsbSourceS3Files implements XsbSource {
+public class AnalysisSourceS3 implements AnalysisSource {
     private final S3AsyncClient s3client;
     private final S3ClientConfigurationProperties s3config;
 
     private final ErrorHandler errorHandler;
 
-    public XsbSourceS3Files(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
+    public AnalysisSourceS3(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
         this.errorHandler = errorHandler;

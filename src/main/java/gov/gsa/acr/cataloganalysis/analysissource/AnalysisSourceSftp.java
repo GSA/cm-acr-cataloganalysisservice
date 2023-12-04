@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import com.jcraft.jsch.*;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
@@ -22,7 +22,7 @@ import java.util.Vector;
 
 @Component
 @Slf4j
-public class XsbSourceSftpFiles implements XsbSource {
+public class AnalysisSourceSftp implements AnalysisSource {
 
     private final ErrorHandler errorHandler;
 
@@ -47,7 +47,7 @@ public class XsbSourceSftpFiles implements XsbSource {
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
 
-    public XsbSourceSftpFiles(ErrorHandler errorHandler) {
+    public AnalysisSourceSftp(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 

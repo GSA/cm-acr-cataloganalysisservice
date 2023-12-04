@@ -1,12 +1,12 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceFactory;
-import gov.gsa.acr.cataloganalysis.xsbsource.XsbSourceS3Files;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,8 +41,8 @@ public class XsbDataService {
     private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
-    private final XsbSourceFactory xsbSourceFactory;
-    private final XsbSourceS3Files xsbSourceS3Files;
+    private final AnalysisSourceFactory analysisSourceFactory;
+    private final AnalysisSourceS3 xsbSourceS3Files;
     private final XsbDataParser xsbDataParser;
     private final TransactionalDataService transactionalDataService;
 
@@ -80,7 +80,7 @@ public class XsbDataService {
         errorHandler.init(xsbDataParser.getHeaderString());
 
         // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
-        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return deleteOldStagingData()
@@ -388,7 +388,7 @@ public class XsbDataService {
         }
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+        return analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                 .doOnComplete(() -> log.info("Finished downloading all files."))
                 .doFinally(s -> errorHandler.close());
     }
@@ -407,7 +407,7 @@ public class XsbDataService {
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
 
-        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return findTaaCompliantCountries()

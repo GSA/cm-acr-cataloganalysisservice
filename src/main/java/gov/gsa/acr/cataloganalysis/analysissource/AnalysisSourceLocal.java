@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.util.StringUtils;
@@ -14,10 +14,10 @@ import java.util.stream.Stream;
 
 @Component
 @Slf4j
-public class XsbSourceLocalFiles implements XsbSource {
+public class AnalysisSourceLocal implements AnalysisSource {
     private final ErrorHandler errorHandler;
 
-    public XsbSourceLocalFiles(ErrorHandler errorHandler) {
+    public AnalysisSourceLocal(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 

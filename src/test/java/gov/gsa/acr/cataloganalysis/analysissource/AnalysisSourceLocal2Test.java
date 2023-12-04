@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.xsbsource;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.util.StringUtils;
@@ -30,15 +30,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes = {XsbSourceLocalFiles.class})
+@ContextConfiguration(classes = {AnalysisSourceLocal.class})
 @TestPropertySource(locations="classpath:application-test.properties")
-class XsbSourceLocalFiles2Test {
+class AnalysisSourceLocal2Test {
 
     @Autowired
     private ErrorHandler errorHandler;
 
     @Autowired
-    private XsbSourceLocalFiles xsbSourceLocalFiles;
+    private AnalysisSourceLocal xsbSourceLocalFiles;
 
     private MockedStatic<Files> mockedSettings;
 
