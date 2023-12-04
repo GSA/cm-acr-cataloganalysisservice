@@ -80,7 +80,7 @@ public class XsbDataService {
         errorHandler.init(xsbDataParser.getHeaderString());
 
         // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
-        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return deleteOldStagingData()
@@ -388,7 +388,7 @@ public class XsbDataService {
         }
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        return analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+        return analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                 .doOnComplete(() -> log.info("Finished downloading all files."))
                 .doFinally(s -> errorHandler.close());
     }
@@ -407,7 +407,7 @@ public class XsbDataService {
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
 
-        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return findTaaCompliantCountries()

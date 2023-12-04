@@ -165,7 +165,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
         return list(sourceFolder, fileNamePattern).flatMap(k -> downloadFromS3(k, destinationFolder));
     }
 
@@ -187,9 +187,9 @@ public class AnalysisSourceS3 implements AnalysisSource {
      * a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = getScrubbedSourceDir(sourceFolder);
         if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 }

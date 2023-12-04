@@ -175,8 +175,8 @@ public class AnalysisSourceXsb implements AnalysisSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
-        final String MN = "getXSBFiles: ";
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
+        final String MN = "getAnalyzedCatalogs: ";
         ChannelSftp channelSftp = null;
         Flux<Path> rtrn = Flux.empty();
         try {
@@ -213,10 +213,10 @@ public class AnalysisSourceXsb implements AnalysisSource {
      * element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into
      * a single stream
      */
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
         if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 
 }

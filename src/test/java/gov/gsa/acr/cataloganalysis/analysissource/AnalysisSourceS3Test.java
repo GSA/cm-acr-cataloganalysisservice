@@ -116,7 +116,7 @@ class AnalysisSourceS3Test {
     void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_");
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
                 .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
                 .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
                 .expectComplete()
@@ -137,7 +137,7 @@ class AnalysisSourceS3Test {
 
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectComplete()
                 .verify();
@@ -153,15 +153,15 @@ class AnalysisSourceS3Test {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -169,12 +169,12 @@ class AnalysisSourceS3Test {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -183,7 +183,7 @@ class AnalysisSourceS3Test {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -193,15 +193,15 @@ class AnalysisSourceS3Test {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -210,7 +210,7 @@ class AnalysisSourceS3Test {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceS3Files.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }

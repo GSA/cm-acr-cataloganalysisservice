@@ -65,7 +65,7 @@ class AnalysisSourceLocal2Test {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_*.gsa");
         when(Files.list(any())).thenThrow(new RuntimeException("Dummy"));
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("getXsbFilesTest_*.gsa"), eq("Unable to get XSB files from the directory, junitTestData, for file, getXsbFilesTest_*.gsa"), Mockito.any(RuntimeException.class) );
     }
@@ -77,7 +77,7 @@ class AnalysisSourceLocal2Test {
         when(Files.list(Path.of("junitTestData"))).thenReturn(Stream.of(Path.of("junitTestData/getXsbFilesTest_1.gsa")));
         when(Files.isRegularFile(Path.of("junitTestData/getXsbFilesTest_1.gsa"))).thenReturn(true);
         when(Files.copy(Path.of("junitTestData/getXsbFilesTest_1.gsa"), Path.of("tmp/getXsbFilesTest_1.gsa"), StandardCopyOption.REPLACE_EXISTING)).thenThrow(new RuntimeException("Dummy"));
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(Path.of("junitTestData/getXsbFilesTest_1.gsa").toString()), eq("Unable to copy "+ Path.of("junitTestData/getXsbFilesTest_1.gsa") + " to "+ Path.of("tmp/getXsbFilesTest_1.gsa")), Mockito.any(RuntimeException.class) );
     }

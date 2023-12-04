@@ -32,7 +32,7 @@ public class AnalysisSourceLocal implements AnalysisSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
         return Flux.using(
                         () -> Files.list(Path.of(sourceFolder)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(StringUtils.globToRegex(fileNamePattern))),
                         Flux::fromStream,
@@ -69,8 +69,8 @@ public class AnalysisSourceLocal implements AnalysisSource {
      * in the fileNames arg could be a pattern, in which case, the stream collects all the  files into a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
-        final String MN = "getXSBFiles: ";
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+        final String MN = "getAnalyzedCatalogs: ";
         if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder)))) {
             String message = "Invalid Source folder: " + sourceFolder;
             Exception e = new IllegalArgumentException(message);
@@ -84,6 +84,6 @@ public class AnalysisSourceLocal implements AnalysisSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(sourceFolder, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(sourceFolder, f, destinationFolder));
     }
 }

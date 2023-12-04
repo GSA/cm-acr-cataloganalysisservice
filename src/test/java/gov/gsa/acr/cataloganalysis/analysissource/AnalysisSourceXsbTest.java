@@ -128,7 +128,7 @@ class AnalysisSourceXsbTest {
         String regEx1 = StringUtils.globToRegex("tmp*" + pattern1 + "*");
         String regEx2 = StringUtils.globToRegex("tmp*" + pattern2 + "*");
 
-        StepVerifier.Step<Path> step = StepVerifier.create(xsbSourceSftpFiles.getXSBFiles(null, filePatterns, "tmp"));
+        StepVerifier.Step<Path> step = StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs(null, filePatterns, "tmp"));
         for (int i = 0; i < expectedCount; i++) step = step.expectNextMatches(p -> p.toString().matches(regEx1) || p.toString().matches(regEx2));
 
         step.expectComplete().verify();
@@ -138,15 +138,15 @@ class AnalysisSourceXsbTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -154,12 +154,12 @@ class AnalysisSourceXsbTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -168,7 +168,7 @@ class AnalysisSourceXsbTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -178,15 +178,15 @@ class AnalysisSourceXsbTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -196,7 +196,7 @@ class AnalysisSourceXsbTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceSftpFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }

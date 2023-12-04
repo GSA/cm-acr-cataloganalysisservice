@@ -67,7 +67,7 @@ class AnalysisSourceLocalTest {
     void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_*.gsa");
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_2.gsa"))
                 .expectComplete()
@@ -88,7 +88,7 @@ class AnalysisSourceLocalTest {
 
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectComplete()
                 .verify();
@@ -105,15 +105,15 @@ class AnalysisSourceLocalTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -121,12 +121,12 @@ class AnalysisSourceLocalTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -135,7 +135,7 @@ class AnalysisSourceLocalTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -145,15 +145,15 @@ class AnalysisSourceLocalTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -162,7 +162,7 @@ class AnalysisSourceLocalTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(xsbSourceLocalFiles.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }
