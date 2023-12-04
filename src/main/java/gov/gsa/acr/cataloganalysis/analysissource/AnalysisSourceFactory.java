@@ -15,7 +15,7 @@ public class AnalysisSourceFactory {
         this.analysisSourceS3 = analysisSourceS3;
     }
 
-    public AnalysisSource xsbSource(Trigger trigger){
+    public AnalysisSource analysisSource(Trigger trigger){
         return switch (trigger.getSourceType()) {
             case XSB -> analysisSourceXsb;
             case S3    -> analysisSourceS3;

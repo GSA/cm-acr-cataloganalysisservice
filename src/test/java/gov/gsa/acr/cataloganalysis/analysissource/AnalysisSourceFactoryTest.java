@@ -31,14 +31,14 @@ class AnalysisSourceFactoryTest {
 
     @Test
     void testXsbSourceNullTrigger() {
-        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.xsbSource(null));
+        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.analysisSource(null));
         assertTrue(thrown.getMessage().matches(".*trigger.* is null"));
     }
 
     @Test
     void testXsbSourceNoSourceType() {
         Trigger trigger = new Trigger();
-        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.xsbSource(trigger));
+        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.analysisSource(trigger));
         log.info(thrown.getMessage());
         assertTrue(thrown.getMessage().matches(".*SourceType.* is null"));
     }
@@ -47,20 +47,20 @@ class AnalysisSourceFactoryTest {
     void testXsbSourceTypeSFTP() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
-        assertEquals(xsbSourceSftpFiles, analysisSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceSftpFiles, analysisSourceFactory.analysisSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeLOCAL() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
-        assertEquals(xsbSourceLocalFiles, analysisSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceLocalFiles, analysisSourceFactory.analysisSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeS3() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.S3);
-        assertEquals(xsbSourceS3Files, analysisSourceFactory.xsbSource(trigger));
+        assertEquals(xsbSourceS3Files, analysisSourceFactory.analysisSource(trigger));
     }
 }
