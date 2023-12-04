@@ -1,8 +1,8 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
-import gov.gsa.acr.cataloganalysis.service.XsbDataService;
+import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,20 +25,18 @@ import static org.mockito.Mockito.doThrow;
 @AutoConfigureWebTestClient
 @Slf4j
 @TestPropertySource(locations="classpath:application-test.properties")
-class XsbDataController2Test {
+class AnalysisDataController2Test {
     @Autowired
     WebTestClient webTestClient;
 
     @Autowired
-    XsbDataService xsbDataService;
+    AnalysisDataProcessingService analysisDataProcessingService;
 
     @MockBean
     ErrorHandler errorHandler;
 
     @Test
     void trigger_useJson() {
-        Trigger trigger= new Trigger();
-
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
@@ -46,7 +44,7 @@ class XsbDataController2Test {
                 .body(Mono.just("{\"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true}"), String.class)
                 .exchange()
                 .expectStatus().isBadRequest()
-                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP)."));
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
     }
 
     @Test
@@ -60,13 +58,13 @@ class XsbDataController2Test {
                 .body(Mono.just(trigger), Trigger.class)
                 .exchange()
                 .expectStatus().isBadRequest()
-                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP)."));
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
     }
 
     @Test
     void trigger_NoFiles() {
         Trigger trigger= new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -82,7 +80,7 @@ class XsbDataController2Test {
     @Test
     void trigger_NoSourceFolder() {
         Trigger trigger= new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
 
         webTestClient
                 // Create a GET request to test an endpoint
@@ -98,7 +96,7 @@ class XsbDataController2Test {
     @Test
     void trigger_ErrorHandlerError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);

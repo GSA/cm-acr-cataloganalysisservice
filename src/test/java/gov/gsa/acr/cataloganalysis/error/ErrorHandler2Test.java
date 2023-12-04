@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.service;
+package gov.gsa.acr.cataloganalysis.error;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -46,7 +46,7 @@ class ErrorHandler2Test {
         when(Files.createDirectories(any())).thenThrow(new IOException("Dummy"));
         RuntimeException thrown = assertThrows (RuntimeException.class, () -> errorHandler.init("dummy header"));
         assertEquals("Unexpected error. Unable to create a new directory for storing error files.", thrown.getMessage());
-        assertEquals(2000, errorHandler.maxErrorFileSizeBytes);
+        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
         assertEquals("testData/errors", errorHandler.getErrorDirectory());
         assertEquals(0, errorHandler.getNumParsingErrors().get());
         assertEquals(0, errorHandler.getNumDbErrors().get());
@@ -61,7 +61,7 @@ class ErrorHandler2Test {
         when(Files.list(any())).thenThrow(new RuntimeException("Dummy"));
         RuntimeException thrown = assertThrows (RuntimeException.class, () -> errorHandler.init("dummy header"));
         assertEquals("Unexpected error. Unable to delete old error files from previous executions.", thrown.getMessage());
-        assertEquals(2000, errorHandler.maxErrorFileSizeBytes);
+        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
         assertEquals("testData/errors", errorHandler.getErrorDirectory());
         assertEquals(0, errorHandler.getNumParsingErrors().get());
         assertEquals(0, errorHandler.getNumDbErrors().get());
@@ -82,7 +82,7 @@ class ErrorHandler2Test {
         log.error("This is what we got ", thrown);
         assertEquals("Unexpected error. Unable to delete old error files from previous executions.", thrown.getMessage());
         assertEquals("Unexpected error. Unable to delete old error file from a previous execution: " + path, thrown.getCause().getMessage());
-        assertEquals(2000, errorHandler.maxErrorFileSizeBytes);
+        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
         assertEquals("testData/errors", errorHandler.getErrorDirectory());
         assertEquals(0, errorHandler.getNumParsingErrors().get());
         assertEquals(0, errorHandler.getNumDbErrors().get());

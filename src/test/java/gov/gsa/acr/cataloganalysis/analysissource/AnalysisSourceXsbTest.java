@@ -1,7 +1,8 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import com.jcraft.jsch.*;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,15 +31,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes ={AcrXsbSftpUtil.class,  AcrXsbFilesUtil.class})
+@ContextConfiguration(classes ={AnalysisSourceXsb.class,  AnalysisSourceLocal.class})
 @TestPropertySource(locations="classpath:application-junit.properties")
-class AcrXsbSftpUtilTest {
+class AnalysisSourceXsbTest {
 
     @Value("${xsb.sftp.gsa.file.report.dir}")
     private String defaultSftpGsaFileReportDir;
 
     @Autowired
-    private AcrXsbSftpUtil acrXsbSftpUtil;
+    private AnalysisSourceXsb xsbSourceSftpFiles;
 
     @Autowired
     ErrorHandler errorHandler;
@@ -75,7 +76,7 @@ class AcrXsbSftpUtilTest {
         // Regular Files less than 50KB in size
         // If possible the file name should have a common pattern so the test case can select files using a glob wilecard
         // Find a file that satisfies the size criteria listed above and there is only one of its kind.
-        ChannelSftp channelSftp = acrXsbSftpUtil.createDownloadChannelSftp(defaultSftpGsaFileReportDir);
+        ChannelSftp channelSftp = xsbSourceSftpFiles.createDownloadChannelSftp(defaultSftpGsaFileReportDir);
         Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(defaultSftpGsaFileReportDir);
         Map<String, Integer> potentialFiles = new HashMap<>();
         for(ChannelSftp.LsEntry lsEntry: lsEntries){
@@ -105,7 +106,7 @@ class AcrXsbSftpUtilTest {
         }
 
         String pattern1 = null, pattern2 = null;
-        Integer numFiles1 = 0, numFiles2 = 0;
+        int numFiles1 = 0, numFiles2 = 0;
         for (Map.Entry<String, Integer> entry : potentialFiles.entrySet()) {
             if (entry.getValue() > 2 && entry.getValue() < 10 && pattern1 == null) {
                 pattern1 = entry.getKey(); numFiles1 = entry.getValue();
@@ -124,10 +125,10 @@ class AcrXsbSftpUtilTest {
 
         final int expectedCount = numFiles1+numFiles2;
 
-        String regEx1 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern1 + "*");
-        String regEx2 = AcrXsbFilesUtil.globToRegex("tmp*" + pattern2 + "*");
+        String regEx1 = StringUtils.globToRegex("tmp*" + pattern1 + "*");
+        String regEx2 = StringUtils.globToRegex("tmp*" + pattern2 + "*");
 
-        StepVerifier.Step<Path> step = StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, filePatterns, "tmp"));
+        StepVerifier.Step<Path> step = StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs(null, filePatterns, "tmp"));
         for (int i = 0; i < expectedCount; i++) step = step.expectNextMatches(p -> p.toString().matches(regEx1) || p.toString().matches(regEx2));
 
         step.expectComplete().verify();
@@ -137,15 +138,15 @@ class AcrXsbSftpUtilTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -153,12 +154,12 @@ class AcrXsbSftpUtilTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -167,7 +168,7 @@ class AcrXsbSftpUtilTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -177,15 +178,15 @@ class AcrXsbSftpUtilTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -195,7 +196,7 @@ class AcrXsbSftpUtilTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbSftpUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceSftpFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }
@@ -203,7 +204,7 @@ class AcrXsbSftpUtilTest {
 
     @Test
     void testProgressMonitorProgressReporting() throws InterruptedException {
-        SftpProgressMonitor sftpProgressMonitor = acrXsbSftpUtil.getSftpProgressMonitor();
+        SftpProgressMonitor sftpProgressMonitor = xsbSourceSftpFiles.getSftpProgressMonitor();
         sftpProgressMonitor.init(1, "file1", "file2", 100);
         sftpProgressMonitor.count(20);
         Thread.sleep(300);
@@ -229,7 +230,7 @@ class AcrXsbSftpUtilTest {
         Mockito.when(channelSftp.isConnected()).thenReturn(false);
         Mockito.when(channelSftp.getSession()).thenReturn(null);
 
-        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+        StepVerifier.create(xsbSourceSftpFiles.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
                 .verifyComplete();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );
@@ -250,7 +251,7 @@ class AcrXsbSftpUtilTest {
         Mockito.when(channelSftp.isConnected()).thenReturn(false);
         Mockito.when(channelSftp.getSession()).thenReturn(null);
 
-        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+        StepVerifier.create(xsbSourceSftpFiles.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
                 .verifyComplete();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );
@@ -269,7 +270,7 @@ class AcrXsbSftpUtilTest {
         doThrow(r).when(channelSftp).disconnect();
         Mockito.when(channelSftp.getSession()).thenReturn(null);
 
-        StepVerifier.create(acrXsbSftpUtil.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
+        StepVerifier.create(xsbSourceSftpFiles.downloadFromXSBToLocal("file1", entry, "file2", channelSftp))
                 .verifyComplete();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError("aDummyFile", "Download to Local file system from SFTP FAILED. Dummy", r );

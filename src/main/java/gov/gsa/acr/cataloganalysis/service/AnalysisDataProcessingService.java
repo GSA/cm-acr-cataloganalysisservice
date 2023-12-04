@@ -1,11 +1,12 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class XsbDataService {
+public class AnalysisDataProcessingService {
     @Value("${progress.reporting.interval.seconds:30}")
     @Getter
     private int progressReportingIntervalSeconds;
@@ -40,8 +41,8 @@ public class XsbDataService {
     private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
     private final ErrorHandler errorHandler;
-    private final XsbSourceFactory xsbSourceFactory;
-    private final AcrXsbS3Util acrXsbS3Util;
+    private final AnalysisSourceFactory analysisSourceFactory;
+    private final AnalysisSourceS3 xsbSourceS3Files;
     private final XsbDataParser xsbDataParser;
     private final TransactionalDataService transactionalDataService;
 
@@ -79,7 +80,7 @@ public class XsbDataService {
         errorHandler.init(xsbDataParser.getHeaderString());
 
         // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
-        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return deleteOldStagingData()
@@ -352,7 +353,7 @@ public class XsbDataService {
     Flux<String> uploadErrorFilesToS3() {
         return errorHandler.getErrorFiles()
                 .doFirst(errorHandler::close)
-                .flatMap(p -> acrXsbS3Util.uploadToS3(p, "errors/" + p.getFileName()));
+                .flatMap(p -> xsbSourceS3Files.uploadToS3(p, "errors/" + p.getFileName()));
     }
 
 
@@ -387,7 +388,7 @@ public class XsbDataService {
         }
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        return xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
+        return analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                 .doOnComplete(() -> log.info("Finished downloading all files."))
                 .doFinally(s -> errorHandler.close());
     }
@@ -406,7 +407,7 @@ public class XsbDataService {
 
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
 
-        Flux<Path> xsbFiles = xsbSourceFactory.xsbSource(trigger).getXSBFiles(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        Flux<Path> xsbFiles = analysisSourceFactory.xsbSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
 
         // Start the pipeline for parsing files and storing data in the database
         return findTaaCompliantCountries()

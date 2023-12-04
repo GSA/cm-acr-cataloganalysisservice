@@ -1,7 +1,7 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import com.jcraft.jsch.*;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ import java.util.Vector;
 
 @Component
 @Slf4j
-public class AcrXsbSftpUtil implements XsbSource {
+public class AnalysisSourceXsb implements AnalysisSource {
 
     private final ErrorHandler errorHandler;
 
@@ -47,7 +47,7 @@ public class AcrXsbSftpUtil implements XsbSource {
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
 
-    public AcrXsbSftpUtil(ErrorHandler errorHandler) {
+    public AnalysisSourceXsb(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
     }
 
@@ -175,8 +175,8 @@ public class AcrXsbSftpUtil implements XsbSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
-        final String MN = "getXSBFiles: ";
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
+        final String MN = "getAnalyzedCatalogs: ";
         ChannelSftp channelSftp = null;
         Flux<Path> rtrn = Flux.empty();
         try {
@@ -213,10 +213,10 @@ public class AcrXsbSftpUtil implements XsbSource {
      * element in the fileNames arg could be a pattern, in which case, the stream collects all the downloaded files into
      * a single stream
      */
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
         if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 
 }

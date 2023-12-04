@@ -12,14 +12,15 @@ import java.util.Set;
 @Data
 public class Trigger {
     @Schema(description = """
-    Source for XSB Files. Has to be one of "SFTP", or "LOCAL", or "S3".
-    "SFTP": will look for files on the XSB's SFTP server,
+    Source for XSB Files. Has to be one of "XSB", or "LOCAL", or "S3".
+    "XSB": will look for files on the XSB's SFTP server,
     "S3": Will look for file in the ACR's S3 bucket,
     "LOCAL": Will look for files on the PODs local file system.
     """)
-    private XsbSourceType sourceType;
+    private AnalysisSourceType sourceType;
     @Schema(description = """
-            The folder relative to the base of the source. For example, for the SFTP source the base is the root folder "/".
+            The folder relative to the base of the source. For example, for the XSB source the base is the root folder "/"
+            on the XSB's SFTP server.
             For the S3 bucket the base is the folder "catalogAnalysis"  and for the local file system the base is the
             root folder "/".
             """,
@@ -37,7 +38,7 @@ public class Trigger {
             """)
     private String[] files;
     @Schema(description = """
-    if true, then all the existing xsb data will be deleted from the xsb_data table and fresh data will be added.
+    if true (default), then all the existing xsb data will be deleted from the xsb_data table and fresh data will be added.
     if false, then current data is not deleted, but it will be updated. Data should be purged whenever new bi-monthly
     data is consumed. Purging old data will get rid of stale records. However, if there is an issue with the some
     of the records, or if new products are discovered in a vendor's catalod, then the existing data should not be
@@ -69,9 +70,9 @@ public class Trigger {
         // Trigger is required
         if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
         // Must have a valid source type
-        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).");
+        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).");
         // For LOCAL source type, source folder is required
-        if (XsbSourceType.LOCAL.equals(trigger.getSourceType())){
+        if (AnalysisSourceType.LOCAL.equals(trigger.getSourceType())){
             String sourceFolder = trigger.getSourceFolder();
             if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder))))
                 throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
@@ -82,7 +83,7 @@ public class Trigger {
             throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
     }
 
-    public enum XsbSourceType {
-        SFTP, LOCAL, S3
+    public enum AnalysisSourceType {
+        XSB, LOCAL, S3
     }
 }

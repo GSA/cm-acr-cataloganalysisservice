@@ -1,8 +1,10 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,11 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 @Slf4j
 @MockBean(ErrorHandler.class)
-@ContextConfiguration(classes = {AcrXsbFilesUtil.class})
+@ContextConfiguration(classes = {AnalysisSourceLocal.class})
 @TestPropertySource(locations="classpath:application-test.properties")
-class AcrXsbFilesUtilTest {
+class AnalysisSourceLocalTest {
     @Autowired
-    private AcrXsbFilesUtil acrXsbFilesUtil;
+    private AnalysisSourceLocal xsbSourceLocalFiles;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -56,16 +58,16 @@ class AcrXsbFilesUtilTest {
 
     @Test
     void testGlobToRegex() {
-        assertEquals("file.*\\.gsa", AcrXsbFilesUtil.globToRegex("file*.gsa") );
-        assertEquals("file.\\.gsa", AcrXsbFilesUtil.globToRegex("file?.gsa"));
-        assertEquals("/.*.*/file.\\.gsa", AcrXsbFilesUtil.globToRegex("/**/file?.gsa"));
+        Assertions.assertEquals("file.*\\.gsa", StringUtils.globToRegex("file*.gsa") );
+        assertEquals("file.\\.gsa", StringUtils.globToRegex("file?.gsa"));
+        assertEquals("/.*.*/file.\\.gsa", StringUtils.globToRegex("/**/file?.gsa"));
     }
 
     @Test
     void testGetXSBFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_*.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_2.gsa"))
                 .expectComplete()
@@ -86,7 +88,7 @@ class AcrXsbFilesUtilTest {
 
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
                 .expectComplete()
                 .verify();
@@ -103,15 +105,15 @@ class AcrXsbFilesUtilTest {
     @Test
     void testValidSourceFolder() {
         // Test valid Source Folder
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles(null, null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs(null, null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("", null, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("invalidDirectory", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("invalidDirectory", null, null))
                 .expectComplete()
                 .verify();
     }
@@ -119,12 +121,12 @@ class AcrXsbFilesUtilTest {
     @Test
     void testValidFileNames() {
         // Test valid Filenames
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", null, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", null, null))
                 .expectComplete()
                 .verify();
 
         HashSet<String> testFileNames = new HashSet<>();
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
@@ -133,7 +135,7 @@ class AcrXsbFilesUtilTest {
                 .filter(Character::isLowerCase)
                 .mapToObj(i -> Character.valueOf((char) i).toString())
                 .collect(Collectors.toSet());
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", set, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", set, null))
                 .expectComplete()
                 .verify();
     }
@@ -143,15 +145,15 @@ class AcrXsbFilesUtilTest {
         // Test valid destination folder
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, null))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, null))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, ""))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, ""))
                 .expectComplete()
                 .verify();
 
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "invalidDirectory"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "invalidDirectory"))
                 .expectComplete()
                 .verify();
     }
@@ -160,7 +162,7 @@ class AcrXsbFilesUtilTest {
     void testNoMatchingFiles() {
         HashSet<String> testFileNames = new HashSet<>();
         testFileNames.add("oneFile.gsa");
-        StepVerifier.create(acrXsbFilesUtil.getXSBFiles("junitTestData", testFileNames, "tmp"))
+        StepVerifier.create(xsbSourceLocalFiles.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
                 .expectComplete()
                 .verify();
     }

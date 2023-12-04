@@ -1,6 +1,7 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -13,49 +14,11 @@ import java.util.stream.Stream;
 
 @Component
 @Slf4j
-public class AcrXsbFilesUtil implements XsbSource {
-
+public class AnalysisSourceLocal implements AnalysisSource {
     private final ErrorHandler errorHandler;
 
-    public AcrXsbFilesUtil(ErrorHandler errorHandler) {
+    public AnalysisSourceLocal(ErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
-    }
-
-    public static String globToRegex(String string) {
-        StringBuilder buffer = new StringBuilder();
-
-        int z = 0;
-        while (z < string.length()) {
-            switch (string.charAt(z)) {
-                case '*' -> {
-                    buffer.append(".*");
-                    z++;
-                }
-                case '?' -> {
-                    buffer.append('.');
-                    z++;
-                }
-                case '.' -> {
-                    buffer.append("\\.");
-                    z++;
-                }
-                case '\\' -> {
-                    buffer.append("\\\\");
-                    z++;
-                }
-                case '[', ']', '^', '$', '(', ')', '{', '}', '+', '|' -> {
-                    buffer.append('\\');
-                    buffer.append(string.charAt(z));
-                    z++;
-                }
-                default -> {
-                    buffer.append(string.charAt(z));
-                    z++;
-                }
-            }
-        }
-
-        return buffer.toString();
     }
 
 
@@ -69,9 +32,9 @@ public class AcrXsbFilesUtil implements XsbSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
         return Flux.using(
-                        () -> Files.list(Path.of(sourceFolder)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(globToRegex(fileNamePattern))),
+                        () -> Files.list(Path.of(sourceFolder)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(StringUtils.globToRegex(fileNamePattern))),
                         Flux::fromStream,
                         Stream::close)
                 .onErrorResume(e -> {
@@ -106,8 +69,8 @@ public class AcrXsbFilesUtil implements XsbSource {
      * in the fileNames arg could be a pattern, in which case, the stream collects all the  files into a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
-        final String MN = "getXSBFiles: ";
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+        final String MN = "getAnalyzedCatalogs: ";
         if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder)))) {
             String message = "Invalid Source folder: " + sourceFolder;
             Exception e = new IllegalArgumentException(message);
@@ -121,6 +84,6 @@ public class AcrXsbFilesUtil implements XsbSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(sourceFolder, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(sourceFolder, f, destinationFolder));
     }
 }

@@ -1,7 +1,7 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfigurationProperties;
-import gov.gsa.acr.cataloganalysis.service.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -16,13 +16,13 @@ import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
-public class AcrXsbS3Util implements XsbSource {
+public class AnalysisSourceS3 implements AnalysisSource {
     private final S3AsyncClient s3client;
     private final S3ClientConfigurationProperties s3config;
 
     private final ErrorHandler errorHandler;
 
-    public AcrXsbS3Util(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
+    public AnalysisSourceS3(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
         this.errorHandler = errorHandler;
@@ -165,7 +165,7 @@ public class AcrXsbS3Util implements XsbSource {
      *                          a temporary directory that is deleted once processing completes.
      * @return A stream of downloaded XSB files
      */
-    private Flux<Path> getXSBFiles(String sourceFolder, String fileNamePattern, String destinationFolder) {
+    private Flux<Path> getAnalyzedCatalogs(String sourceFolder, String fileNamePattern, String destinationFolder) {
         return list(sourceFolder, fileNamePattern).flatMap(k -> downloadFromS3(k, destinationFolder));
     }
 
@@ -187,9 +187,9 @@ public class AcrXsbS3Util implements XsbSource {
      * a single stream
      */
     @Override
-    public Flux<Path> getXSBFiles(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+    public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = getScrubbedSourceDir(sourceFolder);
         if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getXSBFiles(srcDir, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 }

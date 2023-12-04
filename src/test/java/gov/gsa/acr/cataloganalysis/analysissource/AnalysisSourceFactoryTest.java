@@ -1,4 +1,4 @@
-package gov.gsa.acr.cataloganalysis.util;
+package gov.gsa.acr.cataloganalysis.analysissource;
 
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import lombok.extern.slf4j.Slf4j;
@@ -13,32 +13,32 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j
-@ContextConfiguration(classes ={XsbSourceFactory.class})
+@ContextConfiguration(classes ={AnalysisSourceFactory.class})
 @TestPropertySource(locations="classpath:application-junit.properties")
-class XsbSourceFactoryTest {
+class AnalysisSourceFactoryTest {
 
     @MockBean
-    AcrXsbSftpUtil acrXsbSftpUtil;
+    AnalysisSourceXsb xsbSourceSftpFiles;
 
     @MockBean
-    AcrXsbFilesUtil acrXsbFilesUtil;
+    AnalysisSourceLocal xsbSourceLocalFiles;
 
     @MockBean
-    AcrXsbS3Util acrXsbS3Util;
+    AnalysisSourceS3 xsbSourceS3Files;
 
     @Autowired
-    XsbSourceFactory xsbSourceFactory;
+    AnalysisSourceFactory analysisSourceFactory;
 
     @Test
     void testXsbSourceNullTrigger() {
-        NullPointerException thrown = assertThrows (NullPointerException.class, () -> xsbSourceFactory.xsbSource(null));
+        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.xsbSource(null));
         assertTrue(thrown.getMessage().matches(".*trigger.* is null"));
     }
 
     @Test
     void testXsbSourceNoSourceType() {
         Trigger trigger = new Trigger();
-        NullPointerException thrown = assertThrows (NullPointerException.class, () -> xsbSourceFactory.xsbSource(trigger));
+        NullPointerException thrown = assertThrows (NullPointerException.class, () -> analysisSourceFactory.xsbSource(trigger));
         log.info(thrown.getMessage());
         assertTrue(thrown.getMessage().matches(".*SourceType.* is null"));
     }
@@ -46,21 +46,21 @@ class XsbSourceFactoryTest {
     @Test
     void testXsbSourceTypeSFTP() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
-        assertEquals(acrXsbSftpUtil, xsbSourceFactory.xsbSource(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        assertEquals(xsbSourceSftpFiles, analysisSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeLOCAL() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
-        assertEquals(acrXsbFilesUtil, xsbSourceFactory.xsbSource(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        assertEquals(xsbSourceLocalFiles, analysisSourceFactory.xsbSource(trigger));
     }
 
     @Test
     void testXsbSourceTypeS3() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
-        assertEquals(acrXsbS3Util, xsbSourceFactory.xsbSource(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
+        assertEquals(xsbSourceS3Files, analysisSourceFactory.xsbSource(trigger));
     }
 }

@@ -1,12 +1,12 @@
-package gov.gsa.acr.cataloganalysis.service;
+package gov.gsa.acr.cataloganalysis.error;
 
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
+import gov.gsa.acr.cataloganalysis.util.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.io.BufferedWriter;
@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-@Service
+@Component
 @Slf4j
 public class ErrorHandler {
     /**
@@ -73,10 +73,13 @@ public class ErrorHandler {
     }
 
     @Value("${error.file.size.max.bytes.per.file}")
-    long maxErrorFileSizeBytes;
+    @Getter
+    private long maxErrorFileSizeBytes;
+
     @Value("${error.file.directory}")
     @Getter
-    String errorDirectory;
+    @Setter
+    private String errorDirectory;
 
     @Value("${error.threshold}")
     @Getter
@@ -105,7 +108,7 @@ public class ErrorHandler {
     private AtomicInteger numRecordsSavedInTempDB;
 
     private void deleteOldErrorFiles(){
-        try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*")))) {
+        try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(StringUtils.globToRegex("xsb_error_*")))) {
             stream.forEach(p -> {
                 try {
                     log.info("Cleaning up error directory, deleting old error file, " + p + ", from a previous execution.");
@@ -161,7 +164,7 @@ public class ErrorHandler {
 
     public Flux<Path> getErrorFiles() {
         return Flux.using(
-                        () -> Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(AcrXsbFilesUtil.globToRegex("xsb_error_*_" + timeStamp + "_*"))),
+                        () -> Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p -> p.getFileName().toString().matches(StringUtils.globToRegex("xsb_error_*_" + timeStamp + "_*"))),
                         Flux::fromStream,
                         Stream::close
                 )

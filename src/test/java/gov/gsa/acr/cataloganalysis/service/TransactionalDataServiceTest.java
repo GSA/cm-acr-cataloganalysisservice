@@ -1,6 +1,7 @@
 package gov.gsa.acr.cataloganalysis.service;
 
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,6 @@ import static org.mockito.Mockito.when;
 class TransactionalDataServiceTest {
     @Autowired
     private XsbDataRepository xsbDataRepository;
-    @Autowired
-    private ErrorHandler errorHandler;
     @Autowired
     private TransactionalDataService transactionalDataService;
 

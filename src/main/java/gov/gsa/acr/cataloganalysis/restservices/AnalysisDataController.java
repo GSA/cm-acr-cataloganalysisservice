@@ -3,7 +3,7 @@ package gov.gsa.acr.cataloganalysis.restservices;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
-import gov.gsa.acr.cataloganalysis.service.XsbDataService;
+import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -26,12 +26,12 @@ import java.util.concurrent.Executors;
 @Slf4j
 @RestController
 @Tag(name= "ACR Catalog Analysis Service", description = "A Service for analyzing catalogs.")
-public class XsbDataController extends BaseController{
-    final XsbDataService xsbDataService;
+public class AnalysisDataController extends BaseController{
+    final AnalysisDataProcessingService analysisDataProcessingService;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    public XsbDataController(XsbDataService xsbDataService) {
-        this.xsbDataService = xsbDataService;
+    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService) {
+        this.analysisDataProcessingService = analysisDataProcessingService;
     }
 
     @Operation(summary = "Trigger (start) the XSB data upload process.",
@@ -55,7 +55,7 @@ public class XsbDataController extends BaseController{
                             or glob like patterns.
                             """,
                             value = """
-                                    {"sourceType": "SFTP",
+                                    {"sourceType": "XSB",
                                      "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521*"]
                                     }
                                     """
@@ -72,8 +72,9 @@ public class XsbDataController extends BaseController{
                             """,
                             value = """
                                     {"sourceType": "S3",
-                                    "sourceFolder":"testData",
-                                     "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa", "47QSWA19D0073-3003521"]
+                                    "sourceFolder":"junitTestData",
+                                     "files": [ "47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa",
+                                                "47QSWA18D000C-3008711"]
                                     }
                                     """
                     )
@@ -89,7 +90,7 @@ public class XsbDataController extends BaseController{
                             """,
                             value = """
                                     {"sourceType": "LOCAL",
-                                    "sourceFolder":"testData",
+                                    "sourceFolder":"junitTestData",
                                      "files": ["47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa"]
                                     }
                                     """
@@ -99,7 +100,7 @@ public class XsbDataController extends BaseController{
                                     @RequestBody Trigger trigger){
         log.info("Request body " + trigger);
         try {
-            Mono<DataUploadResults> dataUploadResultsMono =  xsbDataService.triggerDataUpload(trigger);
+            Mono<DataUploadResults> dataUploadResultsMono =  analysisDataProcessingService.triggerDataUpload(trigger);
             executorService.submit(() -> dataUploadResultsMono.subscribe(null, e -> log.error("Unexpected Error", e)));
             return ResponseEntity
                     .status(HttpStatus.OK)
@@ -127,6 +128,7 @@ public class XsbDataController extends BaseController{
 
 
 
+    // TBD only for demo delte later
     @Operation(summary = "Trigger (start) the SFTP file download process.",
             description = """
     This API endpoint is used to trigger the Catalog Analysis Service to start downloading the bi-monthly XSB report files from XSB. The end point expects
@@ -148,7 +150,7 @@ public class XsbDataController extends BaseController{
                                             or glob like patterns.
                                             """,
                                     value = """
-                                            {"sourceType": "SFTP",
+                                            {"sourceType": "XSB",
                                              "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
                                              "47QSEA19D00BV-3000176_20231010142725_1261618939108793341_report_1.gsa",
                                              "47QSEA18D0085-3008870_20231010180915_2847181293179224282_report_1.gsa",
@@ -169,7 +171,7 @@ public class XsbDataController extends BaseController{
                                             or glob like patterns.
                                             """,
                                     value = """
-                                            {"sourceType": "SFTP",
+                                            {"sourceType": "XSB",
                                              "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
                                              "47QSWA19D0073-3003521*"
                                              ]
@@ -186,7 +188,7 @@ public class XsbDataController extends BaseController{
                                             or glob like patterns.
                                             """,
                                     value = """
-                                            {"sourceType": "SFTP",
+                                            {"sourceType": "XSB",
                                             "sourceFolder": "/ACR/catalog_upload",
                                              "files": [
                                              "47QSEA19D007N-3008951_20231031174025.gsa",
@@ -201,7 +203,7 @@ public class XsbDataController extends BaseController{
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         log.info("Trigger: " + trigger);
         try {
-            return xsbDataService.downloadReports(trigger)
+            return analysisDataProcessingService.downloadReports(trigger)
                     .map(String::valueOf)
                     .map(s -> s + "\n");
         } catch (Exception e) {
@@ -210,6 +212,7 @@ public class XsbDataController extends BaseController{
     }
 
 
+    //TBD only for demo, delete later
     @Operation(summary = "Trigger (start) the SFTP file download process.",
             description = """
     This API endpoint is used to trigger the Catalog Analysis Service to start downloading the bi-monthly XSB report files from XSB. The end point expects
@@ -231,7 +234,7 @@ public class XsbDataController extends BaseController{
                                             or glob like patterns.
                                             """,
                                     value = """
-                                            {"sourceType": "SFTP",
+                                            {"sourceType": "XSB",
                                              "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
                                              "47QSEA18D0085-3008870_20231010180915_2847181293179224282_report_1.gsa",
                                              "47QSMA19D08P6-3008918_20231023124520_8813056341555794877_report_1.gsa"
@@ -249,28 +252,9 @@ public class XsbDataController extends BaseController{
                                             or glob like patterns.
                                             """,
                                     value = """
-                                            {"sourceType": "SFTP",
+                                            {"sourceType": "XSB",
                                              "files": ["47QSMA21D08R6-7000039_20230919195858_4325137760202194341_report_1.gsa",
                                              "47QSWA19D0073-3003521*"
-                                             ]
-                                            }
-                                            """
-                            )
-                            ,
-                            @ExampleObject(
-                                    name = "Download files from any other folder on the SFTP server",
-                                    summary = "SFTP Example - Any folder",
-                                    description = """
-                                            To trigger downloading files from XSB's SFTP server. The sourceFolder attribute  is not required as the
-                                            default value is configured already in the system. The "files" property could be an array of full file names
-                                            or glob like patterns.
-                                            """,
-                                    value = """
-                                            {"sourceType": "SFTP",
-                                            "sourceFolder": "/ACR/catalog_upload",
-                                             "files": [
-                                             "47QSEA19D007N-3008951_20231031174025.gsa",
-                                             "47QSCA18D000Z-3008957_20231101135517.gsa"
                                              ]
                                             }
                                             """
@@ -281,7 +265,7 @@ public class XsbDataController extends BaseController{
         if (trigger == null) return Flux.error(new IllegalArgumentException("Invalid request body in POST"));
         log.info("Trigger: " + trigger);
         try {
-            return xsbDataService.parseXsbFiles(trigger);
+            return analysisDataProcessingService.parseXsbFiles(trigger);
         } catch (Exception e) {
             return Flux.error(e);
         }

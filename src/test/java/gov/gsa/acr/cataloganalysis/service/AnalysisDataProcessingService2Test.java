@@ -1,12 +1,13 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
-import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,13 +38,13 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(XsbDataParser.class), @MockBean(AcrXsbFilesUtil.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class), @MockBean(TransactionalDataService.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbSourceFactory.class})
-class XsbDataService2Test {
+@MockBeans({@MockBean(XsbDataParser.class), @MockBean(AnalysisSourceLocal.class), @MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class), @MockBean(TransactionalDataService.class) })
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, AnalysisSourceFactory.class})
+class AnalysisDataProcessingService2Test {
     private MockedStatic<Files> mockedSettings;
 
     @Autowired
-    private XsbDataService xsbDataService;
+    private AnalysisDataProcessingService analysisDataProcessingService;
 
     @BeforeEach
     void setUp() {mockedSettings = mockStatic(Files.class);}
@@ -54,13 +55,13 @@ class XsbDataService2Test {
     @Test
     void testTmpDirectoryCreationError() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
         assertEquals("Unexpected error, cannot create a temporary directory. Cannot proceed without a temporary directory.", thrown.getMessage());
     }
@@ -70,7 +71,7 @@ class XsbDataService2Test {
         Path tmpDir = Path.of("tmpDir");
         when(Files.list(tmpDir)).thenThrow(new IOException("Dummy"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -87,7 +88,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenThrow(new RuntimeException("Could not delete ugly"));
         when(Files.deleteIfExists(tmpDir)).thenThrow(new DirectoryNotEmptyException("tmpDir is not empty"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -104,7 +105,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenThrow(new RuntimeException("Could not delete tmpDir"));
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(false)
                 .verifyComplete();
     }
@@ -120,7 +121,7 @@ class XsbDataService2Test {
         when(Files.deleteIfExists(files[2])).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenReturn(true);
 
-        StepVerifier.create(xsbDataService.deleteTmpDir(tmpDir))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
                 .expectNext(true)
                 .verifyComplete();
     }
@@ -129,13 +130,13 @@ class XsbDataService2Test {
     @Test
     void testDownload_ErrorCreatingTmpDir() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.downloadReports(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.downloadReports(trigger));
 
         assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
 
@@ -145,13 +146,13 @@ class XsbDataService2Test {
     @Test
     void testParse_ErrorCreatingTmpDir() throws IOException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> xsbDataService.parseXsbFiles(trigger));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.parseXsbFiles(trigger));
 
         assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
     }

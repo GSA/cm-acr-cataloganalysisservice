@@ -1,14 +1,15 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbFilesUtil;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbS3Util;
-import gov.gsa.acr.cataloganalysis.util.AcrXsbSftpUtil;
-import gov.gsa.acr.cataloganalysis.util.XsbSourceFactory;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -43,9 +44,9 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AcrXsbSftpUtil.class), @MockBean(AcrXsbS3Util.class) })
-@ContextConfiguration(classes = {S3ClientConfiguration.class,  XsbDataService.class, XsbDataParser.class, AcrXsbFilesUtil.class, XsbSourceFactory.class, TransactionalDataService.class})
-class XsbDataServiceTest {
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class) })
+@ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class})
+class AnalysisDataProcessingServiceTest {
 
     @Value("${error.file.directory}")
     private String errorDirectory;
@@ -57,9 +58,9 @@ class XsbDataServiceTest {
     @Autowired
     private ErrorHandler errorHandler;
     @Autowired
-    private AcrXsbS3Util acrXsbS3Util;
+    private AnalysisSourceS3 xsbSourceS3Files;
     @Autowired
-    private XsbDataService xsbDataService;
+    private AnalysisDataProcessingService analysisDataProcessingService;
 
     List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
 
@@ -70,7 +71,7 @@ class XsbDataServiceTest {
 
     @AfterEach
     void tearDown() {
-        StepVerifier.create(xsbDataService.deleteTmpDir(Path.of("tmp")))
+        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(Path.of("tmp")))
                 .expectNext(true)
                 .verifyComplete();
     }
@@ -79,7 +80,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingEmptyFile() {
         Path emptyFile = Path.of("junitTestData/emptyFile_1.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(emptyFile, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(emptyFile.toString()), eq("Ignoring File. No value present"), Mockito.any(NoSuchElementException.class) );
@@ -88,7 +89,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingInvalidFile() {
         Path invalidFile = Path.of("junitTestData/invalid.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(invalidFile, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidFile.toString()), eq("Ignoring File. " + invalidFile), Mockito.any(NoSuchFileException.class) );
@@ -97,7 +98,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingFileWithInvalidHeader() {
         Path invalidHdrFile = Path.of("junitTestData/testFileWithInvalidHeader.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(invalidHdrFile, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidHdrFile.toString()), matches("Ignoring File. Header String for file.*"), Mockito.any(NoSuchElementException.class) );
@@ -107,7 +108,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingFileWithInvalidRecords() {
         Path invalidRecordsFile = Path.of("junitTestData/testFileWithErrors.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(invalidRecordsFile, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes))
                 .expectNextCount(16)
                 .expectComplete()
                 .verify();
@@ -118,7 +119,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingFileWithJustHeader() {
         Path fileWithJustHeader = Path.of("junitTestData/testFileWithJustHeader.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
@@ -130,7 +131,7 @@ class XsbDataServiceTest {
     @Test
     void testParsingValidFile() {
         Path fileWithJustHeader = Path.of("junitTestData/testValidFile.gsa");
-        StepVerifier.create(xsbDataService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -151,10 +152,10 @@ class XsbDataServiceTest {
                 Path.of("junitTestData/testValidFile.gsa")
         };
 
-        StepVerifier.create(xsbDataService.parseXsbFiles(Flux.empty(), taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes))
                 .verifyComplete();
 
-        StepVerifier.create(xsbDataService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
                 .expectNextCount(26)
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
@@ -169,7 +170,7 @@ class XsbDataServiceTest {
     void testSaveNullDataRecordToStaging() {
         Random rn = new Random();
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(rn.nextInt(100)));
-        StepVerifier.create(xsbDataService.saveDataRecordToStaging(null))
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(null))
                 .expectComplete()
                 .verify();
     }
@@ -182,7 +183,7 @@ class XsbDataServiceTest {
         xsbData.setManufacturer("manufacturer");
         xsbData.setPartNumber("part number");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
-        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleDBError(eq(xsbData), eq("Dummy"));
@@ -198,7 +199,7 @@ class XsbDataServiceTest {
         xsbData.setManufacturer("manufacturer");
         xsbData.setPartNumber("part number");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
-        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleDBError(eq(xsbData), eq("Dummy"));
@@ -212,7 +213,7 @@ class XsbDataServiceTest {
         XsbData xsbData = xsbDataParser.parseXsbData("testFile.gsa", xsbDataString, taaCountryCodes);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(1));
-        StepVerifier.create(xsbDataService.saveDataRecordToStaging(xsbData))
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
                 .expectNext(1)
                 .expectComplete()
                 .verify();
@@ -223,7 +224,7 @@ class XsbDataServiceTest {
     void testDontMoveDataFromStagingToFinal() {
         Trigger trigger = new Trigger();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -237,7 +238,7 @@ class XsbDataServiceTest {
         Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
 
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
@@ -253,7 +254,7 @@ class XsbDataServiceTest {
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenThrow(e);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -268,7 +269,7 @@ class XsbDataServiceTest {
         Trigger trigger = new Trigger();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -284,7 +285,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenThrow(e);
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -300,7 +301,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -315,7 +316,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -331,7 +332,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -347,7 +348,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -364,7 +365,7 @@ class XsbDataServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.moveDataFromStagingToFinal(trigger))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -383,7 +384,7 @@ class XsbDataServiceTest {
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenThrow(e);
         StepVerifier.create(
-                xsbDataService.deleteOldStagingData()
+                analysisDataProcessingService.deleteOldStagingData()
                         .doFirst(() -> firstCalled.compareAndSet(false, true))
                         .doFinally(s -> finallyCalled.compareAndSet(false, true))
                 )
@@ -403,7 +404,7 @@ class XsbDataServiceTest {
         assertFalse(finallyCalled.get());
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.deleteOldStagingData()
+        StepVerifier.create(analysisDataProcessingService.deleteOldStagingData()
                         .doFirst(() -> firstCalled.compareAndSet(false, true))
                         .doFinally(s -> finallyCalled.compareAndSet(false, true))
                 )
@@ -423,7 +424,7 @@ class XsbDataServiceTest {
         assertFalse(finallyCalled.get());
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        StepVerifier.create(xsbDataService.deleteOldStagingData()
+        StepVerifier.create(analysisDataProcessingService.deleteOldStagingData()
                         .doFirst(() -> firstCalled.compareAndSet(false, true))
                         .doFinally(s -> finallyCalled.compareAndSet(false, true))
                 )
@@ -438,7 +439,7 @@ class XsbDataServiceTest {
     void testFindTaaCompliantCountries_Exception() {
         Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenThrow(e);
-        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
                 .expectError()
                 .verify();
     }
@@ -448,7 +449,7 @@ class XsbDataServiceTest {
     void testFindTaaCompliantCountries_Error() {
         Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
-        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
                 .expectError()
                 .verify();
     }
@@ -456,7 +457,7 @@ class XsbDataServiceTest {
     @Test
     void testFindTaaCompliantCountries_noCountries() {
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(List.of()));
-        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
                 .verifyError(NoSuchElementException.class);
     }
 
@@ -464,7 +465,7 @@ class XsbDataServiceTest {
     @Test
     void testFindTaaCompliantCountries() {
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
-        StepVerifier.create(xsbDataService.findTaaCompliantCountries())
+        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
                 .expectNext(Arrays.asList("AF", "AG", "AM", "AO", "AT"))
                 .verifyComplete();
     }
@@ -474,8 +475,8 @@ class XsbDataServiceTest {
     void testUploadErrorFilesToS3_Exception() {
         Exception e = new RuntimeException("Dummy");
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenThrow(e);
-        StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenThrow(e);
+        StepVerifier.create(analysisDataProcessingService.uploadErrorFilesToS3())
                 .expectError(RuntimeException.class)
                 .verify();
     }
@@ -485,8 +486,8 @@ class XsbDataServiceTest {
     void testUploadErrorFilesToS3_Error() {
         Exception e = new RuntimeException("Dummy");
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenReturn(Mono.error(e));
-        StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.error(e));
+        StepVerifier.create(analysisDataProcessingService.uploadErrorFilesToS3())
                 .expectError(RuntimeException.class)
                 .verify();
     }
@@ -495,8 +496,8 @@ class XsbDataServiceTest {
     @Test
     void testUploadErrorFilesToS3() {
         when(errorHandler.getErrorFiles()).thenReturn(Flux.just(Path.of("dummy")));
-        when(acrXsbS3Util.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/dummy"));
-        StepVerifier.create(xsbDataService.uploadErrorFilesToS3())
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/dummy"));
+        StepVerifier.create(analysisDataProcessingService.uploadErrorFilesToS3())
                 .expectNext("errors/dummy")
                 .verifyComplete();
     }
@@ -505,21 +506,21 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_alreadyExecuting() throws InterruptedException {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
         Exception e = new RuntimeException("Dummy RuntimeException");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
-
+        errorHandler.setErrorDirectory(errorDirectory);
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenAnswer((Answer<Mono<Void>>) invocationOnMock -> {
             Thread.sleep(200);
             return Mono.error(e);
@@ -528,24 +529,24 @@ class XsbDataServiceTest {
         ExecutorService service = Executors.newFixedThreadPool(2);
         service.submit(() -> {
             log.info("Triggered first time");
-            StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                     .verifyError(RuntimeException.class);
         });
 
         service.submit(() -> {
             log.info("Triggered second time");
-            assertThrows (ConcurrentModificationException.class, () -> xsbDataService.triggerDataUpload(trigger));
+            assertThrows (ConcurrentModificationException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         });
 
         Thread.sleep(300);
         log.info("Triggered third time");
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .verifyError(RuntimeException.class);
     }
 
     @Test
     void testTriggerDataUpload_nullTrigger() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(null));
         assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
     }
 
@@ -553,15 +554,15 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_nullUniqueFileNames() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
     }
 
     @Test
     void testTriggerDataUpload_ErrorHandlerError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -569,67 +570,68 @@ class XsbDataServiceTest {
 
         doThrow(e).when(errorHandler).init(anyString());
 
-        RuntimeException thrown = assertThrows(RuntimeException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        assertEquals("Dummy", thrown.getMessage());
     }
 
     @Test
     void testTriggerDataUpload_noSourceType() {
         Trigger trigger = new Trigger();
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
-        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
     }
 
 
     @Test
     void testTriggerDataUpload_noSourceFolderForLocalSourceType() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
     }
 
     @Test
     void testValidateTrigger() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(null));
         assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
 
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
         Trigger trigger = new Trigger();
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
-        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
         trigger.setUniqueFileNames(uniqueFileNames);
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
-        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or SFTP).", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
-        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
-        trigger.setSourceType(Trigger.XsbSourceType.S3);
-        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.S3);
+        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
 
         trigger.setSourceFolder("");
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, ", e.getMessage());
 
         trigger.setSourceFolder("invalid");
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, invalid", e.getMessage());
 
         trigger.setSourceFolder("junitTestData");
-        assertDoesNotThrow( () -> xsbDataService.triggerDataUpload(trigger));
+        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
         trigger.setUniqueFileNames(null);
-        e = assertThrows(IllegalArgumentException.class, () -> xsbDataService.triggerDataUpload(trigger));
+        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
 
         trigger.setFiles(new String[]{"aa", "bb", "cc", "dd"});
@@ -649,13 +651,13 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_deleteOldStagingData_failure() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
         Exception e = new RuntimeException("Dummy");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -665,7 +667,9 @@ class XsbDataServiceTest {
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
 
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
 
@@ -677,13 +681,13 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_TAAError() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
         Exception e = new RuntimeException("Dummy");
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -693,7 +697,9 @@ class XsbDataServiceTest {
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
 
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectError(RuntimeException.class)
                 .verify();
 
@@ -705,12 +711,12 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_NoTAACountriesFound() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.SFTP);
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -720,7 +726,9 @@ class XsbDataServiceTest {
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
 
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectError(NoSuchElementException.class)
                 .verify();
 
@@ -732,13 +740,13 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload_noFiles() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -750,6 +758,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
@@ -759,7 +768,7 @@ class XsbDataServiceTest {
         expectedResults.setNumParsingErrors(0);
 
         log.info("Triggering message: " + trigger);
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectNext(expectedResults)
                 .verifyComplete();
 
@@ -774,13 +783,13 @@ class XsbDataServiceTest {
     @Test
     void testTriggerDataUpload() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -796,6 +805,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
@@ -805,7 +815,7 @@ class XsbDataServiceTest {
         expectedResults.setNumParsingErrors(0);
 
         log.info("Triggering message: " + trigger);
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectNext(expectedResults)
                 .verifyComplete();
 
@@ -820,22 +830,22 @@ class XsbDataServiceTest {
 
 
     @Test
-    void testDownload_getXsbFiles() throws IOException {
+    void testDownload_getXsbFiles() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("dummy.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
 
-        StepVerifier.create(xsbDataService.downloadReports(trigger))
+        StepVerifier.create(analysisDataProcessingService.downloadReports(trigger))
                 .verifyComplete();
 
         uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
-        StepVerifier.create(xsbDataService.downloadReports(trigger).doOnNext(p -> log.info("File: {}", p)))
+        StepVerifier.create(analysisDataProcessingService.downloadReports(trigger).doOnNext(p -> log.info("File: {}", p)))
                 .expectNextCount(4)
                 .verifyComplete();
 
@@ -843,16 +853,16 @@ class XsbDataServiceTest {
 
     @Test
     void testProgressMonitoring() {
-        assertEquals(1, xsbDataService.getProgressReportingIntervalSeconds());
+        assertEquals(1, analysisDataProcessingService.getProgressReportingIntervalSeconds());
 
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
-        errorHandler.errorDirectory =  errorDirectory;
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -872,6 +882,7 @@ class XsbDataServiceTest {
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
+        errorHandler.setErrorDirectory(errorDirectory);
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
@@ -881,7 +892,7 @@ class XsbDataServiceTest {
         expectedResults.setNumParsingErrors(0);
 
         log.info("Triggering message: " + trigger);
-        StepVerifier.create(xsbDataService.triggerDataUpload(trigger))
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectNext(expectedResults)
                 .verifyComplete();
 
@@ -896,21 +907,21 @@ class XsbDataServiceTest {
 
 
     @Test
-    void testParse_getXsbFiles() throws IOException {
+    void testParse_getXsbFiles(){
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.XsbSourceType.LOCAL);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("dummy.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(taaCountryCodes));
-        StepVerifier.create(xsbDataService.parseXsbFiles(trigger))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(trigger))
                 .verifyComplete();
 
         uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("testValidFile.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
-        StepVerifier.create(xsbDataService.parseXsbFiles(trigger).doOnNext(x->log.info("xsbData: " + x.getXsbData())))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(trigger).doOnNext(x->log.info("xsbData: " + x.getXsbData())))
                 .expectNextCount(10)
                 .verifyComplete();
 
