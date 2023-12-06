@@ -41,7 +41,7 @@ public class Trigger {
     if true (default), then all the existing xsb data will be deleted from the xsb_data table and fresh data will be added.
     if false, then current data is not deleted, but it will be updated. Data should be purged whenever new bi-monthly
     data is consumed. Purging old data will get rid of stale records. However, if there is an issue with the some
-    of the records, or if new products are discovered in a vendor's catalod, then the existing data should not be
+    of the records, or if new products are discovered in a vendor's catalog, then the existing data should not be
     deleted, but only modified.
     """)
     private Boolean purgeOldData = Boolean.TRUE;
