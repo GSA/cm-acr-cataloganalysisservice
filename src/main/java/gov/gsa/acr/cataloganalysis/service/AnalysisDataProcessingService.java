@@ -10,6 +10,7 @@ import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -21,10 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ConcurrentModificationException;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,9 +96,9 @@ public class AnalysisDataProcessingService {
                 })
                 .doOnComplete(() -> {
                     errorHandler.setNumRecordsSavedInTempDB(dbCounter);
-                    log.info("Finished. Saved a total of {} records to the staging table.", dbCounter.get());
+                    log.info("Finished saving a total of {} records to the staging table.", dbCounter.get());
                 })
-                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger)))
+                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())))
                 // TBD Do proper error handling
                 .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
@@ -111,11 +109,7 @@ public class AnalysisDataProcessingService {
                 })
                 .doFinally(s -> {
                     errorHandler.close();
-                    log.info("Finished. Moved a total of {} records to the final xsb_data table", dbCounter.get());
-                    log.info("Number of parsing errors: " + errorHandler.getNumParsingErrors().get());
-                    log.info("Number of db errors: " + errorHandler.getNumDbErrors().get());
-                    log.info("Number of file errors: " + errorHandler.getNumFileErrors().get());
-                    log.info("All Done!!");
+                    generateFinalReport(dbCounter.get());
                     executing.compareAndSet(true, false);
                 });
     }
@@ -190,7 +184,7 @@ public class AnalysisDataProcessingService {
                         lastProgressReportTime.set(currentTime);
                     }
                 })
-                .doOnComplete(() -> log.info("Finished Parsing all files. Parsed and converted to JSON a total of {} records", counter.get()));
+                .doOnComplete(() -> log.info("Finished parsing all files. Parsed and converted to JSON a total of {} records", counter.get()));
     }
 
 
@@ -260,33 +254,36 @@ public class AnalysisDataProcessingService {
      *
      * @return Asynchronously return void once completed, or rolls back if an exception is thrown.
      */
-     Mono<Void> moveDataFromStagingToFinal(Trigger trigger) {
+     Mono<Void> moveDataFromStagingToFinal(Trigger trigger, int recordCount) {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Mono<Void> rtrn;
 
          try {
+             if (!errorHandler.anyRecordsToMoveFromStagingToFinal()) {
+                 log.info("There are no records to move from staging (xsb_data_temp) to the Final (xsb_data) table!");
+                 return Mono.empty();
+             }
+
              Integer forcedError = trigger.getForcedError();
              if (errorHandler.totalErrorsWithinAcceptableThreshold()){
                  log.info(msg);
                  if (trigger.getPurgeOldData()) {
-                     // TBD Delete thr test rollback code
+                     // TBD Delete the test rollback code
                      if (forcedError == 0) rtrn = transactionalDataService.replace();
                      else rtrn = transactionalDataService.testRollbackReplace();
                  }
                  else {
-                     // TBD Delete thr test rollback code
+                     // TBD Delete the test rollback code
                      if (forcedError == 0) rtrn = transactionalDataService.update();
                      else rtrn = transactionalDataService.testRollbackUpdate();
                  }
 
                  return rtrn
-                         .doOnSuccess(s -> {
-                             log.info("Successfully moved data from staging to final tables!");
-                             //TBD add counts
-                         })
+                         .doOnSuccess(s -> log.info("Finished moving a total of {} records to the final xsb_data table", recordCount))
                          .onErrorResume(e -> {
-                             log.error("Mono " + errMsg, e);
+                             log.error(errMsg, e);
+                             errorHandler.setDataUploadFailed(Boolean.TRUE);
                              errorHandler.handleFileError("", errMsg, e);
                              return Mono.empty();
                          });
@@ -294,12 +291,13 @@ public class AnalysisDataProcessingService {
              else{
                  String reason = "Too many parsing/db errors. Stopping the process. The process will stop and not save the data to the final table!";
                  log.error(reason);
-                 // TBD errorhandler add a method for this information
+                 errorHandler.setDataUploadFailed(Boolean.TRUE);
                  errorHandler.handleFileError("", errMsg, new RuntimeException(reason));
                  return Mono.empty();
              }
          } catch (Exception e) {
              log.error("Unexpected exception. ", e);
+             errorHandler.setDataUploadFailed(Boolean.TRUE);
              errorHandler.handleFileError("", errMsg, e);
              return Mono.empty();
          }
@@ -366,6 +364,7 @@ public class AnalysisDataProcessingService {
     Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
         if (errorHandler == null) return Mono.error(new IllegalArgumentException("Error Handler cannot be null"));
 
+        errorHandler.setErrorFileNames(errorFileNames);
         DataUploadResults results = new DataUploadResults();
         results.setErrorFileNames(errorFileNames);
         results.setNumRecordsSavedInTempDB(errorHandler.getNumRecordsSavedInTempDB().get());
@@ -373,6 +372,48 @@ public class AnalysisDataProcessingService {
         results.setNumDbErrors(errorHandler.getNumDbErrors().get());
         results.setNumFileErrors(errorHandler.getNumFileErrors().get());
         return Mono.just(results);
+    }
+
+
+    private void log(String msg, Level logLevel, List<String> report){
+        report.add(logLevel + ":" + msg);
+        switch (logLevel) {
+            case INFO  -> log.info(msg);
+            case WARN  -> log.warn(msg);
+            case ERROR -> log.error(msg);
+        }
+
+    }
+
+
+    List<String> generateFinalReport(int recordCount) {
+        List<String> report = new ArrayList<>();
+        List<String> errorFileNames = errorHandler.getErrorFileNames();
+        log("===================== Final Report =====================", Level.INFO, report);
+        if (errorHandler.getDataUploadFailed()) {
+            log("Error moving data from staging to final DB table. Please see logs for error reason.", Level.ERROR, report);
+        }
+        else log("Saved "+ recordCount + " records in the ACR DB.", Level.INFO, report);
+        if (errorHandler.getNumParsingErrors().get() > 0) {
+            log("Number of parsing errors: " + errorHandler.getNumParsingErrors().get(), Level.WARN, report);
+            log("Please see the below file(s) saved in S3 to get a list of all records that had parsing issues.", Level.WARN, report);
+            errorFileNames.stream().filter(name -> name.contains("xsb_error_parse_")).forEach(name -> log("\t"+name, Level.WARN, report));
+        }
+        if (errorHandler.getNumDbErrors().get() > 0) {
+            log("Number of db errors: " + errorHandler.getNumDbErrors().get(), Level.WARN, report);
+            log("Please see the below file(s) saved in S3 to get a list of all records that had DB issues.", Level.WARN, report);
+            errorFileNames.stream().filter(name -> name.contains("xsb_error_db_")).forEach(name -> log("\t"+name, Level.WARN, report));
+        }
+        if (errorHandler.getDataUploadFailed() || errorHandler.getNumFileErrors().get() > 0
+            || errorHandler.getNumParsingErrors().get() > 0 || errorHandler.getNumDbErrors().get() > 0) {
+            if (errorFileNames != null) {
+                log("Please see the below file(s) saved in S3 for reasons for any of the errors.", Level.WARN, report);
+                errorFileNames.stream().filter(name -> name.contains("xsb_error_msg_")).forEach(name -> log("\t" + name, Level.WARN, report));
+            }
+        }
+        else log("Finished without any issues!!", Level.INFO, report);
+        log("========================================================", Level.INFO, report);
+        return report;
     }
 
 

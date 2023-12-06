@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -107,6 +108,14 @@ public class ErrorHandler {
     @Setter
     private AtomicInteger numRecordsSavedInTempDB;
 
+    @Getter
+    @Setter
+    private Boolean dataUploadFailed;
+
+    @Getter
+    @Setter
+    private List<String> errorFileNames;
+
     private void deleteOldErrorFiles(){
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory)).filter(Files::isRegularFile).filter(p->p.getFileName().toString().matches(StringUtils.globToRegex("xsb_error_*")))) {
             stream.forEach(p -> {
@@ -129,12 +138,14 @@ public class ErrorHandler {
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
         numRecordsSavedInTempDB = new AtomicInteger(0);
+        dataUploadFailed = Boolean.FALSE;
         errorMsgChunk = 0;
         parseErrorChunk = 0;
         dbErrorChunk = 0;
         errorMsgWriter = null;
         parseErrorWriter = null;
         dbErrorWriter = null;
+        errorFileNames = null;
         this.header = header;
         timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
 
@@ -187,7 +198,7 @@ public class ErrorHandler {
 
     public void handleFileError(String srcFileName, String error, Throwable t){
         numFileErrors.incrementAndGet();
-        handleError(error, srcFileName, t.getClass().getSimpleName(), "FILE");
+        handleError(error, srcFileName, t.toString(), "FILE");
     }
 
     private void handleError(String xsbRecord, String srcFileName, String error, String errorType){
@@ -264,6 +275,8 @@ public class ErrorHandler {
         }
 
     }
+
+    public Boolean anyRecordsToMoveFromStagingToFinal(){return numRecordsSavedInTempDB.get() > 0;}
 
     public Boolean totalErrorsWithinAcceptableThreshold(){
         return (numRecordsSavedInTempDB.get() > 0) && ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);

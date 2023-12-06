@@ -551,8 +551,10 @@ class ErrorHandlerTest {
 
     @Test
     void totalErrorsWithinAcceptableThreshold() {
+        assertFalse(errorHandler.anyRecordsToMoveFromStagingToFinal());
         assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
         errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errorHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
         handleFileError();
         assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
@@ -561,6 +563,7 @@ class ErrorHandlerTest {
     @Test
     void totalErrorsWithinAcceptableThreshold_moreErrorsThanAccepted() {
         errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errorHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
         handleMultipleErrors_generateMultipleFiles();
         assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
