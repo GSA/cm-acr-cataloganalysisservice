@@ -11,7 +11,10 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +44,10 @@ public class KafkaConsumerConfig {
     @Bean
     public ConsumerFactory<String, Trigger> triggerConsumerFactory() {
         Map<String, Object> props = getDefaultProperties();
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, Trigger.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES,"gov.gsa.acr.cataloganalysis.model");
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -49,7 +55,14 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, Trigger> triggerKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Trigger> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(triggerConsumerFactory());
+        factory.setCommonErrorHandler(defaultErrorHandler());
         return factory;
     }
+
+    @Bean
+    public DefaultErrorHandler defaultErrorHandler() {
+        return new DefaultErrorHandler(new FixedBackOff(20000L, 5));
+    }
+
 
 }
