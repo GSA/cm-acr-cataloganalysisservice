@@ -12,8 +12,9 @@ public class TriggerMessageConsumer {
 
     @KafkaListener(topics = "${spring.kafka.topic.trigger.name}",
             groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "triggerKafkaListenerContainerFactory",
-            autoStartup = "${spring.kafka.listener.auto-startup}"
+            containerFactory = "triggerKafkaListenerContainerFactory"
+            //, autoStartup = "${spring.kafka.listener.auto-startup}"
+            , autoStartup = "false"
     )
     public void listenForTrigger(@Payload Trigger triggerMsg) {
         log.info("MESSAGE RECEIVED: " + triggerMsg );
