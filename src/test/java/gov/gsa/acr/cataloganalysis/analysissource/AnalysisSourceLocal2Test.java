@@ -55,7 +55,8 @@ class AnalysisSourceLocal2Test {
 
     @Test
     void globToRegex() {
-        Assertions.assertEquals("file.*\\\\\\.gsa", StringUtils.globToRegex("file*\\.gsa") );
+        StringUtils stringUtils = new StringUtils();
+        Assertions.assertEquals("file.*\\\\\\.gsa", stringUtils.globToRegex("file*\\.gsa") );
         assertEquals("file\\[\\]\\^\\$\\(\\)\\{\\}\\+\\|\\.gsa", StringUtils.globToRegex("file[]^$(){}+|.gsa"));
     }
 
