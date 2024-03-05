@@ -9,5 +9,5 @@ RUN rm -rf /home/gsa-user/.m2/repository
 # --- copy jar file from previous stage
 RUN cp ./target/*.jar app.jar
 # ENV JAVA_TOOL_OPTIONS "-XX:MaxRAMPercentage=80"
-ENTRYPOINT ["java", "-javaagent:./src/datadogjar/dd-java-agent.jar" , "-XX:FlightRecorderOptions=stackdepth=256", "-Ddd.service=cataloganalysisservice", "-Ddd.version=1.0", "-Ddd.profiling.enabled=true", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
