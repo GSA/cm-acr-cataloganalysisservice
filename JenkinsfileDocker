@@ -13,7 +13,8 @@ pipeline {
                script {
                   if (env.ENV_NAME == "vpc") {
                       docker build --no-cache -t acr/cataloganalysisservice:$GIT_COMMIT -f Dockerfile-vpc ."""
-                  } else {
+                  }
+                  if (env.ENV_NAME != "vpc") {
                       docker build --no-cache -t acr/cataloganalysisservice:$GIT_COMMIT -f Dockerfile ."""
                   }
                }
