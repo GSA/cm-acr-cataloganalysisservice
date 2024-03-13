@@ -11,7 +11,7 @@ pipeline {
             steps {
                sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin  752281881774.dkr.ecr.us-east-1.amazonaws.com"
                script {
-                 if (env.env_name == "vpc") {
+                 if (env.ENV_PROFILE == "vpc") {
                     sh "docker build --no-cache -t acr/cataloganalysisservice:$GIT_COMMIT -f Dockerfile-vpc ."
                  } else {
                     sh "docker build --no-cache -t acr/cataloganalysisservice:$GIT_COMMIT -f Dockerfile ."
