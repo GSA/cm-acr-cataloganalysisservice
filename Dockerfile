@@ -2,7 +2,7 @@ FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:20230924
 RUN mkdir -p ./src
 COPY ./src ./src
 COPY ./pom.xml ./
-RUN mkdir -p external-libs/datadogjar/
+RUN mkdir -p ./external-libs/datadogjar/
 ADD --chown=gsa-user:gsa-user 'https://dtdg.co/latest-java-tracer' ./external-libs/dd-java-agent.jar
 RUN chmod 755 ./external-libs/datadogjar/dd-java-agent.jar
 RUN mvn -DskipTests clean install verify
