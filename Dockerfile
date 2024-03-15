@@ -3,9 +3,7 @@ RUN mkdir -p ./src
 COPY ./src ./src
 COPY ./pom.xml ./
 RUN mkdir -p src/datadogjar/
-ADD 'https://dtdg.co/latest-java-tracer' ./src/datadogjar/dd-java-agent.jar
-RUN useradd -D -s /bin/sh acr
-RUN chown -R acr:acr ./src/datadogjar
+ADD --chmod=755 'https://dtdg.co/latest-java-tracer' ./src/datadogjar/dd-java-agent.jar
 RUN mvn -DskipTests clean install verify
 RUN find $M2_HOME/ -iname '*.jar'
 RUN rm -rf /home/gsa-user/.m2/repository
