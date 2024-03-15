@@ -4,7 +4,6 @@ COPY ./src ./src
 COPY ./pom.xml ./
 RUN mkdir -p ./external-libs/datadogjar/
 ADD --chown=gsa-user:gsa-user 'https://dtdg.co/latest-java-tracer' ./external-libs/datadogjar/dd-java-agent.jar
-RUN ls ./external-libs
 RUN chmod 755 ./external-libs/datadogjar/dd-java-agent.jar
 RUN mvn -DskipTests clean install verify
 RUN find $M2_HOME/ -iname '*.jar'
