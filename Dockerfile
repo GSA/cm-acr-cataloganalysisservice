@@ -3,7 +3,7 @@ RUN mkdir -p ./src
 COPY ./src ./src
 COPY ./pom.xml ./
 RUN mkdir -p src/datadogjar/
-ADD 'https://dtdg.co/latest-java-tracer' dd-java-agent.jar
+ADD 'https://dtdg.co/latest-java-tracer' ./dd-java-agent.jar
 COPY --chmod=755 ./dd-java-agent.jar src/datadogjar/dd-java-agent.jar
 RUN chmod 755 src/datadogjar/dd-java-agent.jar
 RUN mvn -DskipTests clean install verify
