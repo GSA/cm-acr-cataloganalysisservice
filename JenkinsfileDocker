@@ -4,6 +4,7 @@ pipeline {
         imagename ="acr/cataloganalysisservice"
         registry='556904013717.dkr.ecr.us-east-1.amazonaws.com'
 
+
     }
     stages {
         stage('Build Docker image') {
@@ -27,7 +28,6 @@ pipeline {
               build job: 'flux-update', parameters: [[$class: 'StringParameterValue', name: 'FLUX_HASH', value: env.GIT_COMMIT], [$class: 'StringParameterValue', name: 'FLUX_FILENAME', value: 'cataloganalysisservice.yaml']]
             }
         }
-
     }
 }
 
