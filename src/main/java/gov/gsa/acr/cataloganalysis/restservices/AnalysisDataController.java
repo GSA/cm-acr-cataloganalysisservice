@@ -128,7 +128,7 @@ public class AnalysisDataController extends BaseController{
 
 
 
-    // TBD only for demo delete later
+    // TBD only for demo delte later
     @Operation(summary = "Trigger (start) the SFTP file download process.",
             description = """
     This API endpoint is used to trigger the Catalog Analysis Service to start downloading the bi-monthly XSB report files from XSB. The end point expects
