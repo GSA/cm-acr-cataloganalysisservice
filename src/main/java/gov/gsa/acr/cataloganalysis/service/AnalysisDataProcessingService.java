@@ -215,10 +215,9 @@ public class AnalysisDataProcessingService {
                         Flux::fromStream,
                         Stream::close
                 )
-                .map(xsbData -> xsbDataParser.parseXsbData(xsbFile.toString(), xsbData, taaCountryCodes))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .publishOn(Schedulers.parallel())
-                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage())
-                );
+                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()));
     }
 
 
