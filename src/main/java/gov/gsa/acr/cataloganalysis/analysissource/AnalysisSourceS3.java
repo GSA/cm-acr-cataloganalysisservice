@@ -20,12 +20,12 @@ public class AnalysisSourceS3 implements AnalysisSource {
     private final S3AsyncClient s3client;
     private final S3ClientConfigurationProperties s3config;
 
-    private final ErrorHandler errorHandler;
+    private final ErrorHandler errHandler;
 
-    public AnalysisSourceS3(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errorHandler) {
+    public AnalysisSourceS3(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
-        this.errorHandler = errorHandler;
+        this.errHandler = errHandler;
     }
 
     private static void checkResult(SdkResponse result) {
@@ -122,12 +122,12 @@ public class AnalysisSourceS3 implements AnalysisSource {
                     .doOnSuccess(p -> log.info("Downloaded {} file from S3 to {}", key, p))
                     .onErrorResume(e -> {
                         log.error("Error downloading file from S3: " + key);
-                        errorHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
+                        errHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
                         return Mono.empty();
                     });
         } catch (Exception e) {
             log.error("Error downloading the file from S3: " + key, e);
-            errorHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
+            errHandler.handleFileError(key, "Download to local file system from S3 FAILED. " + e.getMessage(), e);
             return Mono.empty();
         }
     }
@@ -189,7 +189,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
     @Override
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = getScrubbedSourceDir(sourceFolder);
-        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
+        if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
         return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 }

@@ -8,7 +8,7 @@ import java.util.Set;
 
 public interface AnalysisSource {
     Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder);
-    default boolean unexpectedFileNames(Set<String> fileNames, Logger log) {
+    default boolean invalidNumberOfFiles(Set<String> fileNames, Logger log) {
         final String MN = "getAnalyzedCatalogs: ";
         if (fileNames == null) {
             String message = "The files array must have valid file names. The files array is null.";

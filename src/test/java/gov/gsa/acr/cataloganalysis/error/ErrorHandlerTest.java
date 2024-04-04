@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(locations="classpath:application-test.properties")
 class ErrorHandlerTest {
     @Autowired
-    private ErrorHandler errorHandler;
+    private ErrorHandler errHandler;
 
     private boolean isEmpty(Path path) throws IOException {
         if (Files.isDirectory(path)) {
@@ -59,25 +59,25 @@ class ErrorHandlerTest {
 
     @BeforeEach
     void setUp() {
-        errorHandler.init("dummy header");
+        errHandler.init("dummy header");
     }
 
     @Test
     void init() throws IOException {
-        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
-        assertEquals("testData/errors", errorHandler.getErrorDirectory());
-        assertEquals(0, errorHandler.getNumParsingErrors().get());
-        assertEquals(0, errorHandler.getNumDbErrors().get());
-        assertEquals(0, errorHandler.getNumFileErrors().get());
-        assertEquals(0, errorHandler.getNumRecordsSavedInTempDB().get());
-        assertEquals("dummy header", errorHandler.getHeader());
-        assertTrue(isEmpty(Path.of(errorHandler.getErrorDirectory())));
-        assertEquals(2, errorHandler.getErrorThreshold());
+        assertEquals(2000, errHandler.getMaxErrorFileSizeBytes());
+        assertEquals("testData/errors", errHandler.getErrorDirectory());
+        assertEquals(0, errHandler.getNumParsingErrors().get());
+        assertEquals(0, errHandler.getNumDbErrors().get());
+        assertEquals(0, errHandler.getNumFileErrors().get());
+        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
+        assertEquals("dummy header", errHandler.getHeader());
+        assertTrue(isEmpty(Path.of(errHandler.getErrorDirectory())));
+        assertEquals(2, errHandler.getErrorThreshold());
     }
 
     @Test
     void getErrorFiles_noFiles() {
-        StepVerifier.create(errorHandler.getErrorFiles())
+        StepVerifier.create(errHandler.getErrorFiles())
                 .verifyComplete();
     }
 
@@ -85,12 +85,12 @@ class ErrorHandlerTest {
     @Test
     void getErrorFiles_TooLongParsingMessage() {
         String longMessage = getAlphaNumericString(2000);
-        errorHandler.init("");
-        errorHandler.handleParsingError("", "", longMessage);
+        errHandler.init("");
+        errHandler.handleParsingError("", "", longMessage);
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_parse*.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
@@ -107,19 +107,19 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(1, errorHandler.getNumParsingErrors().get());
+        assertEquals(1, errHandler.getNumParsingErrors().get());
     }
 
 
     @Test
     void getErrorFiles_TooLongDBMessage() {
         String longMessage = getAlphaNumericString(2000);
-        errorHandler.init("");
-        errorHandler.handleDBError(new XsbData(),  longMessage);
+        errHandler.init("");
+        errHandler.handleDBError(new XsbData(),  longMessage);
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_db*.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
@@ -136,17 +136,17 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(1, errorHandler.getNumDbErrors().get());
+        assertEquals(1, errHandler.getNumDbErrors().get());
     }
 
 
     @Test
     void getErrorFiles_TooLongFileMessage() {
         String longMessage = getAlphaNumericString(2000);
-        errorHandler.handleFileError("",  longMessage, new RuntimeException("Dummy"));
+        errHandler.handleFileError("",  longMessage, new RuntimeException("Dummy"));
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         return (p.toString().matches(regEx1) && (0 == Files.size(p)));
@@ -155,7 +155,7 @@ class ErrorHandlerTest {
                     }
                 })
                 .verifyComplete();
-        assertEquals(1, errorHandler.getNumFileErrors().get());
+        assertEquals(1, errHandler.getNumFileErrors().get());
     }
 
 
@@ -163,15 +163,15 @@ class ErrorHandlerTest {
     void handleParsingError() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
         String message = getAlphaNumericString(100);
-        errorHandler.handleParsingError("abc~|~def", "dummyFile.gsa", message);
+        errHandler.handleParsingError("abc~|~def", "dummyFile.gsa", message);
         message = getAlphaNumericString(100);
-        errorHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
+        errHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
         message = getAlphaNumericString(100);
-        errorHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
+        errHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_0.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -190,7 +190,7 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(3, errorHandler.getNumParsingErrors().get());
+        assertEquals(3, errHandler.getNumParsingErrors().get());
     }
 
 
@@ -198,15 +198,15 @@ class ErrorHandlerTest {
     void handleParsingError_generateMultipleFiles() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
         String message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError("abc~|~def", "dummyFile.gsa", message);
+        errHandler.handleParsingError("abc~|~def", "dummyFile.gsa", message);
         message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
+        errHandler.handleParsingError("ghi~|~jkl", "dummyFile.gsa", message);
         message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
+        errHandler.handleParsingError("mno~|~pqr", "dummyFile.gsa", message);
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -241,7 +241,7 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(3, errorHandler.getNumParsingErrors().get());
+        assertEquals(3, errHandler.getNumParsingErrors().get());
 
     }
 
@@ -250,15 +250,15 @@ class ErrorHandlerTest {
     void handleParsingError_generateMultipleParseFiles() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
         String message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        errHandler.handleParsingError(message, "dummyFile.gsa", "");
         message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        errHandler.handleParsingError(message, "dummyFile.gsa", "");
         message = getAlphaNumericString(1900);
-        errorHandler.handleParsingError(message, "dummyFile.gsa", "");
+        errHandler.handleParsingError(message, "dummyFile.gsa", "");
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_?.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_?.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -309,7 +309,7 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(3, errorHandler.getNumParsingErrors().get());
+        assertEquals(3, errHandler.getNumParsingErrors().get());
 
     }
 
@@ -323,16 +323,16 @@ class ErrorHandlerTest {
         String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
 
         String message = getAlphaNumericString(100);
-        errorHandler.handleDBError(xsbData,  message);
+        errHandler.handleDBError(xsbData,  message);
         xsbData.setSourceXsbDataString("ghi~|~jkl");
 
         message = getAlphaNumericString(100);
-        errorHandler.handleDBError(xsbData, message);
+        errHandler.handleDBError(xsbData, message);
 
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_0.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_db_"+timeStamp+"_0.gsa");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -351,7 +351,7 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(2, errorHandler.getNumDbErrors().get());
+        assertEquals(2, errHandler.getNumDbErrors().get());
     }
 
 
@@ -363,27 +363,27 @@ class ErrorHandlerTest {
         xsbData.setSourceXsbDataString("abc~|~def");
         xsbData.setSourceXsbDataFileName("dummyFile.gsa");
         String message = getAlphaNumericString(1900);
-        errorHandler.handleDBError(xsbData,  message);
+        errHandler.handleDBError(xsbData,  message);
 
         xsbData.setSourceXsbDataString("ghi~|~jkl");
         message = getAlphaNumericString(1900);
-        errorHandler.handleDBError(xsbData, message);
+        errHandler.handleDBError(xsbData, message);
 
         xsbData.setSourceXsbDataString("mno~|~pqr");
         message = getAlphaNumericString(1900);
-        errorHandler.handleDBError(xsbData, message);
+        errHandler.handleDBError(xsbData, message);
 
         xsbData.setSourceXsbDataString("stu~|~vwx");
         message = getAlphaNumericString(1900);
-        errorHandler.handleDBError(xsbData, message);
+        errHandler.handleDBError(xsbData, message);
 
 
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_db_"+timeStamp+"_*.gsa");
 
 
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -426,7 +426,7 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(4, errorHandler.getNumDbErrors().get());
+        assertEquals(4, errHandler.getNumDbErrors().get());
 
     }
 
@@ -440,17 +440,17 @@ class ErrorHandlerTest {
         xsbData.setSourceXsbDataFileName("dummyFile.gsa");
         String message = getAlphaNumericString(900);
         xsbData.setSourceXsbDataString(message);
-        errorHandler.handleDBError(xsbData,  message);
+        errHandler.handleDBError(xsbData,  message);
 
         xsbData.setSourceXsbDataString(getAlphaNumericString(1200));
         message = getAlphaNumericString(700);
-        errorHandler.handleDBError(xsbData, message);
+        errHandler.handleDBError(xsbData, message);
 
         message = getAlphaNumericString(1500);
-        errorHandler.handleParsingError("mno~|~pqr", "dummyFile", message);
+        errHandler.handleParsingError("mno~|~pqr", "dummyFile", message);
 
         message = getAlphaNumericString(100);
-        errorHandler.handleParsingError(getAlphaNumericString(1700), "dummyFile", message);
+        errHandler.handleParsingError(getAlphaNumericString(1700), "dummyFile", message);
 
 
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_"+timeStamp+"_*.txt");
@@ -458,8 +458,8 @@ class ErrorHandlerTest {
         String regEx3 = StringUtils.globToRegex("*xsb_error_parse_"+timeStamp+"_*.gsa");
 
 
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -518,8 +518,8 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(2, errorHandler.getNumDbErrors().get());
-        assertEquals(2, errorHandler.getNumParsingErrors().get());
+        assertEquals(2, errHandler.getNumDbErrors().get());
+        assertEquals(2, errHandler.getNumParsingErrors().get());
 
     }
 
@@ -528,14 +528,14 @@ class ErrorHandlerTest {
     void handleFileError() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
         String message = getAlphaNumericString(100);
-        errorHandler.handleFileError("dummyFile1.gsa", message, new RuntimeException("dummy exception"));
+        errHandler.handleFileError("dummyFile1.gsa", message, new RuntimeException("dummy exception"));
         message = getAlphaNumericString(100);
-        errorHandler.handleFileError("dummyFile2.gsa", message, new RuntimeException("dummy exception2"));
+        errHandler.handleFileError("dummyFile2.gsa", message, new RuntimeException("dummy exception2"));
         message = getAlphaNumericString(100);
-        errorHandler.handleFileError("dummyFile3.gsa", message, new RuntimeException("dummy exception3"));
+        errHandler.handleFileError("dummyFile3.gsa", message, new RuntimeException("dummy exception3"));
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg_" + timeStamp + "_0.txt");
-        errorHandler.close();
-        StepVerifier.create(errorHandler.getErrorFiles())
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
                 .expectNextMatches(p -> {
                     try {
                         log.info("1. p: " + p.toString() + " regx1 " + regEx1);
@@ -546,33 +546,33 @@ class ErrorHandlerTest {
                 })
                 .verifyComplete();
 
-        assertEquals(3, errorHandler.getNumFileErrors().get());
+        assertEquals(3, errHandler.getNumFileErrors().get());
     }
 
     @Test
     void totalErrorsWithinAcceptableThreshold() {
-        assertFalse(errorHandler.anyRecordsToMoveFromStagingToFinal());
-        assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
-        errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
-        assertTrue(errorHandler.anyRecordsToMoveFromStagingToFinal());
-        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+        assertFalse(errHandler.anyRecordsToMoveFromStagingToFinal());
+        assertFalse(errHandler.totalErrorsWithinAcceptableThreshold());
+        errHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errHandler.anyRecordsToMoveFromStagingToFinal());
+        assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
         handleFileError();
-        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+        assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
     }
 
     @Test
     void totalErrorsWithinAcceptableThreshold_moreErrorsThanAccepted() {
-        errorHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
-        assertTrue(errorHandler.anyRecordsToMoveFromStagingToFinal());
-        assertTrue(errorHandler.totalErrorsWithinAcceptableThreshold());
+        errHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
+        assertTrue(errHandler.anyRecordsToMoveFromStagingToFinal());
+        assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
         handleMultipleErrors_generateMultipleFiles();
-        assertFalse(errorHandler.totalErrorsWithinAcceptableThreshold());
+        assertFalse(errHandler.totalErrorsWithinAcceptableThreshold());
     }
 
     @Test
     void testBoundedPrintWWriter_messageExceedingLimit() {
         IllegalArgumentException thrown;
-        try (PrintWriter printWriter = errorHandler.testBoundedPrintWriter(100)) {
+        try (PrintWriter printWriter = errHandler.testBoundedPrintWriter(100)) {
             String longMessage = getAlphaNumericString(101);
 
             thrown = assertThrows(IllegalArgumentException.class, () -> printWriter.println(longMessage));
@@ -583,7 +583,7 @@ class ErrorHandlerTest {
     @Test
     void testBoundedPrintWWriter_messageExceedingRemainingFileSize() {
         IllegalArgumentException thrown;
-        try (PrintWriter printWriter = errorHandler.testBoundedPrintWriter(101)) {
+        try (PrintWriter printWriter = errHandler.testBoundedPrintWriter(101)) {
             String message = getAlphaNumericString(50);
 
             assertDoesNotThrow(() -> printWriter.println(message));

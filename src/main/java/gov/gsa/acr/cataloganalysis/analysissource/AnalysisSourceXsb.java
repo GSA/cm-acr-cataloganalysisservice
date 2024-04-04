@@ -24,7 +24,7 @@ import java.util.Vector;
 @Slf4j
 public class AnalysisSourceXsb implements AnalysisSource {
 
-    private final ErrorHandler errorHandler;
+    private final ErrorHandler errHandler;
 
     @Value("${xsb.sftp.host}")
     private String host;
@@ -47,8 +47,8 @@ public class AnalysisSourceXsb implements AnalysisSource {
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
 
-    public AnalysisSourceXsb(ErrorHandler errorHandler) {
-        this.errorHandler = errorHandler;
+    public AnalysisSourceXsb(ErrorHandler errHandler) {
+        this.errHandler = errHandler;
     }
 
     ChannelSftp createDownloadChannelSftp(String sftpGsaFilesReportDir) throws JSchException, SftpException {
@@ -148,7 +148,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
                         sinks.tryEmitValue(dest);
                     } catch (Exception exception) {
                         log.error(MN + "Download to Local file system from SFTP FAILED. XSB file: " + sourceFileName + " Local File: " + destFileName + " " + exception.getMessage(), exception);
-                        errorHandler.handleFileError(sourceFileName, "Download to Local file system from SFTP FAILED. " + exception.getMessage(), exception);
+                        errHandler.handleFileError(sourceFileName, "Download to Local file system from SFTP FAILED. " + exception.getMessage(), exception);
                         try {
                             Files.deleteIfExists(dest);
                         } catch (Exception e) {
@@ -189,7 +189,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
         }
         catch (Exception e) {
             log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
-            errorHandler.handleFileError(fileNamePattern, "SFTP failed. " + e.getMessage(), e);
+            errHandler.handleFileError(fileNamePattern, "SFTP failed. " + e.getMessage(), e);
         }
         finally {
             log.debug(MN + "Disconnecting from SFTP for " + fileNamePattern);
@@ -215,7 +215,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
      */
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
-        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
+        if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
         return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
     }
 
