@@ -18,6 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import reactor.core.publisher.SignalType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +52,7 @@ class AnalysisDataProcessingService3Test {
         errorHandler.setErrorDirectory(errorDirectory);
         errorHandler.init("Dummy Header");
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(10);
+        List<String> report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE);
 
         assertEquals(4, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -68,7 +69,7 @@ class AnalysisDataProcessingService3Test {
 
         errorHandler.setDataUploadFailed(Boolean.TRUE);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(0);
+        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE);
 
         assertEquals(3, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -78,7 +79,7 @@ class AnalysisDataProcessingService3Test {
         // Reset the error handler. And the report should be all clean
         cntr = 0;
         errorHandler.init("Dummy Header");
-        report = analysisDataProcessingService.generateFinalReport(20);
+        report = analysisDataProcessingService.generateFinalReport(20, SignalType.ON_COMPLETE);
         assertEquals(4, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
         assertEquals("INFO:Saved 20 records in the ACR DB.", report.get(cntr++));
@@ -99,7 +100,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_0.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(0);
+        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE);
 
         assertEquals(5, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -124,7 +125,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_parse_dummy_1.gsa");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(15);
+        List<String> report = analysisDataProcessingService.generateFinalReport(15, SignalType.ON_COMPLETE);
 
         assertEquals(8, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -156,7 +157,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_0.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(25);
+        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE);
 
         assertEquals(9, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -199,7 +200,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_1.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(25);
+        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE);
 
         assertEquals(14, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));

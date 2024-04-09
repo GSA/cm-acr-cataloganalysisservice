@@ -19,7 +19,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
@@ -29,8 +28,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -70,10 +68,18 @@ class AnalysisDataProcessingService2Test {
     void testDeleteTmpDir_FileListException() throws IOException {
         Path tmpDir = Path.of("tmpDir");
         when(Files.list(tmpDir)).thenThrow(new IOException("Dummy"));
+        assertFalse(analysisDataProcessingService.deleteDir(tmpDir));
+    }
 
-        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
-                .expectNext(false)
-                .verifyComplete();
+
+    @Test
+    void testDeleteTmpDir_deleteDir() throws IOException {
+        Path tmpDir = Path.of("tmpDir");
+        when(Files.isDirectory(tmpDir)).thenReturn(Boolean.TRUE);
+        when(Files.list(tmpDir)).thenThrow(new IOException("Dummy"));
+        assertFalse(analysisDataProcessingService.deleteDir(tmpDir));
+        assertFalse(analysisDataProcessingService.deleteDir(null));
+        assertFalse(analysisDataProcessingService.deleteDir(Path.of("")));
     }
 
 
@@ -88,9 +94,11 @@ class AnalysisDataProcessingService2Test {
         when(Files.deleteIfExists(files[2])).thenThrow(new RuntimeException("Could not delete ugly"));
         when(Files.deleteIfExists(tmpDir)).thenThrow(new DirectoryNotEmptyException("tmpDir is not empty"));
 
-        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
-                .expectNext(false)
-                .verifyComplete();
+        assertTrue (analysisDataProcessingService.deleteFile(files[0]));
+        assertFalse (analysisDataProcessingService.deleteFile(files[1]));
+        assertFalse (analysisDataProcessingService.deleteFile(files[2]));
+
+        assertFalse(analysisDataProcessingService.deleteDir(tmpDir));
     }
 
 
@@ -105,9 +113,7 @@ class AnalysisDataProcessingService2Test {
         when(Files.deleteIfExists(files[2])).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenThrow(new RuntimeException("Could not delete tmpDir"));
 
-        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
-                .expectNext(false)
-                .verifyComplete();
+        assertFalse(analysisDataProcessingService.deleteDir(tmpDir));
     }
 
     @Test
@@ -119,11 +125,10 @@ class AnalysisDataProcessingService2Test {
         when(Files.deleteIfExists(files[0])).thenReturn(true);
         when(Files.deleteIfExists(files[1])).thenReturn(true);
         when(Files.deleteIfExists(files[2])).thenReturn(true);
+        when(Files.isDirectory(tmpDir)).thenReturn(true);
         when(Files.deleteIfExists(tmpDir)).thenReturn(true);
 
-        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(tmpDir))
-                .expectNext(true)
-                .verifyComplete();
+        assertTrue(analysisDataProcessingService.deleteDir(tmpDir));
     }
 
 
