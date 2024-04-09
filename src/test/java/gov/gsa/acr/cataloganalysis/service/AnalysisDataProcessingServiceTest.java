@@ -685,13 +685,13 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger() throws InterruptedException {
+    void testValidateTrigger() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(null));
         assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
     }
 
     @Test
-    void testValidateTrigger2() throws InterruptedException {
+    void testValidateTrigger2() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -702,7 +702,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger3() throws InterruptedException {
+    void testValidateTrigger3() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -715,7 +715,7 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testValidateTrigger4() throws InterruptedException {
+    void testValidateTrigger4() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -728,7 +728,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger5() throws InterruptedException {
+    void testValidateTrigger5() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -741,7 +741,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger6() throws InterruptedException {
+    void testValidateTrigger6() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -753,7 +753,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger7() throws InterruptedException {
+    void testValidateTrigger7() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -767,7 +767,7 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testValidateTrigger8() throws InterruptedException {
+    void testValidateTrigger8() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -782,7 +782,7 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testValidateTrigger9() throws InterruptedException {
+    void testValidateTrigger9() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
@@ -797,7 +797,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testValidateTrigger10() throws InterruptedException {
+    void testValidateTrigger10() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 

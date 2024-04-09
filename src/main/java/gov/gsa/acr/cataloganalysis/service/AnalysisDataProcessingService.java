@@ -331,7 +331,7 @@ public class AnalysisDataProcessingService {
     boolean deleteDir(Path dir){
         if (Files.isDirectory(dir)) {
             try (Stream<Path> stream = Files.list(dir)) {
-                stream.forEach(p -> deleteFile(p));
+                stream.forEach(this::deleteFile);
             } catch (Exception e) {
                 log.error("Unexpected error. Unable to delete temporary directory " + dir, e);
             }
