@@ -68,28 +68,28 @@ class XsbDataJsonRecordTest {
 
         //////////////////////////////////////////////////////////
         // Test Grouping 1: Country of Origin from Vendor: ""
-        // Country of Origin -- From XSB: "", From Vendor: "" -- TAA compliant
+        // Country of Origin -- From XSB: "", From Vendor: "" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals ("", xsbData.getCountryOriginInference());
         assertEquals("", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: null, From Vendor: "" -- TAA compliant
+        // Country of Origin -- From XSB: null, From Vendor: "" -- MIA compliant
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOriginInference(null);
         assertNull(xsbData.getCountryOriginInference());
         assertEquals("", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "US", From Vendor: "" -- TAA compliant
+        // Country of Origin -- From XSB: "US", From Vendor: "" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("US", xsbData.getCountryOriginInference());
         assertEquals("", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "AF", From Vendor: "" -- TAA compliant
+        // Country of Origin -- From XSB: "AF", From Vendor: "" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~AF~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("AF", xsbData.getCountryOriginInference());
@@ -98,7 +98,7 @@ class XsbDataJsonRecordTest {
 
         //////////////////////////////////////////////////////////
         // Test Grouping 2: Country of Origin from Vendor: null
-        // Country of Origin -- From XSB: "", From Vendor: null -- TAA compliant
+        // Country of Origin -- From XSB: "", From Vendor: null -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOfOrigin(null);
@@ -106,7 +106,7 @@ class XsbDataJsonRecordTest {
         assertNull(xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: null, From Vendor: null -- TAA compliant
+        // Country of Origin -- From XSB: null, From Vendor: null -- MIA compliant
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOriginInference(null);
         xsbData.setCountryOfOrigin(null);
@@ -114,7 +114,7 @@ class XsbDataJsonRecordTest {
         assertNull(xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "US", From Vendor: null -- TAA compliant
+        // Country of Origin -- From XSB: "US", From Vendor: null -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOfOrigin(null);
@@ -122,7 +122,7 @@ class XsbDataJsonRecordTest {
         assertNull(xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "AF", From Vendor: null-- TAA compliant
+        // Country of Origin -- From XSB: "AF", From Vendor: null-- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~AF~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOfOrigin(null);
@@ -132,28 +132,28 @@ class XsbDataJsonRecordTest {
 
         //////////////////////////////////////////////////////////
         // Test Grouping 3: Country of Origin from Vendor: "US"
-        // Country of Origin -- From XSB: "", From Vendor: "US" -- TAA compliant
+        // Country of Origin -- From XSB: "", From Vendor: "US" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals ("", xsbData.getCountryOriginInference());
         assertEquals("US", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: null, From Vendor: "US" -- TAA compliant
+        // Country of Origin -- From XSB: null, From Vendor: "US" -- MIA compliant
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOriginInference(null);
         assertNull(xsbData.getCountryOriginInference());
         assertEquals("US", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "US", From Vendor: "US" -- TAA compliant
+        // Country of Origin -- From XSB: "US", From Vendor: "US" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("US", xsbData.getCountryOriginInference());
         assertEquals("US", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "AF", From Vendor: "US" -- TAA Not compliant
+        // Country of Origin -- From XSB: "AF", From Vendor: "US" -- MIA Not compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~AF~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("AF", xsbData.getCountryOriginInference());
@@ -162,28 +162,28 @@ class XsbDataJsonRecordTest {
 
         //////////////////////////////////////////////////////////
         // Test Grouping 4: Country of Origin from Vendor: "AF"
-        // Country of Origin -- From XSB: "", From Vendor: "AF" -- TAA compliant
+        // Country of Origin -- From XSB: "", From Vendor: "AF" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~AF~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals ("", xsbData.getCountryOriginInference());
         assertEquals("AF", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: null, From Vendor: "AF" -- TAA compliant
+        // Country of Origin -- From XSB: null, From Vendor: "AF" -- MIA compliant
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         xsbData.setCountryOriginInference(null);
         assertNull(xsbData.getCountryOriginInference());
         assertEquals("AF", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "US", From Vendor: "AF" -- TAA compliant
+        // Country of Origin -- From XSB: "US", From Vendor: "AF" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~AF~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("US", xsbData.getCountryOriginInference());
         assertEquals("AF", xsbData.getCountryOfOrigin());
         assertFalse(xsbData.getIsMiaRisk());
 
-        // Country of Origin -- From XSB: "AF", From Vendor: "AF" -- TAA compliant
+        // Country of Origin -- From XSB: "AF", From Vendor: "AF" -- MIA compliant
         xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~AF~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~AF~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         xsbData = new XsbDataJsonRecord(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("AF", xsbData.getCountryOriginInference());

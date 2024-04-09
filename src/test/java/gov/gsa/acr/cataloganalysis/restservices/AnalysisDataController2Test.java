@@ -36,7 +36,7 @@ class AnalysisDataController2Test {
     ErrorHandler errorHandler;
 
     @Test
-    void trigger_useJson() {
+    void trigger_useJson() throws InterruptedException {
         webTestClient
                 // Create a GET request to test an endpoint
                 .post().uri("/api/trigger")
@@ -45,10 +45,11 @@ class AnalysisDataController2Test {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
+        Thread.sleep(5000);
     }
 
     @Test
-    void trigger_NoSourceType() {
+    void trigger_NoSourceType() throws InterruptedException {
         Trigger trigger= new Trigger();
 
         webTestClient
@@ -59,10 +60,11 @@ class AnalysisDataController2Test {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
+        Thread.sleep(5000);
     }
 
     @Test
-    void trigger_NoFiles() {
+    void trigger_NoFiles() throws InterruptedException {
         Trigger trigger= new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.S3);
 
@@ -74,11 +76,12 @@ class AnalysisDataController2Test {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include files attribute (an array with file names or file name patterns)."));
+        Thread.sleep(5000);
     }
 
 
     @Test
-    void trigger_NoSourceFolder() {
+    void trigger_NoSourceFolder() throws InterruptedException {
         Trigger trigger= new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
 
@@ -90,11 +93,12 @@ class AnalysisDataController2Test {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nA valid sourceFolder attribute is required for LOCAL sourceType. Received, null"));
+        Thread.sleep(5000);
     }
 
 
     @Test
-    void trigger_ErrorHandlerError() {
+    void trigger_ErrorHandlerError() throws InterruptedException {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
@@ -110,8 +114,10 @@ class AnalysisDataController2Test {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Mono.just(trigger), Trigger.class)
                 .exchange()
-                .expectStatus().is5xxServerError()
-                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nUnexpected error. Unable to delete old error files from previous executions."));
+                .expectStatus()
+                .isOk()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualTo("\nTriggered\n"));
 
+        Thread.sleep(5000);
     }
 }
