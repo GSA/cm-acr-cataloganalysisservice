@@ -58,7 +58,7 @@ class ProgressReportingTest {
             return new XsbData();
         });
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, false))
                 .expectNextCount(31)
                 .verifyComplete();
            }

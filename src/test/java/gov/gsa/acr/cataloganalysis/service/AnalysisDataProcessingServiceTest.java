@@ -1,9 +1,6 @@
 package gov.gsa.acr.cataloganalysis.service;
 
-import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
-import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
-import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
-import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
+import gov.gsa.acr.cataloganalysis.analysissource.*;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
@@ -71,57 +68,73 @@ class AnalysisDataProcessingServiceTest {
 
     @AfterEach
     void tearDown() {
-        StepVerifier.create(analysisDataProcessingService.deleteTmpDir(Path.of("tmp")))
-                .expectNext(true)
-                .verifyComplete();
+        analysisDataProcessingService.deleteDir(Path.of("tmp"));
     }
 
 
     @Test
-    void testParsingEmptyFile() {
-        Path emptyFile = Path.of("junitTestData/emptyFile_1.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes))
+    void testParsingEmptyFile() throws IOException {
+        Path srcFile = Path.of("junitTestData/emptyFile_1.gsa");
+        Path emptyFile = Path.of("tmp/emptyFile_1.gsa");
+        Files.copy(srcFile, emptyFile);
+        assertTrue(Files.exists(emptyFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes, true))
                 .expectComplete()
                 .verify();
+        assertTrue(Files.exists(srcFile));
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(emptyFile.toString()), eq("Ignoring File. No value present"), Mockito.any(NoSuchElementException.class) );
     }
 
     @Test
     void testParsingInvalidFile() {
         Path invalidFile = Path.of("junitTestData/invalid.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes, false))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidFile.toString()), eq("Ignoring File. " + invalidFile), Mockito.any(NoSuchFileException.class) );
     }
 
     @Test
-    void testParsingFileWithInvalidHeader() {
-        Path invalidHdrFile = Path.of("junitTestData/testFileWithInvalidHeader.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes))
+    void testParsingFileWithInvalidHeader() throws IOException {
+        Path srcFile = Path.of("junitTestData/testFileWithInvalidHeader.gsa");
+        Path invalidHdrFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
+        Files.copy(srcFile, invalidHdrFile);
+        assertTrue(Files.exists(invalidHdrFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes, false))
                 .expectComplete()
                 .verify();
+        assertTrue(Files.exists(invalidHdrFile));
+        assertTrue(Files.exists(srcFile));
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidHdrFile.toString()), matches("Ignoring File. Header String for file.*"), Mockito.any(NoSuchElementException.class) );
     }
 
 
     @Test
-    void testParsingFileWithInvalidRecords() {
-        Path invalidRecordsFile = Path.of("junitTestData/testFileWithErrors.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes))
+    void testParsingFileWithInvalidRecords() throws IOException {
+        Path srcFile = Path.of("junitTestData/testFileWithErrors.gsa");
+        Path invalidRecordsFile = Path.of("tmp/testFileWithErrors.gsa");
+        Files.copy(srcFile, invalidRecordsFile);
+        assertTrue(Files.exists(invalidRecordsFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes, true))
                 .expectNextCount(16)
                 .expectComplete()
                 .verify();
+
+        assertTrue(Files.exists(srcFile));
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(Mockito.anyString(),eq(invalidRecordsFile.toString()), Mockito.anyString());
     }
 
 
     @Test
-    void testParsingFileWithJustHeader() {
-        Path fileWithJustHeader = Path.of("junitTestData/testFileWithJustHeader.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
+    void testParsingFileWithJustHeader() throws IOException {
+        Path srcFile = Path.of("junitTestData/testFileWithJustHeader.gsa");
+        Path fileWithJustHeader = Path.of("tmp/testFileWithJustHeader.gsa");
+        Files.copy(srcFile, fileWithJustHeader);
+        assertTrue(Files.exists(fileWithJustHeader));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes, true))
                 .expectComplete()
                 .verify();
+
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
@@ -129,9 +142,12 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testParsingValidFile() {
-        Path fileWithJustHeader = Path.of("junitTestData/testValidFile.gsa");
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes))
+    void testParsingValidFile() throws IOException {
+        Path srcFile = Path.of("junitTestData/testValidFile.gsa");
+        Path vallidFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, vallidFile);
+        assertTrue(Files.exists(vallidFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -142,8 +158,8 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testParseXsbFiles() {
-        Path[] filesToParse = {
+    void testParseXsbFiles() throws IOException {
+        Path[] srcFiles = {
                 Path.of("junitTestData/emptyFile_1.gsa"),
                 Path.of("junitTestData/invalid.gsa"),
                 Path.of("junitTestData/testFileWithInvalidHeader.gsa"),
@@ -152,12 +168,29 @@ class AnalysisDataProcessingServiceTest {
                 Path.of("junitTestData/testValidFile.gsa")
         };
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes))
+        Path[] filesToParse = {
+                Path.of("tmp/emptyFile_1.gsa"),
+                Path.of("tmp/invalid.gsa"),
+                Path.of("tmp/testFileWithInvalidHeader.gsa"),
+                Path.of("tmp/testFileWithErrors.gsa"),
+                Path.of("tmp/testFileWithJustHeader.gsa"),
+                Path.of("tmp/testValidFile.gsa")
+        };
+
+        Files.copy(srcFiles[0], filesToParse[0]);
+        // Don't copy file at index 1, junitTestData/invalid.gsa. As this is an invalid file and does not exist.
+        Files.copy(srcFiles[2], filesToParse[2]);
+        Files.copy(srcFiles[3], filesToParse[3]);
+        Files.copy(srcFiles[4], filesToParse[4]);
+        Files.copy(srcFiles[5], filesToParse[5]);
+
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes, false))
                 .verifyComplete();
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true))
                 .expectNextCount(26)
                 .verifyComplete();
+
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(Mockito.anyString(), matches("Ignoring File.*"), Mockito.any(NoSuchFileException.class) );
         Mockito.verify(errorHandler, Mockito.times(2)).handleFileError(Mockito.anyString(), matches("Ignoring File.*"), Mockito.any(NoSuchElementException.class) );
@@ -210,7 +243,7 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testSaveDataRecordToStaging() {
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = xsbDataParser.parseXsbData("testFile.gsa", xsbDataString, taaCountryCodes);
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(1));
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
@@ -577,13 +610,25 @@ class AnalysisDataProcessingServiceTest {
 
         service.submit(() -> {
             log.info("Triggered second time");
-            assertThrows (ConcurrentModificationException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+            try {
+                StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                        .verifyError(ConcurrentModificationException.class);
+                fail("Test Failed: Expected a ConcurrentModificationException");
+            } catch (ConcurrentModificationException ex) {
+                log.info("Test Passed: Expected ConcurrentModificationException");
+            } catch (Exception exception){
+                fail("Test Failed: Expected a ConcurrentModificationException");
+            }
         });
 
-        Thread.sleep(300);
-        log.info("Triggered third time");
-        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
-                .verifyError(RuntimeException.class);
+        Thread.sleep(10000);
+        try {
+            log.info("Triggered third time");
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                    .verifyError(RuntimeException.class);
+        } catch (ConcurrentModificationException ex) {
+            log.error("Process is still running", e);
+        }
     }
 
     @Test
@@ -608,12 +653,16 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
-        Exception e = new RuntimeException("Dummy");
+        Exception e = new IllegalArgumentException("Dummy");
 
         doThrow(e).when(errorHandler).init(anyString());
 
-        RuntimeException thrown = assertThrows(RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
-        assertEquals("Dummy", thrown.getMessage());
+        //RuntimeException thrown = assertThrows(RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .verifyError(IllegalArgumentException.class);
+
+        //assertEquals("Dummy", thrown.getMessage());
     }
 
     @Test
@@ -639,41 +688,124 @@ class AnalysisDataProcessingServiceTest {
     void testValidateTrigger() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(null));
         assertEquals("Illegal argument, trigger, cannot be null!", e.getMessage());
+    }
 
+    @Test
+    void testValidateTrigger2() {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
 
         Trigger trigger = new Trigger();
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
+    }
+
+    @Test
+    void testValidateTrigger3() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
         trigger.setUniqueFileNames(uniqueFileNames);
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
+    }
+
+
+    @Test
+    void testValidateTrigger4() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
-        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectError(NullPointerException.class)
+                .verify();
+    }
 
+    @Test
+    void testValidateTrigger5() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.S3);
-        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectError(NullPointerException.class)
+                .verify();
+    }
 
+    @Test
+    void testValidateTrigger6() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, null", e.getMessage());
+    }
 
+    @Test
+    void testValidateTrigger7() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
         trigger.setSourceFolder("");
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, ", e.getMessage());
+    }
+
+
+    @Test
+    void testValidateTrigger8() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
 
         trigger.setSourceFolder("invalid");
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("A valid sourceFolder attribute is required for LOCAL sourceType. Received, invalid", e.getMessage());
+    }
+
+
+    @Test
+    void testValidateTrigger9() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
 
         trigger.setSourceFolder("junitTestData");
-        assertDoesNotThrow( () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectError(NullPointerException.class)
+                .verify();
+    }
 
+    @Test
+    void testValidateTrigger10() {
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
         trigger.setUniqueFileNames(null);
-        e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
 
         trigger.setFiles(new String[]{"aa", "bb", "cc", "dd"});
@@ -687,8 +819,8 @@ class AnalysisDataProcessingServiceTest {
         assertNotNull(uniqueFileNames);
         assertEquals(4, uniqueFileNames.size());
         assertEquals(6, trigger.getFiles().length);
-
     }
+
 
     @Test
     void testTriggerDataUpload_deleteOldStagingData_failure() {

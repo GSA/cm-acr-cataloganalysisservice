@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 @TestPropertySource(locations="classpath:application-test.properties")
 class ErrorHandler2Test {
     @Autowired
-    private ErrorHandler errorHandler;
+    private ErrorHandler errHandler;
     private MockedStatic<Files> mockedSettings;
 
     @BeforeEach
@@ -44,31 +44,31 @@ class ErrorHandler2Test {
     @Test
     void testCreateErrorDirectoryCreationException() throws IOException {
         when(Files.createDirectories(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errorHandler.init("dummy header"));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errHandler.init("dummy header"));
         assertEquals("Unexpected error. Unable to create a new directory for storing error files.", thrown.getMessage());
-        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
-        assertEquals("testData/errors", errorHandler.getErrorDirectory());
-        assertEquals(0, errorHandler.getNumParsingErrors().get());
-        assertEquals(0, errorHandler.getNumDbErrors().get());
-        assertEquals(0, errorHandler.getNumFileErrors().get());
-        assertEquals(0, errorHandler.getNumRecordsSavedInTempDB().get());
-        assertEquals("dummy header", errorHandler.getHeader());
-        assertEquals(2, errorHandler.getErrorThreshold());
+        assertEquals(2000, errHandler.getMaxErrorFileSizeBytes());
+        assertEquals("testData/errors", errHandler.getErrorDirectory());
+        assertEquals(0, errHandler.getNumParsingErrors().get());
+        assertEquals(0, errHandler.getNumDbErrors().get());
+        assertEquals(0, errHandler.getNumFileErrors().get());
+        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
+        assertEquals("dummy header", errHandler.getHeader());
+        assertEquals(2, errHandler.getErrorThreshold());
     }
 
     @Test
     void testDeleteOldFilesException() throws IOException {
         when(Files.list(any())).thenThrow(new RuntimeException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errorHandler.init("dummy header"));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errHandler.init("dummy header"));
         assertEquals("Unexpected error. Unable to delete old error files from previous executions.", thrown.getMessage());
-        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
-        assertEquals("testData/errors", errorHandler.getErrorDirectory());
-        assertEquals(0, errorHandler.getNumParsingErrors().get());
-        assertEquals(0, errorHandler.getNumDbErrors().get());
-        assertEquals(0, errorHandler.getNumFileErrors().get());
-        assertEquals(0, errorHandler.getNumRecordsSavedInTempDB().get());
-        assertEquals("dummy header", errorHandler.getHeader());
-        assertEquals(2, errorHandler.getErrorThreshold());
+        assertEquals(2000, errHandler.getMaxErrorFileSizeBytes());
+        assertEquals("testData/errors", errHandler.getErrorDirectory());
+        assertEquals(0, errHandler.getNumParsingErrors().get());
+        assertEquals(0, errHandler.getNumDbErrors().get());
+        assertEquals(0, errHandler.getNumFileErrors().get());
+        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
+        assertEquals("dummy header", errHandler.getHeader());
+        assertEquals(2, errHandler.getErrorThreshold());
     }
 
     @Test
@@ -78,23 +78,23 @@ class ErrorHandler2Test {
         when(Files.isRegularFile(path)).thenReturn(true);
         when(Files.deleteIfExists(any())).thenThrow(new IOException("Dummy"));
 
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errorHandler.init("dummy header"));
+        RuntimeException thrown = assertThrows (RuntimeException.class, () -> errHandler.init("dummy header"));
         log.error("This is what we got ", thrown);
         assertEquals("Unexpected error. Unable to delete old error files from previous executions.", thrown.getMessage());
         assertEquals("Unexpected error. Unable to delete old error file from a previous execution: " + path, thrown.getCause().getMessage());
-        assertEquals(2000, errorHandler.getMaxErrorFileSizeBytes());
-        assertEquals("testData/errors", errorHandler.getErrorDirectory());
-        assertEquals(0, errorHandler.getNumParsingErrors().get());
-        assertEquals(0, errorHandler.getNumDbErrors().get());
-        assertEquals(0, errorHandler.getNumFileErrors().get());
-        assertEquals(0, errorHandler.getNumRecordsSavedInTempDB().get());
-        assertEquals("dummy header", errorHandler.getHeader());
-        assertEquals(2, errorHandler.getErrorThreshold());
+        assertEquals(2000, errHandler.getMaxErrorFileSizeBytes());
+        assertEquals("testData/errors", errHandler.getErrorDirectory());
+        assertEquals(0, errHandler.getNumParsingErrors().get());
+        assertEquals(0, errHandler.getNumDbErrors().get());
+        assertEquals(0, errHandler.getNumFileErrors().get());
+        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
+        assertEquals("dummy header", errHandler.getHeader());
+        assertEquals(2, errHandler.getErrorThreshold());
     }
 
     @Test
     void testGetErrorFilesException() throws IOException {
         when(Files.list(any())).thenThrow(new RuntimeException("Dummy"));
-        StepVerifier.create(errorHandler.getErrorFiles()).verifyComplete();
+        StepVerifier.create(errHandler.getErrorFiles()).verifyComplete();
     }
 }

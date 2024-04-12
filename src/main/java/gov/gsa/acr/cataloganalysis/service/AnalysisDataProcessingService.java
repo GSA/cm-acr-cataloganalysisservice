@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
@@ -53,7 +54,8 @@ public class AnalysisDataProcessingService {
     public Mono<DataUploadResults> triggerDataUpload(Trigger trigger) {
         // Already executing? Exit if it is already executing.
         if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
-
+        // Trigger validation throws an IllegalArgumentException if invalid.
+        Trigger.validate(trigger);
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
@@ -62,28 +64,31 @@ public class AnalysisDataProcessingService {
         // Counter to count the number of records saved in the database
         AtomicInteger dbCounter = new AtomicInteger(0);
 
-        // Trigger validation throws an IllegalArgumentException if invalid.
-        Trigger.validate(trigger);
-        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-
         // A temporary directory for downloading and staging all XSB files that need to be processed.
-        String tmpdir;
+        Path tmpDir;
         try {
-            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
+            tmpDir = Files.createTempDirectory("xsbReports");
+            log.info("Created temporary Directory: " + tmpDir);
         } catch (IOException e) {
             throw new RuntimeException("Unexpected error, cannot create a temporary directory. Cannot proceed without a temporary directory.", e);
         }
 
-        // Initialize the error handler, reset all previous attributes.
-        errorHandler.init(xsbDataParser.getHeaderString());
-
-        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
-        Flux<Path> xsbFiles = analysisSourceFactory.analysisSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
+        // Almost ready, now acquire the lock to run the pipeline, so only one thread can upload data at a time
+        if (!executing.compareAndSet(false, true)) {
+            // Could not get a lock, some other thread is running the pipeline.
+            deleteDir(tmpDir);
+            throw new ConcurrentModificationException("Process is currently running! Cannot run more than one data uploads at the same time.");
+        }
 
         // Start the pipeline for parsing files and storing data in the database
         return deleteOldStagingData()
                 .then(findTaaCompliantCountries())
-                .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes))
+                .flatMapMany(taaCountryCodes -> {
+                    // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
+                    Flux<Path> xsbFiles = analysisSourceFactory
+                            .analysisSource(trigger)
+                            .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
+                    return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
                 .onBackpressureBuffer()
                 .flatMap(this::saveDataRecordToStaging)
                 .doOnNext(e -> {
@@ -99,18 +104,17 @@ public class AnalysisDataProcessingService {
                     log.info("Finished saving a total of {} records to the staging table.", dbCounter.get());
                 })
                 .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())))
-                // TBD Do proper error handling
-                .then(Mono.defer(() -> deleteTmpDir(Path.of(tmpdir))))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
                 .doFirst(() -> {
-                    executing.compareAndSet(false, true);
+                    errorHandler.init(xsbDataParser.getHeaderString());
                     dbCounter.set(0);
                 })
                 .doFinally(s -> {
-                    errorHandler.close();
-                    generateFinalReport(dbCounter.get());
                     executing.compareAndSet(true, false);
+                    errorHandler.close();
+                    generateFinalReport(dbCounter.get(), s);
+                    deleteDir(tmpDir);
                 });
     }
 
@@ -161,12 +165,13 @@ public class AnalysisDataProcessingService {
      * Parse all the XSB files asynchronously, producing a list of XSBData POJOs. A helper function (parseXsbFile) is
      * used to parse a single file. XsbData objects from all the individual files are collected into a single stream.
      *
-     * @param xsbFiles        A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
-     * @param taaCountryCodes Country codes for all the countries that USA has a valid Trade Agreement
+     * @param xsbFiles           A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
+     * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
+     * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources.
      * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
      * stream from all the files
      */
-    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes) {
+    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes, boolean deleteAfterParsing) {
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
@@ -174,7 +179,7 @@ public class AnalysisDataProcessingService {
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles.doOnNext(path -> log.info("Parsing file: " + path))
-                .flatMap(path -> parseXsbFile(path, taaCountryCodes))
+                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
@@ -192,11 +197,13 @@ public class AnalysisDataProcessingService {
      * Function that parses a single XSB file and converts each line inside the file to an XsbData POJO. Any individual
      * lines that have problems are separated into an error file for further analysis.
      *
-     * @param xsbFile         The Xsb File to be processed
-     * @param taaCountryCodes Country codes for all the countries that USA has a valid Trade Agreement
+     * @param xsbFile            The Xsb File to be processed
+     * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
+     * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources. Important since
+     *                           Kubernetes cachaes file in the Page Cache of the pod and that just bloats the memory.
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
-    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes) {
+    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing) {
         // First read the header row (First row of the File) and makes sure its valid
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             String header = rawProductsFromXSB.findFirst().get();
@@ -206,6 +213,7 @@ public class AnalysisDataProcessingService {
             // If the header is invalid, we cannot do much with the file. The quality of data is not reliable.
             errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);
             log.error("Ignoring file : " + xsbFile, e);
+            if (deleteAfterParsing) deleteFile(xsbFile);
             return Flux.empty();
         }
 
@@ -215,10 +223,10 @@ public class AnalysisDataProcessingService {
                         Flux::fromStream,
                         Stream::close
                 )
-                .map(xsbData -> xsbDataParser.parseXsbData(xsbFile.toString(), xsbData, taaCountryCodes))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .publishOn(Schedulers.parallel())
-                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage())
-                );
+                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
+                .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
 
 
@@ -303,42 +311,33 @@ public class AnalysisDataProcessingService {
          }
      }
 
-
+    boolean deleteFile(Path p){
+        try {
+            boolean deleted = Files.deleteIfExists(p);
+            if (deleted) log.info("Deleted: " + p);
+            return deleted;
+        } catch (Exception e) {
+            log.error("Unable to delete: " + p, e);
+            return false;
+        }
+    }
 
     /**
      * After everything is done, delete the temporary directory used to download XSB files for processing.
      *
-     * @param tmpDir the temporary directory where XSB files are downloaded for processing
-     * @return A Mono of True or False depending on if the files in the temp directory and the directory were deleted successfully
+     * @param dir the temporary directory where XSB files are downloaded for processing
+     * @return True or False depending on if the files in the temp directory and the directory were deleted successfully
      */
-    Mono<Boolean> deleteTmpDir(Path tmpDir) {
-        return Flux.using(
-                        () -> Files.list(tmpDir),
-                        Flux::fromStream,
-                        Stream::close
-                )
-                .doFirst(() -> log.info("Deleting temporary folder " + tmpDir))
-                .handle((source, sink) -> {
-                    try {
-                        log.info("Deleting temp file: " + source);
-                        sink.next(Files.deleteIfExists(source));
-                    } catch (Exception e) {
-                        log.error("Unable to delete temp file: " + source, e);
-                    }
-                })
-                .then(Mono.defer(() -> {
-                    try {
-                        return Mono.just(Files.deleteIfExists(tmpDir));
-                    } catch (Exception e) {
-                        log.error("Unable to delete the folder " + tmpDir, e);
-                        return Mono.just(false);
-                    }
-                }))
-                .onErrorResume(e -> {
-                    log.error("Error deleting tmp dir", e);
-                    return Mono.just(false);
-                })
-                .doOnSuccess(b -> log.info("Deleted temporary folder successfully " + tmpDir));
+    boolean deleteDir(Path dir){
+        if (Files.isDirectory(dir)) {
+            try (Stream<Path> stream = Files.list(dir)) {
+                stream.forEach(this::deleteFile);
+            } catch (Exception e) {
+                log.error("Unexpected error. Unable to delete temporary directory " + dir, e);
+            }
+            return deleteFile(dir);
+        }
+        else return false;
     }
 
 
@@ -386,7 +385,7 @@ public class AnalysisDataProcessingService {
     }
 
 
-    List<String> generateFinalReport(int recordCount) {
+    List<String> generateFinalReport(int recordCount, SignalType signalType) {
         List<String> report = new ArrayList<>();
         List<String> errorFileNames = errorHandler.getErrorFileNames();
         log("===================== Final Report =====================", Level.INFO, report);
@@ -394,23 +393,27 @@ public class AnalysisDataProcessingService {
             log("Error moving data from staging to final DB table. Please see logs for error reason.", Level.ERROR, report);
         }
         else log("Saved "+ recordCount + " records in the ACR DB.", Level.INFO, report);
-        if (errorHandler.getNumParsingErrors().get() > 0) {
+        if (errorHandler.getNumParsingErrors() != null && errorHandler.getNumParsingErrors().get() > 0) {
             log("Number of parsing errors: " + errorHandler.getNumParsingErrors().get(), Level.WARN, report);
             log("Please see the below file(s) saved in S3 to get a list of all records that had parsing issues.", Level.WARN, report);
             errorFileNames.stream().filter(name -> name.contains("xsb_error_parse_")).forEach(name -> log("\t"+name, Level.WARN, report));
         }
-        if (errorHandler.getNumDbErrors().get() > 0) {
+        if (errorHandler.getNumDbErrors() != null && errorHandler.getNumDbErrors().get() > 0) {
             log("Number of db errors: " + errorHandler.getNumDbErrors().get(), Level.WARN, report);
             log("Please see the below file(s) saved in S3 to get a list of all records that had DB issues.", Level.WARN, report);
             errorFileNames.stream().filter(name -> name.contains("xsb_error_db_")).forEach(name -> log("\t"+name, Level.WARN, report));
         }
-        if (errorHandler.getDataUploadFailed() || errorHandler.getNumFileErrors().get() > 0
-            || errorHandler.getNumParsingErrors().get() > 0 || errorHandler.getNumDbErrors().get() > 0) {
+        if (errorHandler.getDataUploadFailed()
+            || (errorHandler.getNumFileErrors() != null && errorHandler.getNumFileErrors().get() > 0)
+            || (errorHandler.getNumParsingErrors() != null && errorHandler.getNumParsingErrors().get() > 0 )
+            || (errorHandler.getNumDbErrors() != null && errorHandler.getNumDbErrors().get() > 0)) {
             if (errorFileNames != null) {
                 log("Please see the below file(s) saved in S3 for reasons for any of the errors.", Level.WARN, report);
                 errorFileNames.stream().filter(name -> name.contains("xsb_error_msg_")).forEach(name -> log("\t" + name, Level.WARN, report));
             }
         }
+        else if (signalType == SignalType.ON_ERROR) log("There were some errors while uploading the data. Please see the error logs.", Level.ERROR, report);
+        else if (signalType == SignalType.CANCEL) log("The process was canceled. Please see the logs.", Level.WARN, report);
         else log("Finished without any issues!!", Level.INFO, report);
         log("========================================================", Level.INFO, report);
         return report;
@@ -431,7 +434,10 @@ public class AnalysisDataProcessingService {
         Set<String> uniqueFileNames = trigger.getUniqueFileNames();
         return analysisSourceFactory.analysisSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
                 .doOnComplete(() -> log.info("Finished downloading all files."))
-                .doFinally(s -> errorHandler.close());
+                .doFinally(s -> {
+                    errorHandler.close();
+                    deleteDir(Path.of(tmpdir));
+                });
     }
 
 
@@ -452,7 +458,8 @@ public class AnalysisDataProcessingService {
 
         // Start the pipeline for parsing files and storing data in the database
         return findTaaCompliantCountries()
-                .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes));
+                .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes, false))
+                .doFinally(s -> deleteDir(Path.of(tmpdir)));
     }
 
 }
