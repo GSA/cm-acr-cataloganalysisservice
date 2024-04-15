@@ -3,6 +3,7 @@ package gov.gsa.acr.cataloganalysis.restservices;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
+import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,10 +30,12 @@ import java.util.concurrent.Executors;
 @Tag(name= "ACR Catalog Analysis Service", description = "A Service for analyzing catalogs.")
 public class AnalysisDataController extends BaseController{
     final AnalysisDataProcessingService analysisDataProcessingService;
+    private final XsbDataRepository xsbDataRepository;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService) {
+    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService, XsbDataRepository xsbDataRepository) {
         this.analysisDataProcessingService = analysisDataProcessingService;
+        this.xsbDataRepository = xsbDataRepository;
     }
 
     @Operation(summary = "Trigger (start) the XSB data upload process.",
@@ -127,6 +131,106 @@ public class AnalysisDataController extends BaseController{
     }
 
 
+    @Operation(summary = "Get the number of products that have the ETS flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the ETS (Essentially The Same) flag set to true.
+    """
+    )
+    @GetMapping(value="/ets/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<Integer> etsCount(){
+        return xsbDataRepository.etsCount();
+    }
+
+    @Operation(summary = "Get all products that have the ETS flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the ETS (Essentially The Same) flag set to true.
+    """
+    )
+    @GetMapping(value="/ets", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getETSProducts(){
+        return xsbDataRepository.findAllETS();
+    }
+
+    @Operation(summary = "Get the number of products that have the is_low_outlier flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the is_low_outlier flag set to true.
+    """
+    )
+    @GetMapping(value="/low-outlier/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<Integer> lowOutlierCount(){
+        return xsbDataRepository.isLowOutlierCount();
+    }
+
+    @Operation(summary = "Get all products that have the is_low_outlier flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the is_low_ourlier flag set to true.
+    """
+    )
+    @GetMapping(value="/low-outlier", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getLowOutlierProducts(){
+        return xsbDataRepository.findAllLowOutliers();
+    }
+
+
+    @Operation(summary = "Get the number of products that have the is_mis_risk flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the is_mia_risk flag set to true.
+    """
+    )
+    @GetMapping(value="/mia-risk/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<Integer> miaRiskCount(){
+        return xsbDataRepository.isMIARiskCount();
+    }
+
+    @Operation(summary = "Get all products that have the is_mia_risk flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the is_mia_risk flag set to true.
+    """
+    )
+    @GetMapping(value="/mia-risk", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getMiaRiskProducts(){
+        return xsbDataRepository.findAllMIARisk();
+    }
+
+    @Operation(summary = "Get the number of products that have the exceeds_market_threshold flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the exceeds_market_threshold flag set to true.
+    """
+    )
+    @GetMapping(value="/exceeds-market-threshold/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<Integer> exceedsMarketThresholdCount(){
+        return xsbDataRepository.exceedsMarketThresholdCount();
+    }
+
+    @Operation(summary = "Get all products that have the exceeds_market_threshold flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the exceeds_market_threshold flag set to true.
+    """
+    )
+    @GetMapping(value="/exceeds-market-threshold", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getExceedsMarketThresholdProducts(){
+        return xsbDataRepository.findAllExceedsMarketThreshold();
+    }
+
+    @Operation(summary = "Get the number of products that have the is_taa_risk flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the is_taa_risk flag set to true.
+    """
+    )
+    @GetMapping(value="/taa-risk/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Mono<Integer> taaRiskCount(){
+        return xsbDataRepository.isTAARiskCount();
+    }
+
+    @Operation(summary = "Get all products that have the is_taa_risk flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the is_taa_risk flag set to true.
+    """
+    )
+    @GetMapping(value="/taa-risk", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getTaaRiskProducts(){
+        return xsbDataRepository.findAllTAARisk();
+    }
 
     // TBD only for demo delete later
     @Operation(summary = "Trigger (start) the SFTP file download process.",
