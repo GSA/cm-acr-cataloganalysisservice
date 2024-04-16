@@ -28,6 +28,8 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
             """;
 
 
+
+
     @Query(value = "SELECT * FROM xsb_data x WHERE x.contract_number = :contractNumber LIMIT :limit OFFSET :offset")
     Flux<XsbData> findAllByContractNumber(String contractNumber, Integer limit, Integer offset);
 
@@ -68,6 +70,12 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
 
     @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'exceeds_market_threshold')::boolean")
     Flux<XsbData> findAllExceedsMarketThreshold();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'isProhibited')::boolean")
+    Mono<Integer> isProhibitedCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'isProhibited')::boolean")
+    Flux<XsbData> findAllProhibitedProducts();
 
     @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'is_taa_risk')::boolean")
     Mono<Integer> isTAARiskCount();

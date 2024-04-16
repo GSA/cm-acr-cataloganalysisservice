@@ -136,7 +136,7 @@ public class AnalysisDataController extends BaseController{
     This API endpoint is used to get the number of products that have the ETS (Essentially The Same) flag set to true.
     """
     )
-    @GetMapping(value="/ets/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value="/ets/count")
     public Mono<Integer> etsCount(){
         return xsbDataRepository.etsCount();
     }
@@ -156,7 +156,7 @@ public class AnalysisDataController extends BaseController{
     This API endpoint is used to get the number of products that have the is_low_outlier flag set to true.
     """
     )
-    @GetMapping(value="/low-outlier/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value="/low-outlier/count")
     public Mono<Integer> lowOutlierCount(){
         return xsbDataRepository.isLowOutlierCount();
     }
@@ -177,7 +177,7 @@ public class AnalysisDataController extends BaseController{
     This API endpoint is used to get the number of products that have the is_mia_risk flag set to true.
     """
     )
-    @GetMapping(value="/mia-risk/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value="/mia-risk/count")
     public Mono<Integer> miaRiskCount(){
         return xsbDataRepository.isMIARiskCount();
     }
@@ -197,7 +197,7 @@ public class AnalysisDataController extends BaseController{
     This API endpoint is used to get the number of products that have the exceeds_market_threshold flag set to true.
     """
     )
-    @GetMapping(value="/exceeds-market-threshold/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value="/exceeds-market-threshold/count")
     public Mono<Integer> exceedsMarketThresholdCount(){
         return xsbDataRepository.exceedsMarketThresholdCount();
     }
@@ -212,12 +212,33 @@ public class AnalysisDataController extends BaseController{
         return xsbDataRepository.findAllExceedsMarketThreshold();
     }
 
+    @Operation(summary = "Get the number of products that have the isProhibited flag set to true.",
+            description = """
+    This API endpoint is used to get the number of products that have the isProhibited flag set to true.
+    """
+    )
+    @GetMapping(value="/isProhibited/count")
+    public Mono<Integer> isProhibitedCount(){
+        return xsbDataRepository.isProhibitedCount();
+    }
+
+    @Operation(summary = "Get all products that have the isProhibited flag set to true.",
+            description = """
+    This API endpoint is used to get all the products that have the isProhibited flag set to true.
+    """
+    )
+    @GetMapping(value="/isProhibited", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    public Flux<XsbData> getProhibitedProducts(){
+        return xsbDataRepository.findAllProhibitedProducts();
+    }
+
+
     @Operation(summary = "Get the number of products that have the is_taa_risk flag set to true.",
             description = """
     This API endpoint is used to get the number of products that have the is_taa_risk flag set to true.
     """
     )
-    @GetMapping(value="/taa-risk/count", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value="/taa-risk/count")
     public Mono<Integer> taaRiskCount(){
         return xsbDataRepository.isTAARiskCount();
     }
@@ -231,6 +252,8 @@ public class AnalysisDataController extends BaseController{
     public Flux<XsbData> getTaaRiskProducts(){
         return xsbDataRepository.findAllTAARisk();
     }
+
+
 
     // TBD only for demo delete later
     @Operation(summary = "Trigger (start) the SFTP file download process.",
