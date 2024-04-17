@@ -15,10 +15,10 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 public class AnalysisSourceLocal implements AnalysisSource {
-    private final ErrorHandler errorHandler;
+    private final ErrorHandler errHandler;
 
-    public AnalysisSourceLocal(ErrorHandler errorHandler) {
-        this.errorHandler = errorHandler;
+    public AnalysisSourceLocal(ErrorHandler errHandler) {
+        this.errHandler = errHandler;
     }
 
 
@@ -39,7 +39,7 @@ public class AnalysisSourceLocal implements AnalysisSource {
                         Stream::close)
                 .onErrorResume(e -> {
                     log.error("Unable to get XSB files from the directory, " + sourceFolder + ", for file, " + fileNamePattern, e);
-                    errorHandler.handleFileError(fileNamePattern, "Unable to get XSB files from the directory, " + sourceFolder + ", for file, " + fileNamePattern, e);
+                    errHandler.handleFileError(fileNamePattern, "Unable to get XSB files from the directory, " + sourceFolder + ", for file, " + fileNamePattern, e);
                     return Flux.empty();
                 })
                 .handle((source, sink) -> {
@@ -48,7 +48,7 @@ public class AnalysisSourceLocal implements AnalysisSource {
                         sink.next(Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING));
                     } catch (Exception e) {
                         log.error("Unable to copy " + source + " to " + destination + ". Will ignore and continue.", e);
-                        errorHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);
+                        errHandler.handleFileError(source.toString(), "Unable to copy " + source + " to " + destination, e);
                     }
                 });
     }
@@ -77,7 +77,7 @@ public class AnalysisSourceLocal implements AnalysisSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
-        if (unexpectedFileNames(fileNamePatterns, log)) return Flux.empty();
+        if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
         if (destinationFolder == null || destinationFolder.isBlank() || (Files.notExists(Path.of(destinationFolder)))) {
             String message = "Invalid destination folder: " + destinationFolder;
             Exception e = new IllegalArgumentException(message);
