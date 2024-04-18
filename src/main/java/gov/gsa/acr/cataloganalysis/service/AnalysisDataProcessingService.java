@@ -59,7 +59,7 @@ public class AnalysisDataProcessingService {
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
-        // Provide a progress report every so many minutes
+        // Provide a progress report every so many seconds
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         // Counter to count the number of records saved in the database
         AtomicInteger dbCounter = new AtomicInteger(0);
