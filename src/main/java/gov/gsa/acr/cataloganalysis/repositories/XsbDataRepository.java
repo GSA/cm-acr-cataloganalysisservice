@@ -46,4 +46,40 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
 
     @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'T'")
     Flux<String> findTaaCompliantCountries();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
+    Mono<Integer> etsCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
+    Flux<XsbData> findAllETS();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'is_low_outlier')::boolean")
+    Mono<Integer> isLowOutlierCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'is_low_outlier')::boolean")
+    Flux<XsbData> findAllLowOutliers();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'is_mia_risk')::boolean")
+    Mono<Integer> isMIARiskCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'is_mia_risk')::boolean")
+    Flux<XsbData> findAllMIARisk();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'exceeds_market_threshold')::boolean")
+    Mono<Integer> exceedsMarketThresholdCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'exceeds_market_threshold')::boolean")
+    Flux<XsbData> findAllExceedsMarketThreshold();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'isProhibited')::boolean")
+    Mono<Integer> isProhibitedCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'isProhibited')::boolean")
+    Flux<XsbData> findAllProhibitedProducts();
+
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'is_taa_risk')::boolean")
+    Mono<Integer> isTAARiskCount();
+
+    @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'is_taa_risk')::boolean")
+    Flux<XsbData> findAllTAARisk();
 }
