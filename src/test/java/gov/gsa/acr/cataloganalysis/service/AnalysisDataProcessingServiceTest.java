@@ -74,6 +74,7 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testParsingEmptyFile() throws IOException {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/emptyFile_1.gsa");
         Path emptyFile = Path.of("tmp/emptyFile_1.gsa");
         Files.copy(srcFile, emptyFile);
@@ -88,6 +89,7 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testParsingInvalidFile() {
         Path invalidFile = Path.of("junitTestData/invalid.gsa");
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes, false))
                 .expectComplete()
                 .verify();
@@ -96,6 +98,7 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testParsingFileWithInvalidHeader() throws IOException {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/testFileWithInvalidHeader.gsa");
         Path invalidHdrFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
         Files.copy(srcFile, invalidHdrFile);
@@ -111,6 +114,7 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testParsingFileWithInvalidRecords() throws IOException {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/testFileWithErrors.gsa");
         Path invalidRecordsFile = Path.of("tmp/testFileWithErrors.gsa");
         Files.copy(srcFile, invalidRecordsFile);
@@ -143,6 +147,7 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testParsingValidFile() throws IOException {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
@@ -158,7 +163,25 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
+    void testParsingValidFileReturnsImmediatelyWhenTooManyErrors() throws IOException {
+        Path srcFile = Path.of("junitTestData/testValidFile.gsa");
+        Path vallidFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, vallidFile);
+        assertTrue(Files.exists(vallidFile));
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+                .expectNextCount(0)
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
+    }
+
+
+    @Test
     void testParseXsbFiles() throws IOException {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         Path[] srcFiles = {
                 Path.of("junitTestData/emptyFile_1.gsa"),
                 Path.of("junitTestData/invalid.gsa"),
@@ -211,6 +234,7 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testSaveInvalidDataRecordToStaging() {
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenThrow(new RuntimeException("Dummy"));
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         XsbData xsbData = new XsbData();
         xsbData.setContractNumber("contract number");
         xsbData.setManufacturer("manufacturer");
@@ -227,6 +251,7 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testSaveInvalidDataRecordToStaging2() {
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         XsbData xsbData = new XsbData();
         xsbData.setContractNumber("contract number");
         xsbData.setManufacturer("manufacturer");
@@ -242,6 +267,7 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testSaveDataRecordToStaging() {
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
         XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
 
@@ -973,6 +999,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -1047,6 +1074,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenAnswer((Answer<Mono<Integer>>) invocationOnMock -> {
             Thread.sleep(200);
@@ -1091,6 +1119,7 @@ class AnalysisDataProcessingServiceTest {
         uniqueFileNames.add("dummy.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(taaCountryCodes));
+        when(errorHandler.totalErrorsSoFarWithinAcceptableThreshold()).thenReturn(true);
         StepVerifier.create(analysisDataProcessingService.parseXsbFiles(trigger))
                 .verifyComplete();
 

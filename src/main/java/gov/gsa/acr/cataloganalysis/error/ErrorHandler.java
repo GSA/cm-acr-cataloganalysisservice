@@ -228,8 +228,12 @@ public class ErrorHandler {
         return numRecordsSavedInTempDB.get() > 0;
     }
 
+    public Boolean totalErrorsSoFarWithinAcceptableThreshold() {
+        return  ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
+    }
+
     public Boolean totalErrorsWithinAcceptableThreshold() {
-        return (numRecordsSavedInTempDB.get() > 0) && ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
+        return (numRecordsSavedInTempDB.get() > 0) && totalErrorsSoFarWithinAcceptableThreshold();
     }
 
     private String getErrorMessageFileName() {

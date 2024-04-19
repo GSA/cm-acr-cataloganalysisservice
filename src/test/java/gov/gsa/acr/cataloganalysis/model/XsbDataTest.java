@@ -1,5 +1,6 @@
 package gov.gsa.acr.cataloganalysis.model;
 
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.service.XsbDataParser;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONException;
@@ -8,6 +9,8 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
@@ -19,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j
+@MockBeans({@MockBean(ErrorHandler.class)})
 @ContextConfiguration(classes = {XsbDataParser.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 class XsbDataTest {
@@ -40,13 +44,14 @@ class XsbDataTest {
 
     @Test
     void testJsonData() throws JSONException {
-        String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
+        String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
         XsbData xsbData = new XsbData(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
         String expectedJSON = """
                 {"vendorName":"AMERICAN SIGNAL COMPANY",
+                "modificationNumber": "123",
                 "vendorDescription":"Verizon VPN with ITS Cloud Manager per year subscription, available for all models",
                 "dunsNumber":"612764845",
                 "quantityPerUnit":1,

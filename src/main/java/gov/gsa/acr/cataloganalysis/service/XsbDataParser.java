@@ -1,5 +1,6 @@
 package gov.gsa.acr.cataloganalysis.service;
 
+import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -17,6 +18,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 @Slf4j
 public class XsbDataParser {
+    private final ErrorHandler errorHandler;
     @Value("${xsb.report.file.delimiter}")
     private String defaultDelimiter;
     @Value("${xsb.report.file.header}")
@@ -66,6 +68,9 @@ public class XsbDataParser {
     }
 
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes){
+        // Check if we have too many errors already. If yes, no point moving forward, bail off now.
+        if (!errorHandler.totalErrorsSoFarWithinAcceptableThreshold()) return null;
+
         if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
         if (taaCountryCodes == null || taaCountryCodes.isEmpty()) throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
         XsbData xsbData = new XsbData(parseXsbDataToMap(xsbDataString), taaCountryCodes);
