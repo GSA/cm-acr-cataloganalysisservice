@@ -205,7 +205,10 @@ public class AnalysisDataProcessingService {
      */
     Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
-        if (!errorHandler.totalErrorsSoFarWithinAcceptableThreshold()) return Flux.empty();
+        if (!errorHandler.totalErrorsWithinAcceptableThreshold()) {
+            log.warn("Too many errors: Exceeded the number of error threshold. Bailing out, not parsing {} file", xsbFile);
+            return Flux.empty();
+        }
 
         // First read the header row (First row of the File) and makes sure its valid
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
@@ -242,7 +245,7 @@ public class AnalysisDataProcessingService {
      */
     Mono<Integer> saveDataRecordToStaging(XsbData xsbData) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
-        if (xsbData == null || !(errorHandler.totalErrorsSoFarWithinAcceptableThreshold())) return Mono.empty();
+        if (xsbData == null || !(errorHandler.totalErrorsWithinAcceptableThreshold())) return Mono.empty();
         try {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
                     // TBD: Retry logic here

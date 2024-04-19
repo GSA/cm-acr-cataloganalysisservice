@@ -6,6 +6,8 @@ import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
+import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import io.r2dbc.postgresql.codec.Json;
@@ -13,21 +15,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,11 +38,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
-@ActiveProfiles("junit")
+@ActiveProfiles("failfasttest")
 @Slf4j
 @MockBeans({@MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class, ErrorHandler.class})
 public class FailFastTest {
+    @Value("${error.file.directory}")
+    private String errorDirectory;
     @Autowired
     private ErrorHandler errorHandler;
 
@@ -51,6 +56,9 @@ public class FailFastTest {
 
     @Autowired
     XsbDataParser xsbDataParser;
+
+    @Autowired
+    private AnalysisSourceS3 xsbSourceS3Files;
 
     List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
 
@@ -201,6 +209,46 @@ public class FailFastTest {
 
         errorHandler.handleParsingError(xsbData.toString(), "dummy file", "dummy error");
         assertNull(xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes));
+
+
+    }
+
+
+    @Test
+    void testTriggerDataUpload() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("test*.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
+        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+
+        when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/xsb_error_parse_dummy.gsa"));
+
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of("errors/xsb_error_parse_dummy.gsa", "errors/xsb_error_parse_dummy.gsa"));
+        expectedResults.setNumRecordsSavedInTempDB(1);
+        expectedResults.setNumFileErrors(1);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(2);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(0)).moveXsbData();
 
 
     }
