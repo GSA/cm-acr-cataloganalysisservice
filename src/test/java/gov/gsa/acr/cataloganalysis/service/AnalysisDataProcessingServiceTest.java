@@ -1,6 +1,9 @@
 package gov.gsa.acr.cataloganalysis.service;
 
-import gov.gsa.acr.cataloganalysis.analysissource.*;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceFactory;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceLocal;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceS3;
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.configuration.S3ClientConfiguration;
 import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;

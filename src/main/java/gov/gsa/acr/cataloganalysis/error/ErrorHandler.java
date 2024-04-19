@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 public class ErrorHandler {
-    private final String ls = System.getProperty("line.separator");
+    private final String ls = System.lineSeparator();
     @Value("${error.file.size.max.bytes.per.file}")
     @Getter
     private long maxErrorFileSizeBytes;
@@ -262,7 +262,7 @@ public class ErrorHandler {
      */
     private static final class BoundedPrintWriter extends PrintWriter {
         private final long maxBytes;
-        private final int lsBytes = System.getProperty("line.separator").getBytes().length;
+        private final int lsBytes = System.lineSeparator().getBytes().length;
         private long currentFileSizeInBytes;
 
         /**
