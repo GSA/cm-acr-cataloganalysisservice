@@ -69,7 +69,7 @@ public class XsbDataParser {
 
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes){
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
-        if (!errorHandler.totalErrorsSoFarWithinAcceptableThreshold()) return null;
+        if (!errorHandler.totalErrorsWithinAcceptableThreshold()) return null;
 
         if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
         if (taaCountryCodes == null || taaCountryCodes.isEmpty()) throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
