@@ -285,8 +285,6 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testNothingToMoveFromStagingToFinal() {
         Trigger trigger = new Trigger();
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(false);
-
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.never()).totalErrorsWithinAcceptableThreshold();
@@ -301,7 +299,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -316,10 +314,10 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenThrow(e);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
 
-        Mockito.verify(errorHandler, Mockito.never()).totalErrorsWithinAcceptableThreshold();
+        Mockito.verify(errorHandler, Mockito.times(1)).totalErrorsWithinAcceptableThreshold();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
@@ -334,7 +332,7 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
 
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
@@ -351,7 +349,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenThrow(e);
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -367,7 +365,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
@@ -384,7 +382,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenThrow(e);
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -401,7 +399,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -417,7 +415,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -434,7 +432,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -451,7 +449,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
@@ -469,7 +467,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
-        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 0))
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();

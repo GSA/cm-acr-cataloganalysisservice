@@ -46,7 +46,7 @@ public class ErrorHandler {
     private int parseErrorChunk;
     private int dbErrorChunk;
     private String timeStamp;
-    private Boolean acceptableNumberOfErrors;
+    private Boolean totalErrorsWithinAcceptableThreshnold;
 
     @Getter
     private String header;
@@ -84,7 +84,7 @@ public class ErrorHandler {
     }
 
     public void init(String header) {
-        acceptableNumberOfErrors = Boolean.TRUE;
+        totalErrorsWithinAcceptableThreshnold = Boolean.TRUE;
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
@@ -154,8 +154,8 @@ public class ErrorHandler {
     }
 
     private void handleError(String xsbRecord, String srcFileName, String error, String errorType) {
-        if (acceptableNumberOfErrors) {
-            acceptableNumberOfErrors = ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
+        if (totalErrorsWithinAcceptableThreshnold) {
+            totalErrorsWithinAcceptableThreshnold = ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
         }
         boolean tryAgain = false;
         try {
@@ -234,7 +234,7 @@ public class ErrorHandler {
     }
 
     public Boolean totalErrorsWithinAcceptableThreshold() {
-        return acceptableNumberOfErrors;
+        return totalErrorsWithinAcceptableThreshnold;
     }
 
     private String getErrorMessageFileName() {

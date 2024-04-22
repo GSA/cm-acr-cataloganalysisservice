@@ -275,7 +275,7 @@ public class AnalysisDataProcessingService {
         Mono<Void> rtrn;
 
          try {
-             if (!errorHandler.anyRecordsToMoveFromStagingToFinal()) {
+             if (recordCount <= 0) {
                  log.info("There are no records to move from staging (xsb_data_temp) to the Final (xsb_data) table!");
                  return Mono.empty();
              }
