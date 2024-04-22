@@ -58,9 +58,6 @@ public class ErrorHandler {
     private AtomicInteger numFileErrors;
     @Getter
     @Setter
-    private AtomicInteger numRecordsSavedInTempDB;
-    @Getter
-    @Setter
     private Boolean dataUploadFailed;
     @Getter
     @Setter
@@ -88,7 +85,6 @@ public class ErrorHandler {
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
-        numRecordsSavedInTempDB = new AtomicInteger(0);
         dataUploadFailed = Boolean.FALSE;
         errorMsgChunk = 0;
         parseErrorChunk = 0;
@@ -227,10 +223,6 @@ public class ErrorHandler {
             log.error("Error while handling " + errorType + " error messages. " + xsbRecord + " " + error, e);
         }
 
-    }
-
-    public Boolean anyRecordsToMoveFromStagingToFinal() {
-        return numRecordsSavedInTempDB.get() > 0;
     }
 
     public Boolean totalErrorsWithinAcceptableThreshold() {

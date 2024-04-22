@@ -99,13 +99,10 @@ public class AnalysisDataProcessingService {
                         lastProgressReportTime.set(currentTime);
                     }
                 })
-                .doOnComplete(() -> {
-                    errorHandler.setNumRecordsSavedInTempDB(dbCounter);
-                    log.info("Finished saving a total of {} records to the staging table.", dbCounter.get());
-                })
+                .doOnComplete(() -> log.info("Finished saving a total of {} records to the staging table.", dbCounter.get()))
                 .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())))
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
-                .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
+                .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
                 .doFirst(() -> {
                     errorHandler.init(xsbDataParser.getHeaderString());
                     dbCounter.set(0);
@@ -363,17 +360,19 @@ public class AnalysisDataProcessingService {
 
     /**
      * Collect all the results and generate a data object with the results.
+     *
      * @param errorFileNames Names of all the error files generated during the run.
-     * @param errorHandler The error handler has all the valuable information regarding what worked and what failed.
+     * @param errorHandler   The error handler has all the valuable information regarding what worked and what failed.
+     * @param recordCount
      * @return A data object holding the metrics of the data upload process execution.
      */
-    Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
+    Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler, int recordCount) {
         if (errorHandler == null) return Mono.error(new IllegalArgumentException("Error Handler cannot be null"));
 
         errorHandler.setErrorFileNames(errorFileNames);
         DataUploadResults results = new DataUploadResults();
         results.setErrorFileNames(errorFileNames);
-        results.setNumRecordsSavedInTempDB(errorHandler.getNumRecordsSavedInTempDB().get());
+        results.setNumRecordsSavedInTempDB(recordCount);
         results.setNumParsingErrors(errorHandler.getNumParsingErrors().get());
         results.setNumDbErrors(errorHandler.getNumDbErrors().get());
         results.setNumFileErrors(errorHandler.getNumFileErrors().get());

@@ -69,7 +69,6 @@ class ErrorHandlerTest {
         assertEquals(0, errHandler.getNumParsingErrors().get());
         assertEquals(0, errHandler.getNumDbErrors().get());
         assertEquals(0, errHandler.getNumFileErrors().get());
-        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
         assertEquals("dummy header", errHandler.getHeader());
         assertTrue(isEmpty(Path.of(errHandler.getErrorDirectory())));
         assertEquals(2, errHandler.getErrorThreshold());
@@ -551,10 +550,7 @@ class ErrorHandlerTest {
 
     @Test
     void totalErrorsWithinAcceptableThreshold() {
-        assertFalse(errHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
-        errHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
-        assertTrue(errHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
         handleFileError();
         assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
@@ -562,8 +558,6 @@ class ErrorHandlerTest {
 
     @Test
     void totalErrorsWithinAcceptableThreshold_moreErrorsThanAccepted() {
-        errHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
-        assertTrue(errHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
         handleMultipleErrors_generateMultipleFiles();
         assertFalse(errHandler.totalErrorsWithinAcceptableThreshold());

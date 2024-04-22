@@ -297,7 +297,6 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testDontMoveDataFromStagingToFinal() {
         Trigger trigger = new Trigger();
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
@@ -307,12 +306,11 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testDontMoveDataFromStagingToFinal_anyRecordsToMoveFromStagingToFinalException() {
+    void testDontMoveDataFromStagingToFinal_totalErrorsWithinAccepatableThresholdException() {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenThrow(e);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
@@ -330,7 +328,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenThrow(e);
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
@@ -346,7 +343,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenThrow(e);
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
@@ -362,7 +358,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Exception e = new Exception("Dummy");
         Trigger trigger = new Trigger();
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
@@ -378,7 +373,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         Exception e = new IllegalArgumentException("Dummy");
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenThrow(e);
@@ -395,7 +389,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         Exception e = new Exception("Dummy");
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
@@ -411,7 +404,6 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -428,7 +420,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         trigger.setPurgeOldData(Boolean.FALSE);
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -445,7 +436,6 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         trigger.setForcedError(1);
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -463,7 +453,6 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setPurgeOldData(Boolean.FALSE);
         trigger.setForcedError(1);
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -616,7 +605,6 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new RuntimeException("Dummy RuntimeException");
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
@@ -859,7 +847,6 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new RuntimeException("Dummy");
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
@@ -889,7 +876,6 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new RuntimeException("Dummy");
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
@@ -918,7 +904,6 @@ class AnalysisDataProcessingServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
@@ -948,12 +933,10 @@ class AnalysisDataProcessingServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        doCallRealMethod().when(errorHandler).setNumRecordsSavedInTempDB(any());
 
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
@@ -991,14 +974,11 @@ class AnalysisDataProcessingServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        doCallRealMethod().when(errorHandler).setNumRecordsSavedInTempDB(any());
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
@@ -1066,14 +1046,11 @@ class AnalysisDataProcessingServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumRecordsSavedInTempDB();
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        doCallRealMethod().when(errorHandler).setNumRecordsSavedInTempDB(any());
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
-        when(errorHandler.anyRecordsToMoveFromStagingToFinal()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
