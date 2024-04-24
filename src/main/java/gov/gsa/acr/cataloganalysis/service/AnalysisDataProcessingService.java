@@ -204,6 +204,12 @@ public class AnalysisDataProcessingService {
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
     Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing) {
+        // Check if we have too many errors already. If yes, no point moving forward, bail off now.
+        if (!errorHandler.totalErrorsWithinAcceptableThreshold()) {
+            log.warn("Too many errors: Exceeded the number of error threshold. Bailing out, not parsing {} file", xsbFile);
+            return Flux.empty();
+        }
+
         // First read the header row (First row of the File) and makes sure its valid
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             String header = rawProductsFromXSB.findFirst().get();
@@ -223,7 +229,7 @@ public class AnalysisDataProcessingService {
                         Flux::fromStream,
                         Stream::close
                 )
-                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
+                .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .publishOn(Schedulers.parallel())
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
@@ -238,7 +244,8 @@ public class AnalysisDataProcessingService {
      * @return The ID of the saved record
      */
     Mono<Integer> saveDataRecordToStaging(XsbData xsbData) {
-        if (xsbData == null) return Mono.empty();
+        // Check if we have too many errors already. If yes, no point moving forward, bail off now.
+        if (xsbData == null || !(errorHandler.totalErrorsWithinAcceptableThreshold())) return Mono.empty();
         try {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
                     // TBD: Retry logic here

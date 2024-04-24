@@ -552,7 +552,7 @@ class ErrorHandlerTest {
     @Test
     void totalErrorsWithinAcceptableThreshold() {
         assertFalse(errHandler.anyRecordsToMoveFromStagingToFinal());
-        assertFalse(errHandler.totalErrorsWithinAcceptableThreshold());
+        assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
         errHandler.setNumRecordsSavedInTempDB(new AtomicInteger(1));
         assertTrue(errHandler.anyRecordsToMoveFromStagingToFinal());
         assertTrue(errHandler.totalErrorsWithinAcceptableThreshold());
