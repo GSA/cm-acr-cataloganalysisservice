@@ -45,6 +45,17 @@ public class Trigger {
     deleted, but only modified.
     """)
     private Boolean purgeOldData = Boolean.TRUE;
+    @Schema(description = """
+    Default value is FALSE. However, if set to TRUE, data is only staged in the xsb_dat_temp table and not moved to the
+    final xsb_data table. 
+    """)
+    private Boolean onlyStageData = Boolean.FALSE;
+    @Schema(description = """
+    Default value is FALSE. However, if set to TRUE, data is not parsed but only moved from staging table, xsb_data_temp,
+    to the final table, xsb_data.
+    """)
+    private Boolean onlyMoveStagedData = Boolean.FALSE;
+
     @Schema(hidden = true)
     private Set<String> uniqueFileNames;
 
@@ -69,18 +80,27 @@ public class Trigger {
     public static void validate(Trigger trigger){
         // Trigger is required
         if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
-        // Must have a valid source type
-        if (trigger.getSourceType() == null) throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).");
-        // For LOCAL source type, source folder is required
-        if (AnalysisSourceType.LOCAL.equals(trigger.getSourceType())){
-            String sourceFolder = trigger.getSourceFolder();
-            if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder))))
-                throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
+
+        if (!trigger.getOnlyMoveStagedData()) {
+            // Must have a valid source type
+            if (trigger.getSourceType() == null)
+                throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).");
+            // For LOCAL source type, source folder is required
+            if (AnalysisSourceType.LOCAL.equals(trigger.getSourceType())) {
+                String sourceFolder = trigger.getSourceFolder();
+                if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder))))
+                    throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
+            }
+            // Need files to download.
+            Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+            if (uniqueFileNames == null || uniqueFileNames.isEmpty())
+                throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+
         }
-        // Need files to download.
-        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        if (uniqueFileNames == null || uniqueFileNames.isEmpty())
-            throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+        // If both onlyStageData and onlyMoveStageData are true, nothing will happen. onlyMoveStageData will not parse any files, and onlyStageData will
+        // not move any data from the staging to final table.
+        if (trigger.getOnlyStageData() && trigger.getOnlyMoveStagedData())
+            throw new IllegalArgumentException ("onlyStageData and onlyMoveStagedData cannot be both TRUE simultaneously. Nothing will happen in this case. One (or both) has to be FALSE");
     }
 
     public enum AnalysisSourceType {
