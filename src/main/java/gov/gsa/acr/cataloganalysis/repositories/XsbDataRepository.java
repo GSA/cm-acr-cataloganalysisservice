@@ -29,6 +29,8 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
 
 
 
+    @Query(value = "SELECT count(*) FROM xsb_data_temp")
+    Mono<Integer> xsbDataTempCount();
 
     @Query(value = "SELECT * FROM xsb_data x WHERE x.contract_number = :contractNumber LIMIT :limit OFFSET :offset")
     Flux<XsbData> findAllByContractNumber(String contractNumber, Integer limit, Integer offset);
