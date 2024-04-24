@@ -11,6 +11,6 @@ RUN rm -rf /home/gsa-user/.m2/repository
 
 # --- copy jar file from previous stage
 RUN cp ./target/*.jar app.jar
-# ENV JAVA_TOOL_OPTIONS "-XX:MaxRAMPercentage=80"
+ENV JAVA_TOOL_OPTIONS "-XX:MaxRAMPercentage=80"
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
