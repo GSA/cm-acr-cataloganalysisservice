@@ -80,32 +80,41 @@ public class AnalysisDataProcessingService {
             throw new ConcurrentModificationException("Process is currently running! Cannot run more than one data uploads at the same time.");
         }
 
+        Mono<Void> pipeline;
+        if (trigger.getOnlyMoveStagedData()){
+            pipeline = numberOfStagedRecords()
+                    .flatMap(count -> {
+                        dbCounter.set(count);
+                        return moveDataFromStagingToFinal(trigger, count);
+                    });
+        }
+        else {
+            pipeline = deleteOldStagingData()
+                    .then(findTaaCompliantCountries())
+                    .flatMapMany(taaCountryCodes -> {
+                        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
+                        Flux<Path> xsbFiles = analysisSourceFactory
+                                .analysisSource(trigger)
+                                .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
+                        return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
+                    .onBackpressureBuffer()
+                    .flatMap(this::saveDataRecordToStaging)
+                    .doOnNext(e -> {
+                        Instant currentTime = Instant.now();
+                        int numRecordsSavedSoFar = dbCounter.incrementAndGet();
+                        if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
+                            log.info("Saved {} records", numRecordsSavedSoFar);
+                            lastProgressReportTime.set(currentTime);
+                        }
+                    })
+                    .doOnComplete(() -> log.info("Finished saving a total of {} records to the staging table.", dbCounter.get()))
+                    .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())));
+        }
+
         // Start the pipeline for parsing files and storing data in the database
-        return deleteOldStagingData()
-                .then(findTaaCompliantCountries())
-                .flatMapMany(taaCountryCodes -> {
-                    // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
-                    Flux<Path> xsbFiles = analysisSourceFactory
-                            .analysisSource(trigger)
-                            .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
-                    return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
-                .onBackpressureBuffer()
-                .flatMap(this::saveDataRecordToStaging)
-                .doOnNext(e -> {
-                    Instant currentTime = Instant.now();
-                    int numRecordsSavedSoFar = dbCounter.incrementAndGet();
-                    if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
-                        log.info("Saved {} records", numRecordsSavedSoFar);
-                        lastProgressReportTime.set(currentTime);
-                    }
-                })
-                .doOnComplete(() -> {
-                    errorHandler.setNumRecordsSavedInTempDB(dbCounter);
-                    log.info("Finished saving a total of {} records to the staging table.", dbCounter.get());
-                })
-                .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())))
+        return pipeline
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
-                .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler))
+                .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
                 .doFirst(() -> {
                     errorHandler.init(xsbDataParser.getHeaderString());
                     dbCounter.set(0);
@@ -113,7 +122,7 @@ public class AnalysisDataProcessingService {
                 .doFinally(s -> {
                     executing.compareAndSet(true, false);
                     errorHandler.close();
-                    generateFinalReport(dbCounter.get(), s);
+                    generateFinalReport(dbCounter.get(), s, trigger);
                     deleteDir(tmpDir);
                 });
     }
@@ -131,6 +140,21 @@ public class AnalysisDataProcessingService {
             return xsbDataRepository.deleteAllXsbDataTemp().doFirst(() -> log.info(msg));
         } catch (Exception e) {
             log.error(errMsg, e);
+            return Mono.error(e);
+        }
+    }
+
+
+    /**
+     * get number of records in the staging table
+     *
+     * @return Asynchronously returns count of xsb_data_temp table.
+     */
+    Mono<Integer> numberOfStagedRecords() {
+        try {
+            return xsbDataRepository.xsbDataTempCount().doFirst(() -> log.info("Getting count of xsb_data_temp table"));
+        } catch (Exception e) {
+            log.error("Error: getting count of staging table.", e);
             return Mono.error(e);
         }
     }
@@ -270,12 +294,13 @@ public class AnalysisDataProcessingService {
      * @return Asynchronously return void once completed, or rolls back if an exception is thrown.
      */
      Mono<Void> moveDataFromStagingToFinal(Trigger trigger, int recordCount) {
-        String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
+        String msg = "Moving "+recordCount+" product(s) in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Mono<Void> rtrn;
 
          try {
-             if (!errorHandler.anyRecordsToMoveFromStagingToFinal()) {
+             if (trigger.getOnlyStageData()) return Mono.empty();
+             if (recordCount <= 0) {
                  log.info("There are no records to move from staging (xsb_data_temp) to the Final (xsb_data) table!");
                  return Mono.empty();
              }
@@ -363,17 +388,19 @@ public class AnalysisDataProcessingService {
 
     /**
      * Collect all the results and generate a data object with the results.
+     *
      * @param errorFileNames Names of all the error files generated during the run.
-     * @param errorHandler The error handler has all the valuable information regarding what worked and what failed.
+     * @param errorHandler   The error handler has all the valuable information regarding what worked and what failed.
+     * @param recordCount
      * @return A data object holding the metrics of the data upload process execution.
      */
-    Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler) {
+    Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler, int recordCount) {
         if (errorHandler == null) return Mono.error(new IllegalArgumentException("Error Handler cannot be null"));
 
         errorHandler.setErrorFileNames(errorFileNames);
         DataUploadResults results = new DataUploadResults();
         results.setErrorFileNames(errorFileNames);
-        results.setNumRecordsSavedInTempDB(errorHandler.getNumRecordsSavedInTempDB().get());
+        results.setNumRecordsSavedInTempDB(recordCount);
         results.setNumParsingErrors(errorHandler.getNumParsingErrors().get());
         results.setNumDbErrors(errorHandler.getNumDbErrors().get());
         results.setNumFileErrors(errorHandler.getNumFileErrors().get());
@@ -392,11 +419,14 @@ public class AnalysisDataProcessingService {
     }
 
 
-    List<String> generateFinalReport(int recordCount, SignalType signalType) {
+    List<String> generateFinalReport(int recordCount, SignalType signalType, Trigger trigger) {
         List<String> report = new ArrayList<>();
         List<String> errorFileNames = errorHandler.getErrorFileNames();
         log("===================== Final Report =====================", Level.INFO, report);
-        if (errorHandler.getDataUploadFailed()) {
+        if (trigger != null && trigger.getOnlyStageData()) {
+            log("Saved "+ recordCount + " records in the ACR DB staging table (xsb_data_temp).", Level.INFO, report);
+        }
+        else if (errorHandler.getDataUploadFailed()) {
             log("Error moving data from staging to final DB table. Please see logs for error reason.", Level.ERROR, report);
         }
         else log("Saved "+ recordCount + " records in the ACR DB.", Level.INFO, report);
