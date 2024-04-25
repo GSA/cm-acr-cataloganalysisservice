@@ -360,6 +360,7 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving 5 product(s) in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
+        trigger.setPurgeOldData(Boolean.TRUE);
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenThrow(e);
@@ -376,6 +377,7 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Exception e = new Exception("Dummy");
         Trigger trigger = new Trigger();
+        trigger.setPurgeOldData(Boolean.TRUE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.error(e));
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 50))
@@ -390,6 +392,7 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving 1 product(s) in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
+        trigger.setPurgeOldData(Boolean.TRUE);
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
@@ -406,6 +409,7 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving 1 product(s) in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
+        trigger.setPurgeOldData(Boolean.TRUE);
         Exception e = new Exception("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
@@ -440,6 +444,7 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving data in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
+        trigger.setPurgeOldData(Boolean.TRUE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -472,6 +477,7 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         trigger.setForcedError(1);
+        trigger.setPurgeOldData(Boolean.TRUE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
@@ -1038,6 +1044,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -1262,6 +1269,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
