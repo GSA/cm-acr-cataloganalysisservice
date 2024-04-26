@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -1337,5 +1338,16 @@ class AnalysisDataProcessingServiceTest {
                 .expectNextCount(10)
                 .verifyComplete();
 
+    }
+
+    @Test
+    void testRateLimit(){
+        Flux.range(1, 20)
+                .log("first.")
+                .flatMap(a -> Flux.range(1, 10).map(i -> a + " => " + i), 3)
+                .log("second.")
+                .flatMap(a -> Mono.just(a + " saved").delayElement(Duration.ofMillis(100)), 20)
+                .log("third.")
+                .blockLast();
     }
 }

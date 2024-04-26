@@ -95,11 +95,10 @@ public class AnalysisDataProcessingService {
                         // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
                         Flux<Path> xsbFiles = analysisSourceFactory
                                 .analysisSource(trigger)
-                                .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath())
-                                .limitRate(4, 2);
+                                .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
                     .onBackpressureBuffer()
-                    .flatMap(this::saveDataRecordToStaging)
+                    .flatMap(this::saveDataRecordToStaging, 100)
                     .doOnNext(e -> {
                         Instant currentTime = Instant.now();
                         int numRecordsSavedSoFar = dbCounter.incrementAndGet();
@@ -204,7 +203,7 @@ public class AnalysisDataProcessingService {
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles.doOnNext(path -> log.info("Parsing file: " + path))
-                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
+                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing), 3)
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
