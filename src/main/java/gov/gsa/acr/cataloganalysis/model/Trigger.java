@@ -47,12 +47,14 @@ public class Trigger {
     private Boolean purgeOldData = Boolean.FALSE;
     @Schema(description = """
     Default value is FALSE. However, if set to TRUE, data is only staged in the xsb_dat_temp table and not moved to the
-    final xsb_data table. 
+    final xsb_data table.
     """)
     private Boolean onlyStageData = Boolean.FALSE;
     @Schema(description = """
     Default value is FALSE. However, if set to TRUE, data is not parsed but only moved from staging table, xsb_data_temp,
-    to the final table, xsb_data.
+    to the final table, xsb_data. This flag will come in handy when something goes wrong only in the final step from a
+    previous run, i.e. a previous run was able to  parse and stage data successfully, but the final step of copying the
+    data to the final table failed. In this case, this flag saves time since parsing and staging does not have to repeat.
     """)
     private Boolean onlyMoveStagedData = Boolean.FALSE;
 
