@@ -82,23 +82,42 @@ public class AnalysisDataProcessingService {
 
         Mono<Void> pipeline;
         if (trigger.getOnlyMoveStagedData()){
+            // pipeline to be used when all the data is already staged in the xsb_data_temp table and we just want to
+            // move that data to the final production table, xsb_data. So no parsing or staging is needed, only data
+            // needs to be moved from one table (xsb_data_temp) to another table (xsb_data). This pipeline will come in
+            // handy when something went wrong only in the final step of a previous run, or we want to divide the work
+            // into two steps, parse & stage, and then move. In these cases, this pipeline will save us time
+            // since we will not have to wait for parsing & staging.
+            // Step 1: Get the number of records in the staging table, xsb_data_temp
             pipeline = numberOfStagedRecords()
+                    // Step 2: Final step, move the data from staging table to the final table.
                     .flatMap(count -> {
                         dbCounter.set(count);
                         return moveDataFromStagingToFinal(trigger, count);
                     });
         }
         else {
+            // This is the full pipeline where the following happens --
+            // Step 1. Delete any old data in the staging table, xsb_data_temp, to start with a clean slate.
             pipeline = deleteOldStagingData()
+                    // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
+                    //         in proceeding if this fails.
                     .then(findTaaCompliantCountries())
+                    // Step 3: Once we have the TAA countries, start parsing the files.
                     .flatMapMany(taaCountryCodes -> {
-                        // Download all XSB files from the source specified in the trigger (SFTP, S3 or Local) to the temp dir.
+                        // Step 3.1: Download all XSB files from the source specified in the trigger (SFTP, S3 or Local)
+                        //           to the temp dir.
                         Flux<Path> xsbFiles = analysisSourceFactory
                                 .analysisSource(trigger)
                                 .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
+                       // Step 3.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that has
+                        //          the enrichment data as a JSON blob.
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
+                    // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
+                    // Step 4: As XsbData becomes available on the stream, start saving the record in the staging table.
                     .flatMap(this::saveDataRecordToStaging, 100)
+                    // Bookkeeping, and stats reporting.
                     .doOnNext(e -> {
                         Instant currentTime = Instant.now();
                         int numRecordsSavedSoFar = dbCounter.incrementAndGet();
@@ -108,17 +127,23 @@ public class AnalysisDataProcessingService {
                         }
                     })
                     .doOnComplete(() -> log.info("Finished saving a total of {} records to the staging table.", dbCounter.get()))
+                    // Step 5: Final step, move the data from staging table to the final table.
                     .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())));
         }
 
-        // Start the pipeline for parsing files and storing data in the database
+        // Add steps for saving error files, generate a final report and return the pipeline for consumption and starting the process.
         return pipeline
+                // Save all the error files, if any, in S3
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
+                // Get final results like, how many records saved, how many and what kind of errors encountered etc.
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
+                // Before the pipeline starts, initialize the error handler and reset counter
                 .doFirst(() -> {
                     errorHandler.init(xsbDataParser.getHeaderString());
                     dbCounter.set(0);
                 })
+                // Finally, no mater if an exception is encountered, execute this block which resets the lock, closed
+                // the error handler, deleted temporary directory and generates a final report.
                 .doFinally(s -> {
                     executing.compareAndSet(true, false);
                     errorHandler.close();

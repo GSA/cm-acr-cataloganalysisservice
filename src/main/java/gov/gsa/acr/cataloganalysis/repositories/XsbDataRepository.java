@@ -12,12 +12,12 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     String MOVE_XSB_DATA_QUERY = """
             WITH moved_rows AS (
             	DELETE FROM xsb_data_temp
-            	RETURNING contract_number, manufacturer, part_number, xsb_data, created_date, modified_date
+            	RETURNING contract_number, manufacturer, part_number, xsb_data, true as is_source_bimonthly_file, created_date, modified_date
             )
-            INSERT INTO xsb_data (contract_number, manufacturer, part_number, xsb_data, created_date, modified_date)
+            INSERT INTO xsb_data (contract_number, manufacturer, part_number, xsb_data, is_source_bimonthly_file, created_date, modified_date)
             SELECT * FROM moved_rows
             ON CONFLICT (contract_number, manufacturer, part_number)
-            DO UPDATE SET xsb_data=EXCLUDED.xsb_data, modified_date=EXCLUDED.modified_date
+            DO UPDATE SET xsb_data=EXCLUDED.xsb_data,  is_source_bimonthly_file=EXCLUDED.is_source_bimonthly_file, modified_date=EXCLUDED.modified_date
             """;
 
     String INSERT_INTO_XSB_DATA_TEMP = """
