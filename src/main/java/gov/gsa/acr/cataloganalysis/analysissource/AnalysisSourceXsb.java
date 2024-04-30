@@ -165,7 +165,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
 
     /**
      * Download files from the XSB server and generate a stream of paths of the downloaded files. Since file name
-     * could be a glob line pattern, there could be multiple files that may match the pattern
+     * could be a glob like pattern, there could be multiple files that may match the pattern
      *
      * @param sourceFolder      An optional source folder to search the files in SFTP server. If this is not provided
      *                          then the default "/reports" folder is searched on the server
