@@ -132,34 +132,4 @@ class AnalysisDataProcessingService2Test {
     }
 
 
-    @Test
-    void testDownload_ErrorCreatingTmpDir() throws IOException {
-        Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
-        Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("Dummy");
-        trigger.setUniqueFileNames(uniqueFileNames);
-
-        when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.downloadReports(trigger));
-
-        assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
-
-    }
-
-
-    @Test
-    void testParse_ErrorCreatingTmpDir() throws IOException {
-        Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
-        Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("Dummy");
-        trigger.setUniqueFileNames(uniqueFileNames);
-
-        when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
-        RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.parseXsbFiles(trigger));
-
-        assertEquals("Unexpected Error creating tmp directory", thrown.getMessage());
-    }
-
 }

@@ -105,17 +105,17 @@ public class AnalysisDataProcessingService {
                     .then(findTaaCompliantCountries())
                     // Step 3: Once we have the TAA countries, start parsing the files.
                     .flatMapMany(taaCountryCodes -> {
-                        // Step 3.1: Download all XSB files from the source specified in the trigger (SFTP, S3 or Local)
+                        // Step 3.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
                         //           to the temp dir.
                         Flux<Path> xsbFiles = analysisSourceFactory
                                 .analysisSource(trigger)
                                 .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
-                       // Step 3.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that has
-                        //          the enrichment data as a JSON blob.
+                        // Step 3.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
+                        //          has the enrichment data as a JSON blob.
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
-                    // Step 4: As XsbData becomes available on the stream, start saving the record in the staging table.
+                    // Step 4: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(this::saveDataRecordToStaging, 100)
                     // Bookkeeping, and stats reporting.
                     .doOnNext(e -> {
@@ -479,49 +479,6 @@ public class AnalysisDataProcessingService {
         else log("Finished without any issues!!", Level.INFO, report);
         log("========================================================", Level.INFO, report);
         return report;
-    }
-
-
-    // TBD: Only for the demo. Delete later
-    public Flux<Path> downloadReports(Trigger trigger) {
-        errorHandler.init(null);
-        String tmpdir;
-        Trigger.validate(trigger);
-        try {
-            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException("Unexpected Error creating tmp directory", e);
-        }
-
-        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-        return analysisSourceFactory.analysisSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir)
-                .doOnComplete(() -> log.info("Finished downloading all files."))
-                .doFinally(s -> {
-                    errorHandler.close();
-                    deleteDir(Path.of(tmpdir));
-                });
-    }
-
-
-    // TBD: Only for the demo. Delete later
-    public Flux<XsbData> parseXsbFiles(Trigger trigger) {
-        errorHandler.init(null);
-        String tmpdir;
-        Trigger.validate(trigger);
-        try {
-            tmpdir = Files.createTempDirectory("xsbReports").toFile().getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException("Unexpected Error creating tmp directory", e);
-        }
-
-        Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-
-        Flux<Path> xsbFiles = analysisSourceFactory.analysisSource(trigger).getAnalyzedCatalogs(trigger.getSourceFolder(), uniqueFileNames, tmpdir);
-
-        // Start the pipeline for parsing files and storing data in the database
-        return findTaaCompliantCountries()
-                .flatMapMany(taaCountryCodes -> parseXsbFiles(xsbFiles, taaCountryCodes, false))
-                .doFinally(s -> deleteDir(Path.of(tmpdir)));
     }
 
 }

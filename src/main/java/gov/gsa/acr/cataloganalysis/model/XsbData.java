@@ -56,7 +56,12 @@ public class XsbData {
             sb.append("Invalid data, contract number cannot be NULL or Blank.");
             sb.append(ls);
         }
-        else this.setContractNumber(contractNumber);
+        else {
+            this.setContractNumber(contractNumber);
+            // TBD - uncomment these once ready to remove _refresh from contract number
+            //int refreshIndex = contractNumber.indexOf("_refresh");
+            //this.setContractNumber(refreshIndex < 0 ? contractNumber : contractNumber.substring(0, refreshIndex));
+        }
 
         // manufacturerName
         String manufacturerName = xsbDataAsAMap.get("manufacturerName");
