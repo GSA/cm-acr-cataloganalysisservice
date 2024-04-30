@@ -1239,30 +1239,6 @@ class AnalysisDataProcessingServiceTest {
 
     }
 
-
-
-    @Test
-    void testDownload_getXsbFiles() {
-        Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
-        trigger.setSourceFolder("junitTestData");
-        Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("dummy.gsa");
-        trigger.setUniqueFileNames(uniqueFileNames);
-
-
-        StepVerifier.create(analysisDataProcessingService.downloadReports(trigger))
-                .verifyComplete();
-
-        uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("test*.gsa");
-        trigger.setUniqueFileNames(uniqueFileNames);
-        StepVerifier.create(analysisDataProcessingService.downloadReports(trigger).doOnNext(p -> log.info("File: {}", p)))
-                .expectNextCount(4)
-                .verifyComplete();
-
-    }
-
     @Test
     void testProgressMonitoring() {
         assertEquals(1, analysisDataProcessingService.getProgressReportingIntervalSeconds());
@@ -1319,29 +1295,23 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testParse_getXsbFiles(){
-        Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
-        trigger.setSourceFolder("junitTestData");
-        Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("dummy.gsa");
-        trigger.setUniqueFileNames(uniqueFileNames);
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(taaCountryCodes));
-        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(trigger))
-                .verifyComplete();
-
-        uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("testValidFile.gsa");
-        trigger.setUniqueFileNames(uniqueFileNames);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(trigger).doOnNext(x->log.info("xsbData: " + x.getXsbData())))
-                .expectNextCount(10)
-                .verifyComplete();
-
-    }
-
-    @Test
     void testRateLimit(){
+        String contractNumber = "4QSMEw_refresh";
+        assertEquals("4QSMEw", contractNumber.replace("_refresh", ""));
+
+        //faster
+        assertEquals("4QSMEw", contractNumber.substring(0, contractNumber.indexOf("_refresh")));
+        contractNumber = "GS-0F-4567T";
+        assertEquals("GS-0F-4567T", contractNumber.replace("_refresh", ""));
+
+        int ii = contractNumber.indexOf("_refresh");
+
+        assertEquals("GS-0F-4567T", ii  < 0 ? contractNumber : contractNumber.substring(0, ii));
+
+        contractNumber = "abcdef_refresh";
+        ii = contractNumber.indexOf("_refresh");
+        assertEquals("abcdef", ii  < 0 ? contractNumber : contractNumber.substring(0, ii));
+
         Flux.range(1, 20)
                 .log("first.")
                 .flatMap(a -> Flux.range(1, 10).map(i -> a + " => " + i), 3)

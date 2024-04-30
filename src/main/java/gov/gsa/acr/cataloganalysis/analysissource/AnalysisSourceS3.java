@@ -28,7 +28,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
         this.errHandler = errHandler;
     }
 
-    private static void checkResult(SdkResponse result) {
+    private static void checkResponse(SdkResponse result) {
         if (result.sdkHttpResponse() == null || !result.sdkHttpResponse().isSuccessful())
             throw new RuntimeException(result.toString());
     }
@@ -45,7 +45,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
             future = s3client.deleteObject(request);
             return Mono.fromFuture(future)
                     .map((response) -> {
-                        checkResult(response);
+                        checkResponse(response);
                         return response.sdkHttpResponse().isSuccessful();
                     })
                     .onErrorResume(e -> {
@@ -73,7 +73,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
                             .build(), source);
             return Mono.fromFuture(future)
                     .map((response) -> {
-                        checkResult(response);
+                        checkResponse(response);
                         return destination;
                     })
                     .onErrorResume(e -> {
@@ -116,7 +116,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
 
             return Mono.fromFuture(s3client.getObject(request, destinationPath))
                     .map(response -> {
-                        checkResult(response);
+                        checkResponse(response);
                         return destinationPath;
                     })
                     .doOnSuccess(p -> log.info("Downloaded {} file from S3 to {}", key, p))
