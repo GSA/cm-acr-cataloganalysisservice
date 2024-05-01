@@ -4,7 +4,10 @@ import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.lang.reflect.InvocationTargetException;
 
 
 /**
@@ -36,6 +39,18 @@ public class TransactionalDataService {
 
     public Mono<Void> update(){return xsbDataRepository.moveXsbData();}
     public Mono<Void> replace(){return xsbDataRepository.deleteAll().then(Mono.defer(this::update));}
+
+    public Flux<Void> updatePartitionByPartition(int numPartitions){
+        return Flux.range(0, numPartitions)
+                .flatMap(partition -> {
+                    try {
+                        java.lang.reflect.Method method = xsbDataRepository.getClass().getMethod("moveXsbData_"+partition);
+                        Mono<Void> voidMono = (Mono<Void>) method.invoke(xsbDataRepository);
+                        return voidMono.doOnSuccess(s-> log.info("Finished moving data from partition xsb_data_temp_{} to xsb_data", partition));
+                    } catch (SecurityException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) { return Mono.error(new IllegalArgumentException(e)); }
+                }, 2);
+
+    }
 
     // TBD this is just for testing. Delete once code is tested thoroughly
     public Mono<Void> testRollbackUpdate(){return update().then(Mono.error(new Exception("Update Forced Error")));}

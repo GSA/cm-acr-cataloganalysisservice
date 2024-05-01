@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -1312,12 +1311,31 @@ class AnalysisDataProcessingServiceTest {
         ii = contractNumber.indexOf("_refresh");
         assertEquals("abcdef", ii  < 0 ? contractNumber : contractNumber.substring(0, ii));
 
-        Flux.range(1, 20)
+
+
+        Flux.range(0, 20)
                 .log("first.")
-                .flatMap(a -> Flux.range(1, 10).map(i -> a + " => " + i), 3)
+                .flatMap(a -> {
+                    if (a == 0) return Mono.just('a').doFinally(s -> log.info("a completed"));
+                    if (a == 1) return Mono.just('b').doFinally(s -> log.info("b completed"));
+                    if (a == 2) return Mono.just('c').doFinally(s -> log.info("c completed"));
+                    if (a == 3) return Mono.just('d').doFinally(s -> log.info("d completed"));
+                    if (a == 4) return Mono.just('e').doFinally(s -> log.info("e completed"));
+                    if (a == 5) return Mono.just('f').doFinally(s -> log.info("f completed"));
+                    if (a == 6) return Mono.just('g').doFinally(s -> log.info("g completed"));
+                    if (a == 7) return Mono.just('h').doFinally(s -> log.info("h completed"));
+                    if (a == 8) return Mono.just('i').doFinally(s -> log.info("i completed"));
+                    if (a == 9) return Mono.just('j').doFinally(s -> log.info("j completed"));
+                    if (a == 10) return Mono.error(new RuntimeException("Dummy 10"));
+                    return Mono.just('z');
+
+                }, 5)
                 .log("second.")
-                .flatMap(a -> Mono.just(a + " saved").delayElement(Duration.ofMillis(100)), 20)
-                .log("third.")
+                .doOnComplete(() -> log.info("CompletedCompleted"))
+                .onErrorResume(e -> {
+                    log.error("ErrorErrorError ", e);
+                    return Flux.empty();
+                })
                 .blockLast();
     }
 }

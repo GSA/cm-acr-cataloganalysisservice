@@ -190,6 +190,6 @@ public class AnalysisSourceS3 implements AnalysisSource {
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = getScrubbedSourceDir(sourceFolder);
         if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder));
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder), 5);
     }
 }
