@@ -9,6 +9,7 @@ import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,11 @@ public class AnalysisDataProcessingService {
     @Value("${progress.reporting.interval.seconds:30}")
     @Getter
     private int progressReportingIntervalSeconds;
+
+    @Value("${num.table.partitions:20}")
+    @Getter
+    @Setter
+    private int numPartitions;
 
     private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
@@ -98,11 +104,10 @@ public class AnalysisDataProcessingService {
         }
         else {
             // This is the full pipeline where the following happens --
-            // Step 1. Delete any old data in the staging table, xsb_data_temp, to start with a clean slate.
-            pipeline = deleteOldStagingData()
-                    // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
-                    //         in proceeding if this fails.
-                    .then(findTaaCompliantCountries())
+
+            // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
+            //         in proceeding if this fails.
+            pipeline = findTaaCompliantCountries()
                     // Step 3: Once we have the TAA countries, start parsing the files.
                     .flatMapMany(taaCountryCodes -> {
                         // Step 3.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
@@ -340,7 +345,7 @@ public class AnalysisDataProcessingService {
                  }
                  else {
                      // TBD Delete the test rollback code
-                     if (forcedError == 0) rtrn = transactionalDataService.update();
+                     if (forcedError == 0) rtrn = transactionalDataService.updatePartitionByPartition(numPartitions).ignoreElements();
                      else rtrn = transactionalDataService.testRollbackUpdate();
                  }
 
