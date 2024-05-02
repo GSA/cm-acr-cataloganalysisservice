@@ -36,24 +36,31 @@ public class TransactionalDataService {
     public TransactionalDataService(XsbDataRepository xsbDataRepository) {
         this.xsbDataRepository = xsbDataRepository;
     }
-
-    public Mono<Void> update(){return xsbDataRepository.moveXsbData();}
-    public Mono<Void> replace(){return xsbDataRepository.deleteAll().then(Mono.defer(this::update));}
-
-    public Flux<Void> updatePartitionByPartition(int numPartitions){
+    public Flux<Void> replace(int numPartiions){return xsbDataRepository.deleteAll().thenMany(Flux.defer(() -> update(numPartiions)));}
+    /**
+     * It's very important that we move the records from staging to the final table inside of a DB transaction. In case
+     * anything goes wrong, the transaction will be rolled back and the integrity of the production table will remain
+     * intact. However, if we move ALL the records (70-80 Million) of them in one DB call, the query will take a long
+     * time and a there is a chance of client timing out. The TCP channel might time out after being inactive for such
+     * a long time, or the statement_timeout might kick in. To prevent all that this method moves data from staging to
+     * production table partition by partition. Each partition has a reasonable number of rows, and that does not take
+     * very long. But please realize that data movement from all partitions share the same transaction so even if there
+     * is an error from one of the partition, the entire transaction will be rolled back and this code will ensure the
+     * integrity of the production table.
+     * @param numPartitions number of table partitions.
+     * @return a void flux
+     */
+    public Flux<Void> update(int numPartitions){
         return Flux.range(0, numPartitions)
                 .flatMap(partition -> {
                     try {
                         java.lang.reflect.Method method = xsbDataRepository.getClass().getMethod("moveXsbData_"+partition);
                         Mono<Void> voidMono = (Mono<Void>) method.invoke(xsbDataRepository);
-                        return voidMono.doOnSuccess(s-> log.info("Finished moving data from partition xsb_data_temp_{} to xsb_data", partition));
+                        return voidMono
+                                .doFirst(() -> log.info("Moving xsb_data_temp_{}", partition))
+                                .doOnSuccess(s-> log.info("Moved xsb_data_temp_{}", partition));
                     } catch (SecurityException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) { return Mono.error(new IllegalArgumentException(e)); }
                 }, 2);
 
     }
-
-    // TBD this is just for testing. Delete once code is tested thoroughly
-    public Mono<Void> testRollbackUpdate(){return update().then(Mono.error(new Exception("Update Forced Error")));}
-    // TBD this is just for testing. Delete once code is tested thoroughly
-    public Mono<Void> testRollbackReplace(){return replace().then(Mono.error(new Exception("Replace Forced Error")));}
 }
