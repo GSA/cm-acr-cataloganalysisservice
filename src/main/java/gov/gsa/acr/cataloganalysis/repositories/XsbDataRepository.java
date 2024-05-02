@@ -9,7 +9,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integer> {
-    String MOVE_XSB_DATA_QUERY = """
+    /*
+            The Query used to move data from the staging table to the production table. This is an upsert query.
+
             WITH moved_rows AS (
             	DELETE FROM xsb_data_temp
             	RETURNING contract_number, manufacturer, part_number, xsb_data, true as is_source_bimonthly_file, created_date, modified_date
@@ -18,7 +20,8 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
             SELECT * FROM moved_rows
             ON CONFLICT (contract_number, manufacturer, part_number)
             DO UPDATE SET xsb_data=EXCLUDED.xsb_data,  is_source_bimonthly_file=EXCLUDED.is_source_bimonthly_file, modified_date=EXCLUDED.modified_date
-            """;
+
+     */
 
     String MOVE_XSB_DATA_QUERY_PART_1 = """
             WITH moved_rows AS (
@@ -41,17 +44,8 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
             RETURNING id
             """;
 
-
-
     @Query(value = "SELECT count(*) FROM xsb_data_temp")
     Mono<Integer> xsbDataTempCount();
-
-    @Query(value = "SELECT * FROM xsb_data x WHERE x.contract_number = :contractNumber LIMIT :limit OFFSET :offset")
-    Flux<XsbData> findAllByContractNumber(String contractNumber, Integer limit, Integer offset);
-
-
-    @Query(value = MOVE_XSB_DATA_QUERY)
-    Mono<Void> moveXsbData();
 
     @Query(value = MOVE_XSB_DATA_QUERY_PART_1 + "0 " + MOVE_XSB_DATA_QUERY_PART_2)
     Mono<Void> moveXsbData_0();

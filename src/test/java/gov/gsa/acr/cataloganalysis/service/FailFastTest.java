@@ -225,7 +225,26 @@ public class FailFastTest {
 
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -248,7 +267,26 @@ public class FailFastTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(1)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
 
     }

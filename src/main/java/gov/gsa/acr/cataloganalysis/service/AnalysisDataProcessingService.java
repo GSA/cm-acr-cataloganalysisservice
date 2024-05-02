@@ -9,7 +9,6 @@ import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +23,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,8 +41,6 @@ public class AnalysisDataProcessingService {
     private int progressReportingIntervalSeconds;
 
     @Value("${num.table.partitions:20}")
-    @Getter
-    @Setter
     private int numPartitions;
 
     private final AtomicBoolean executing = new AtomicBoolean();
@@ -335,19 +335,12 @@ public class AnalysisDataProcessingService {
                  return Mono.empty();
              }
 
-             Integer forcedError = trigger.getForcedError();
              if (errorHandler.totalErrorsWithinAcceptableThreshold()){
                  log.info(msg);
-                 if (trigger.getPurgeOldData()) {
-                     // TBD Delete the test rollback code
-                     if (forcedError == 0) rtrn = transactionalDataService.replace();
-                     else rtrn = transactionalDataService.testRollbackReplace();
-                 }
-                 else {
-                     // TBD Delete the test rollback code
-                     if (forcedError == 0) rtrn = transactionalDataService.updatePartitionByPartition(numPartitions).ignoreElements();
-                     else rtrn = transactionalDataService.testRollbackUpdate();
-                 }
+                 if (trigger.getPurgeOldData())
+                     rtrn = transactionalDataService.replace(numPartitions).ignoreElements();
+                 else
+                     rtrn = transactionalDataService.update(numPartitions).ignoreElements();
 
                  return rtrn
                          .doOnSuccess(s -> log.info("Finished moving a total of {} records to the final xsb_data table", recordCount))
