@@ -47,8 +47,8 @@ public class TransactionalDataService {
      * very long. But please realize that data movement from all partitions share the same transaction so even if there
      * is an error from one of the partition, the entire transaction will be rolled back and this code will ensure the
      * integrity of the production table.
-     * @param numPartitions
-     * @return
+     * @param numPartitions number of table partitions.
+     * @return a void flux
      */
     public Flux<Void> update(int numPartitions){
         return Flux.range(0, numPartitions)

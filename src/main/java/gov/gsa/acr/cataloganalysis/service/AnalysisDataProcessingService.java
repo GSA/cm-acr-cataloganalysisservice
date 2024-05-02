@@ -414,7 +414,7 @@ public class AnalysisDataProcessingService {
      *
      * @param errorFileNames Names of all the error files generated during the run.
      * @param errorHandler   The error handler has all the valuable information regarding what worked and what failed.
-     * @param recordCount
+     * @param recordCount the number of records saved in the database
      * @return A data object holding the metrics of the data upload process execution.
      */
     Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler, int recordCount) {
