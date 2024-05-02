@@ -23,7 +23,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,6 +39,9 @@ public class AnalysisDataProcessingService {
     @Value("${progress.reporting.interval.seconds:30}")
     @Getter
     private int progressReportingIntervalSeconds;
+
+    @Value("${num.table.partitions:20}")
+    private int numPartitions;
 
     private final AtomicBoolean executing = new AtomicBoolean();
     private final XsbDataRepository xsbDataRepository;
@@ -98,11 +104,10 @@ public class AnalysisDataProcessingService {
         }
         else {
             // This is the full pipeline where the following happens --
-            // Step 1. Delete any old data in the staging table, xsb_data_temp, to start with a clean slate.
-            pipeline = deleteOldStagingData()
-                    // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
-                    //         in proceeding if this fails.
-                    .then(findTaaCompliantCountries())
+
+            // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
+            //         in proceeding if this fails.
+            pipeline = findTaaCompliantCountries()
                     // Step 3: Once we have the TAA countries, start parsing the files.
                     .flatMapMany(taaCountryCodes -> {
                         // Step 3.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
@@ -330,19 +335,12 @@ public class AnalysisDataProcessingService {
                  return Mono.empty();
              }
 
-             Integer forcedError = trigger.getForcedError();
              if (errorHandler.totalErrorsWithinAcceptableThreshold()){
                  log.info(msg);
-                 if (trigger.getPurgeOldData()) {
-                     // TBD Delete the test rollback code
-                     if (forcedError == 0) rtrn = transactionalDataService.replace();
-                     else rtrn = transactionalDataService.testRollbackReplace();
-                 }
-                 else {
-                     // TBD Delete the test rollback code
-                     if (forcedError == 0) rtrn = transactionalDataService.update();
-                     else rtrn = transactionalDataService.testRollbackUpdate();
-                 }
+                 if (trigger.getPurgeOldData())
+                     rtrn = transactionalDataService.replace(numPartitions).ignoreElements();
+                 else
+                     rtrn = transactionalDataService.update(numPartitions).ignoreElements();
 
                  return rtrn
                          .doOnSuccess(s -> log.info("Finished moving a total of {} records to the final xsb_data table", recordCount))
@@ -416,7 +414,7 @@ public class AnalysisDataProcessingService {
      *
      * @param errorFileNames Names of all the error files generated during the run.
      * @param errorHandler   The error handler has all the valuable information regarding what worked and what failed.
-     * @param recordCount
+     * @param recordCount the number of records saved in the database
      * @return A data object holding the metrics of the data upload process execution.
      */
     Mono<DataUploadResults> getDataUploadResults(List<String> errorFileNames, ErrorHandler errorHandler, int recordCount) {

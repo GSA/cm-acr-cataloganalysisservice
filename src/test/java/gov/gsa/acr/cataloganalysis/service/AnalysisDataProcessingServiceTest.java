@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -290,7 +289,26 @@ class AnalysisDataProcessingServiceTest {
                 .verifyComplete();
         Mockito.verify(errorHandler, Mockito.never()).totalErrorsWithinAcceptableThreshold();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), anyString(), any(Exception.class));
     }
 
@@ -302,7 +320,26 @@ class AnalysisDataProcessingServiceTest {
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), anyString(), any(Exception.class));
     }
 
@@ -318,7 +355,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(errorHandler, Mockito.times(1)).totalErrorsWithinAcceptableThreshold();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -336,7 +392,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(errorHandler, Mockito.times(0)).totalErrorsWithinAcceptableThreshold();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -352,7 +427,26 @@ class AnalysisDataProcessingServiceTest {
                 .verifyComplete();
 
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -368,7 +462,26 @@ class AnalysisDataProcessingServiceTest {
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 5))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -384,7 +497,26 @@ class AnalysisDataProcessingServiceTest {
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 50))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -397,12 +529,31 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new IllegalArgumentException("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenThrow(e);
+        when(xsbDataRepository.moveXsbData_0()).thenThrow(e);
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
-        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), Mockito.any(IllegalArgumentException.class));
     }
 
     @Test
@@ -414,11 +565,30 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new Exception("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.error(e));
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -431,11 +601,30 @@ class AnalysisDataProcessingServiceTest {
         Exception e = new Exception("Dummy");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.error(e));
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.error(e));
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(eq(""), eq(errMsg), eq(e));
     }
 
@@ -448,11 +637,49 @@ class AnalysisDataProcessingServiceTest {
         trigger.setPurgeOldData(Boolean.TRUE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), eq(errMsg), any(Exception.class));
     }
 
@@ -464,11 +691,50 @@ class AnalysisDataProcessingServiceTest {
         trigger.setPurgeOldData(Boolean.FALSE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), eq(errMsg), any(Exception.class));
     }
 
@@ -477,15 +743,15 @@ class AnalysisDataProcessingServiceTest {
         String msg = "Moving 12 product(s) in bulk from staging (xsb_data_temp) table to the final (xsb_data) table.";
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
-        trigger.setForcedError(1);
         trigger.setPurgeOldData(Boolean.TRUE);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.error(new RuntimeException("testUpdate_InvalidNumberOfPartitions")));
+
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 12))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), any(Exception.class));
     }
 
@@ -495,14 +761,13 @@ class AnalysisDataProcessingServiceTest {
         String errMsg = "Error: " + msg;
         Trigger trigger = new Trigger();
         trigger.setPurgeOldData(Boolean.FALSE);
-        trigger.setForcedError(1);
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenThrow(new RuntimeException("Dummy"));
         StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 7))
                 .verifyComplete();
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), eq(errMsg), any(Exception.class));
     }
 
@@ -966,7 +1231,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectError(RuntimeException.class)
                 .verify();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAllXsbDataTemp();
+        Mockito.verify(xsbDataRepository, Mockito.never()).deleteAllXsbDataTemp();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).findTaaCompliantCountries();
     }
 
@@ -994,7 +1259,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectError(NoSuchElementException.class)
                 .verify();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAllXsbDataTemp();
+        Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAllXsbDataTemp();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).findTaaCompliantCountries();
 
     }
@@ -1034,7 +1299,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.never()).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
 
     }
@@ -1060,7 +1344,26 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -1081,7 +1384,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
@@ -1108,7 +1430,26 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -1129,7 +1470,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
@@ -1157,7 +1517,26 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -1180,7 +1559,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(0)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
         Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
@@ -1210,7 +1608,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -1232,7 +1630,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(0)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
         Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
@@ -1265,7 +1682,27 @@ class AnalysisDataProcessingServiceTest {
             return Mono.just(123);
         });
 
-        when(xsbDataRepository.moveXsbData()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
+
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
@@ -1286,7 +1723,26 @@ class AnalysisDataProcessingServiceTest {
 
         Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
         Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
@@ -1312,12 +1768,31 @@ class AnalysisDataProcessingServiceTest {
         ii = contractNumber.indexOf("_refresh");
         assertEquals("abcdef", ii  < 0 ? contractNumber : contractNumber.substring(0, ii));
 
-        Flux.range(1, 20)
+
+
+        Flux.range(0, 20)
                 .log("first.")
-                .flatMap(a -> Flux.range(1, 10).map(i -> a + " => " + i), 3)
+                .flatMap(a -> {
+                    if (a == 0) return Mono.just('a').doFinally(s -> log.info("a completed"));
+                    if (a == 1) return Mono.just('b').doFinally(s -> log.info("b completed"));
+                    if (a == 2) return Mono.just('c').doFinally(s -> log.info("c completed"));
+                    if (a == 3) return Mono.just('d').doFinally(s -> log.info("d completed"));
+                    if (a == 4) return Mono.just('e').doFinally(s -> log.info("e completed"));
+                    if (a == 5) return Mono.just('f').doFinally(s -> log.info("f completed"));
+                    if (a == 6) return Mono.just('g').doFinally(s -> log.info("g completed"));
+                    if (a == 7) return Mono.just('h').doFinally(s -> log.info("h completed"));
+                    if (a == 8) return Mono.just('i').doFinally(s -> log.info("i completed"));
+                    if (a == 9) return Mono.just('j').doFinally(s -> log.info("j completed"));
+                    if (a == 10) return Mono.error(new RuntimeException("Dummy 10"));
+                    return Mono.just('z');
+
+                }, 5)
                 .log("second.")
-                .flatMap(a -> Mono.just(a + " saved").delayElement(Duration.ofMillis(100)), 20)
-                .log("third.")
+                .doOnComplete(() -> log.info("CompletedCompleted"))
+                .onErrorResume(e -> {
+                    log.error("ErrorErrorError ", e);
+                    return Flux.empty();
+                })
                 .blockLast();
     }
 }
