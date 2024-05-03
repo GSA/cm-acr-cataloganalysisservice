@@ -184,8 +184,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
             Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
             rtrn = Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
-                    .publishOn(Schedulers.parallel())
-                    .flatMap(entry -> downloadFromXSBToLocal(sourceFolder, entry, destinationFolder, null));
+                    .flatMap(entry -> downloadFromXSBToLocal(sourceFolder, entry, destinationFolder, null), 3);
         }
         catch (Exception e) {
             log.error(MN + "SFTP failed. Error downloading file: " + fileNamePattern + ". " + e.getMessage(), e);
@@ -216,7 +215,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
         if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder), 5);
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder), 3);
     }
 
 }
