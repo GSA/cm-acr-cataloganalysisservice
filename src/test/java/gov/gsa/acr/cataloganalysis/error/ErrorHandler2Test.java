@@ -51,7 +51,6 @@ class ErrorHandler2Test {
         assertEquals(0, errHandler.getNumParsingErrors().get());
         assertEquals(0, errHandler.getNumDbErrors().get());
         assertEquals(0, errHandler.getNumFileErrors().get());
-        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
         assertEquals("dummy header", errHandler.getHeader());
         assertEquals(2, errHandler.getErrorThreshold());
     }
@@ -66,7 +65,6 @@ class ErrorHandler2Test {
         assertEquals(0, errHandler.getNumParsingErrors().get());
         assertEquals(0, errHandler.getNumDbErrors().get());
         assertEquals(0, errHandler.getNumFileErrors().get());
-        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
         assertEquals("dummy header", errHandler.getHeader());
         assertEquals(2, errHandler.getErrorThreshold());
     }
@@ -87,7 +85,6 @@ class ErrorHandler2Test {
         assertEquals(0, errHandler.getNumParsingErrors().get());
         assertEquals(0, errHandler.getNumDbErrors().get());
         assertEquals(0, errHandler.getNumFileErrors().get());
-        assertEquals(0, errHandler.getNumRecordsSavedInTempDB().get());
         assertEquals("dummy header", errHandler.getHeader());
         assertEquals(2, errHandler.getErrorThreshold());
     }
