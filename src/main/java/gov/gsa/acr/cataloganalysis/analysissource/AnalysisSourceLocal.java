@@ -84,6 +84,6 @@ public class AnalysisSourceLocal implements AnalysisSource {
             log.error(MN + message, e);
             return Flux.empty();
         }
-        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(sourceFolder, f, destinationFolder), 3);
+        return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(sourceFolder, f, destinationFolder), 4);
     }
 }
