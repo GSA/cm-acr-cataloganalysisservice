@@ -284,7 +284,7 @@ public class AnalysisDataProcessingService {
                         Stream::close
                 )
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
-                .publishOn(Schedulers.parallel())
+                //.publishOn(Schedulers.parallel())
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
