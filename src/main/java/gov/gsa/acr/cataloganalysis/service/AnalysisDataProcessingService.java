@@ -121,7 +121,7 @@ public class AnalysisDataProcessingService {
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
                     // Step 4: As XsbData becomes available on the stream, start saving the records in the staging table.
-                    .flatMap(this::saveDataRecordToStaging, 100)
+                    .flatMap(this::saveDataRecordToStaging, 200)
                     // Bookkeeping, and stats reporting.
                     .doOnNext(e -> {
                         Instant currentTime = Instant.now();
