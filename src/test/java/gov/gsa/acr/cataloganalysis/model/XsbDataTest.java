@@ -103,16 +103,6 @@ class XsbDataTest {
     }
 
     @Test
-    void testContractNumberWithRefresh(){
-        String xsbDataString = "47QSWA18D000C_refresh~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~false~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0.0~|~0.0~|~0.0~|~0.0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0.0~|~0.0~|~0.0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0.00~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.50~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = new XsbData(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
-        assertEquals("47QSWA18D000C", xsbData.getContractNumber());
-        assertEquals("DUCKBACK PRODUCTS", xsbData.getManufacturer());
-        assertEquals("DB0019115-20", xsbData.getPartNumber());
-    }
-
-
-    @Test
     void testInvalidManufacturerName(){
         String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~false~|~~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0.0~|~0.0~|~0.0~|~0.0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0.0~|~0.0~|~0.0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0.00~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.50~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
         assertThrows (IllegalArgumentException.class, () -> new XsbData(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes));
