@@ -304,6 +304,7 @@ public class AnalysisDataProcessingService {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
                     // TBD: Retry logic here
                     //.retry(5)
+                    .publishOn(Schedulers.boundedElastic())
                     .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + xsbData, e);
                         errorHandler.handleDBError(xsbData, e.getMessage());
