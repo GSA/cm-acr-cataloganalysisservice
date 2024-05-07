@@ -123,65 +123,6 @@ class AnalysisSourceS3Test {
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name"));
     }
 
-    /*
-    For now we are commenting out all the tests that rely on real calls to S3. If we re-enable these test lately,
-    they will likely be broken, but I'm leaving the code here as a starting point.
-
-    @Test
-    void testGetXSBFiles() {
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_");
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
-                .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
-                .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
-                .expectComplete()
-                .verify();
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(2, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    @Test
-    void testOverwritingFile() throws IOException {
-        // Artificially add a file that we will try to copy over
-        Files.createFile(Path.of ("tmp/getXsbFilesTest_1.gsa"));
-
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
-                .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
-                .expectComplete()
-                .verify();
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(1, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    @Test
-    void testValidSourceFolder() {
-        // Test valid Source Folder
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs(null, null, null))
-                .expectComplete()
-                .verify();
-
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("", null, null))
-                .expectComplete()
-                .verify();
-
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("invalidDirectory", null, null))
-                .expectComplete()
-                .verify();
-    }
-     */
-
     @Test
     void testValidFileNames() {
         // Test valid Filenames
@@ -248,37 +189,6 @@ class AnalysisSourceS3Test {
                 .expectNext(false)
                 .verifyComplete();
     }
-
-
-    /*
-    Commenting out tests that rely on actual calls to S3. We may decide to add these back in later.
-    @Test
-    void testUploadToS3AndDeleteFromS3() {
-        // Did not exist before
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .verifyComplete();
-
-        // upload a test file
-        StepVerifier.create (xsbSourceS3Files.uploadToS3(Path.of("junitTestData/testErrorFile.txt"), "errors/testErrorFile.txt"))
-                .expectNext("errors/testErrorFile.txt")
-                .verifyComplete();
-
-        // Make sure file uploaded correctly
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .expectNext("catalogAnalysis/errors/testErrorFile.txt")
-                .verifyComplete();
-
-
-        StepVerifier.create (xsbSourceS3Files.deleteFromS3("errors/testErrorFile.txt"))
-                .expectNext(true)
-                .verifyComplete();
-
-        // Does not exist after
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .verifyComplete();
-
-    }
-    */
 
     @Test
     void testUploadNonExistentFile() {

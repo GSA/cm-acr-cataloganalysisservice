@@ -783,9 +783,9 @@ class AnalysisDataProcessingServiceTest {
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenThrow(e);
         StepVerifier.create(
-                analysisDataProcessingService.deleteOldStagingData()
-                        .doFirst(() -> firstCalled.compareAndSet(false, true))
-                        .doFinally(s -> finallyCalled.compareAndSet(false, true))
+                        analysisDataProcessingService.deleteOldStagingData()
+                                .doFirst(() -> firstCalled.compareAndSet(false, true))
+                                .doFinally(s -> finallyCalled.compareAndSet(false, true))
                 )
                 .expectError(RuntimeException.class)
                 .verify();
