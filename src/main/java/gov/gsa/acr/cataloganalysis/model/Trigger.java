@@ -59,6 +59,9 @@ public class Trigger {
     private Boolean onlyMoveStagedData = Boolean.FALSE;
 
     @Schema(hidden = true)
+    private Boolean forceQuit = Boolean.FALSE;
+
+    @Schema(hidden = true)
     private Set<String> uniqueFileNames;
 
     public void setFiles(String[] newFiles){

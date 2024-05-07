@@ -32,9 +32,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -166,6 +168,24 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
+    void testParseXsbFileForcedQuit() throws IOException {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.getForceQuit()).thenReturn(true);
+        Path srcFile = Path.of("junitTestData/testValidFile.gsa");
+        Path vallidFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, vallidFile);
+        assertTrue(Files.exists(vallidFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
+        when(errorHandler.getForceQuit()).thenReturn(false);
+    }
+
+
+    @Test
     void testParsingValidFileReturnsImmediatelyWhenTooManyErrors() throws IOException {
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path vallidFile = Path.of("tmp/testValidFile.gsa");
@@ -264,7 +284,24 @@ class AnalysisDataProcessingServiceTest {
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleDBError(eq(xsbData), eq("Dummy"));
+    }
 
+
+    @Test
+    void testSaveInvalidDataRecordToStagingForcedQuit() {
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.error(new RuntimeException("Dummy")));
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.getForceQuit()).thenReturn(true);
+        XsbData xsbData = new XsbData();
+        xsbData.setContractNumber("contract number");
+        xsbData.setManufacturer("manufacturer");
+        xsbData.setPartNumber("part number");
+        xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(eq(xsbData), eq("Dummy"));
+        when(errorHandler.getForceQuit()).thenReturn(false);
     }
 
 
@@ -280,6 +317,22 @@ class AnalysisDataProcessingServiceTest {
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(any(XsbData.class), anyString());
+    }
+
+
+    @Test
+    void testSaveDataRecordToStagingForcedQuit() {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.getForceQuit()).thenReturn(true);
+        String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(1));
+        StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(any(XsbData.class), anyString());
+        when(errorHandler.getForceQuit()).thenReturn(false);
     }
 
     @Test
@@ -342,6 +395,40 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(""), anyString(), any(Exception.class));
     }
+
+    @Test
+    void testDontMoveDataFromStagingToFinalForceQuit() {
+        Trigger trigger = new Trigger();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.getForceQuit()).thenReturn(true);
+        StepVerifier.create(analysisDataProcessingService.moveDataFromStagingToFinal(trigger, 1))
+                .verifyComplete();
+        Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(eq(""), anyString(), any(Exception.class));
+        when(errorHandler.getForceQuit()).thenReturn(true);
+    }
+
+
 
     @Test
     void testDontMoveDataFromStagingToFinal_totalErrorsWithinAccepatableThresholdException() {
@@ -917,42 +1004,110 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        doCallRealMethod().when(errorHandler).setForceQuit(anyBoolean());
+        doCallRealMethod().when(errorHandler).getForceQuit();
+        doCallRealMethod().when(errorHandler).getErrorFiles();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
         errorHandler.setErrorDirectory(errorDirectory);
-        when(xsbDataRepository.deleteAllXsbDataTemp()).thenAnswer((Answer<Mono<Void>>) invocationOnMock -> {
-            Thread.sleep(200);
-            return Mono.error(e);
-        });
 
-        ExecutorService service = Executors.newFixedThreadPool(2);
+        Mono<DataUploadResults> mono = analysisDataProcessingService.triggerDataUpload(trigger);
+        ExecutorService service = Executors.newFixedThreadPool(1);
         service.submit(() -> {
             log.info("Triggered first time");
+            mono.subscribe(results -> log.info("First process results {}", results), ex -> log.error("Unexpected Error", ex));
+        });
+
+        Thread.sleep(1000);
+
+        log.info("Triggered second time");
+        try {
             StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
-                    .verifyError(RuntimeException.class);
-        });
+                    .verifyError(ConcurrentModificationException.class);
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        } catch (ConcurrentModificationException ex) {
+            log.info("Test Passed: Expected ConcurrentModificationException");
+            assertEquals("Process is currently running!", ex.getMessage());
+        } catch (Exception exception){
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        }
 
-        service.submit(() -> {
-            log.info("Triggered second time");
-            try {
-                StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
-                        .verifyError(ConcurrentModificationException.class);
-                fail("Test Failed: Expected a ConcurrentModificationException");
-            } catch (ConcurrentModificationException ex) {
-                log.info("Test Passed: Expected ConcurrentModificationException");
-            } catch (Exception exception){
-                fail("Test Failed: Expected a ConcurrentModificationException");
-            }
-        });
-
+        service.awaitTermination(20, TimeUnit.SECONDS);
         Thread.sleep(10000);
         try {
             log.info("Triggered third time");
+            when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
             StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                     .verifyError(RuntimeException.class);
+            log.info("Test Passed again: Did not expect a ConcurrentModificationException now");
         } catch (ConcurrentModificationException ex) {
-            log.error("Process is still running", e);
+            fail("ConcurrentModificationException Should NOT have been thrown now.");
         }
     }
+
+
+    @Test
+    void testTriggerDataupload_simultaneousThreads() throws InterruptedException {
+        Trigger trigger = new Trigger () {
+            @Override
+            public Set<String> getUniqueFileNames(){
+                try {
+                    log.info("Dummy subclass, sleeping 10 seconds to create a race condition");
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                return super.getUniqueFileNames();
+            }
+        };
+
+
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("emptyFile_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        doCallRealMethod().when(errorHandler).setForceQuit(anyBoolean());
+        doCallRealMethod().when(errorHandler).getForceQuit();
+        doCallRealMethod().when(errorHandler).getErrorFiles();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        service.submit(() -> {
+            Mono<DataUploadResults> mono = analysisDataProcessingService.triggerDataUpload(trigger);
+            log.info("Triggered first time");
+            mono.subscribe(results -> log.info("Results: " + results), ex -> log.error("Unexpected Error", ex));
+        });
+        Thread.sleep(2000);
+
+        log.info("Triggered second time");
+        try {
+            Mono<DataUploadResults> mono2 = analysisDataProcessingService.triggerDataUpload(trigger);
+            assertNull(mono2);
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        } catch (ConcurrentModificationException ex) {
+            assertEquals("Process is currently running! Cannot run more than one data uploads at the same time.", ex.getMessage());
+            log.info("Test Passed: Expected ConcurrentModificationException");
+        } catch (Exception exception){
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        }
+
+        service.awaitTermination(20, TimeUnit.SECONDS);
+       //Thread.sleep(10000);
+
+    }
+
+
 
     @Test
     void testTriggerDataUpload_nullTrigger() {
@@ -1291,6 +1446,7 @@ class AnalysisDataProcessingServiceTest {
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1376,6 +1532,7 @@ class AnalysisDataProcessingServiceTest {
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1462,6 +1619,7 @@ class AnalysisDataProcessingServiceTest {
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1551,6 +1709,7 @@ class AnalysisDataProcessingServiceTest {
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1715,6 +1874,7 @@ class AnalysisDataProcessingServiceTest {
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1795,4 +1955,78 @@ class AnalysisDataProcessingServiceTest {
                 })
                 .blockLast();
     }
+
+
+    @Test
+    void testTriggerDataUpload_forceQuitNoProcessRunning() {
+        Trigger trigger = new Trigger();
+        trigger.setForceQuit(Boolean.TRUE);
+        DataUploadResults expected = new DataUploadResults();
+        expected.setForcedQuit(Boolean.TRUE);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
+        assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
+    }
+
+    @Test
+    void testTriggerDataUpload_forceQuitProcessRunning() throws InterruptedException {
+
+        Exception e = new RuntimeException("Dummy RuntimeException");
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("emptyFile_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        Trigger trigger2 = new Trigger();
+        trigger2.setForceQuit(Boolean.TRUE);
+
+        DataUploadResults expected = new DataUploadResults();
+        expected.setForcedQuit(Boolean.TRUE);
+
+
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        doCallRealMethod().when(errorHandler).setForceQuit(anyBoolean());
+        doCallRealMethod().when(errorHandler).getForceQuit();
+        doCallRealMethod().when(errorHandler).getErrorFiles();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        Mono<DataUploadResults> mono = analysisDataProcessingService.triggerDataUpload(trigger);
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        service.submit(() -> {
+            log.info("Triggered first time");
+            mono.subscribe(results -> assertTrue(results.getForcedQuit()), ex -> log.error("Unexpected Error", ex));
+        });
+
+
+
+        log.info("About to sleep for 2 seconds");
+        Thread.sleep(2000);
+        log.info("Woke up after 2 second nap. ");
+
+        assertFalse(errorHandler.getForceQuit());
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger2).doOnSuccess(results -> log.info("Results " + results)))
+                .expectNext(expected)
+                .verifyComplete();
+        assertTrue(errorHandler.getForceQuit());
+
+        service.awaitTermination(20, TimeUnit.SECONDS);
+        log.info("Thread finished. Wait few more seconds to let the messages pring");
+        Thread.sleep(10000);
+        log.info("Finished ");
+
+    }
+
+
 }
+
+
+

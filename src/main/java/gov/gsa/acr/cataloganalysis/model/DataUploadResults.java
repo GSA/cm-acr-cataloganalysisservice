@@ -11,4 +11,5 @@ public class DataUploadResults {
     private Integer numDbErrors;
     private Integer numFileErrors;
     private Integer numRecordsSavedInTempDB;
+    private Boolean forcedQuit;
 }

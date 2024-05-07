@@ -59,7 +59,18 @@ public class AnalysisDataProcessingService {
      */
     public Mono<DataUploadResults> triggerDataUpload(Trigger trigger) {
         // Already executing? Exit if it is already executing.
-        if (executing.get()) throw new ConcurrentModificationException("Process is currently running!");
+        if (executing.get()) {
+            // This is to be used only in special circumstances to force quit the process. Mainly to be used during the
+            // development/bug fixing phase where the process has to be killed before it completes, specially if it is
+            // taking a long time to complete.
+            if (trigger.getForceQuit()) {
+                errorHandler.setForceQuit(Boolean.TRUE);
+                DataUploadResults results = new DataUploadResults();
+                results.setForcedQuit(Boolean.TRUE);
+                return Mono.just(results);
+            }
+            else throw new ConcurrentModificationException("Process is currently running!");
+        }
         // Trigger validation throws an IllegalArgumentException if invalid.
         Trigger.validate(trigger);
         // Variables needed for reporting Progress every so often
@@ -121,7 +132,7 @@ public class AnalysisDataProcessingService {
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
                     // Step 4: As XsbData becomes available on the stream, start saving the records in the staging table.
-                    .flatMap(this::saveDataRecordToStaging, 200)
+                    .flatMap(this::saveDataRecordToStaging)
                     // Bookkeeping, and stats reporting.
                     .doOnNext(e -> {
                         Instant currentTime = Instant.now();
@@ -264,6 +275,12 @@ public class AnalysisDataProcessingService {
             return Flux.empty();
         }
 
+        // Check if we are asked to force quit.
+        if (errorHandler.getForceQuit()) {
+            log.info("Terminating: The process is being forced to exit!");
+            return Flux.empty();
+        }
+
         // First read the header row (First row of the File) and makes sure its valid
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             String header = rawProductsFromXSB.findFirst().get();
@@ -285,6 +302,7 @@ public class AnalysisDataProcessingService {
                 )
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 //.publishOn(Schedulers.parallel())
+                .publishOn(Schedulers.newParallel("parser", 2))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
@@ -300,11 +318,16 @@ public class AnalysisDataProcessingService {
     Mono<Integer> saveDataRecordToStaging(XsbData xsbData) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (xsbData == null || !(errorHandler.totalErrorsWithinAcceptableThreshold())) return Mono.empty();
+        // Check if we are asked to force quit.
+        if (errorHandler.getForceQuit()) {
+            log.info("Terminating: The process is being forced to exit!");
+            return Mono.empty();
+        }
         try {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
                     // TBD: Retry logic here
                     //.retry(5)
-                    .publishOn(Schedulers.boundedElastic())
+                    //.publishOn(Schedulers.boundedElastic())
                     .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + xsbData, e);
                         errorHandler.handleDBError(xsbData, e.getMessage());
@@ -333,6 +356,12 @@ public class AnalysisDataProcessingService {
              if (trigger.getOnlyStageData()) return Mono.empty();
              if (recordCount <= 0) {
                  log.info("There are no records to move from staging (xsb_data_temp) to the Final (xsb_data) table!");
+                 return Mono.empty();
+             }
+
+             // Check if we are asked to force quit.
+             if (errorHandler.getForceQuit()) {
+                 log.info("Terminating: The process is being forced to exit!");
                  return Mono.empty();
              }
 
@@ -428,6 +457,7 @@ public class AnalysisDataProcessingService {
         results.setNumParsingErrors(errorHandler.getNumParsingErrors().get());
         results.setNumDbErrors(errorHandler.getNumDbErrors().get());
         results.setNumFileErrors(errorHandler.getNumFileErrors().get());
+        results.setForcedQuit(errorHandler.getForceQuit());
         return Mono.just(results);
     }
 
