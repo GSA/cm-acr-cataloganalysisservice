@@ -116,22 +116,22 @@ public class AnalysisDataProcessingService {
         else {
             // This is the full pipeline where the following happens --
 
-            // Step 2: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
+            // Step 1: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
             //         in proceeding if this fails.
             pipeline = findTaaCompliantCountries()
-                    // Step 3: Once we have the TAA countries, start parsing the files.
+                    // Step 2: Once we have the TAA countries, start parsing the files.
                     .flatMapMany(taaCountryCodes -> {
-                        // Step 3.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
+                        // Step 2.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
                         //           to the temp dir.
                         Flux<Path> xsbFiles = analysisSourceFactory
                                 .analysisSource(trigger)
                                 .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
-                        // Step 3.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
+                        // Step 2.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
                         //          has the enrichment data as a JSON blob.
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
-                    // Step 4: As XsbData becomes available on the stream, start saving the records in the staging table.
+                    // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(this::saveDataRecordToStaging)
                     // Bookkeeping, and stats reporting.
                     .doOnNext(e -> {
@@ -143,7 +143,7 @@ public class AnalysisDataProcessingService {
                         }
                     })
                     .doOnComplete(() -> log.info("Finished saving a total of {} records to the staging table.", dbCounter.get()))
-                    // Step 5: Final step, move the data from staging table to the final table.
+                    // Step 4: Final step, move the data from staging table to the final table.
                     .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())));
         }
 
@@ -301,8 +301,6 @@ public class AnalysisDataProcessingService {
                         Stream::close
                 )
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
-                //.publishOn(Schedulers.parallel())
-                .publishOn(Schedulers.newParallel("parser", 2))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
