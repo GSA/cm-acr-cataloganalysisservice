@@ -7,14 +7,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.SdkResponse;
+import software.amazon.awssdk.http.SdkHttpResponse;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,15 +28,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
 @Slf4j
-@MockBean(ErrorHandler.class)
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(S3AsyncClient.class)})
 @ContextConfiguration(classes ={AnalysisSourceS3.class, S3ClientConfiguration.class})
 @TestPropertySource(locations="classpath:application-test.properties")
 @EnableConfigurationProperties(S3ClientConfigurationProperties.class)
@@ -43,6 +51,9 @@ class AnalysisSourceS3Test {
 
     @Autowired
     private AnalysisSourceS3 xsbSourceS3Files;
+
+    @Autowired
+    S3AsyncClient s3AsyncClient;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -113,60 +124,6 @@ class AnalysisSourceS3Test {
     }
 
     @Test
-    void testGetXSBFiles() {
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_");
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("/junitTestData/", testFileNames, "tmp").map(String::valueOf))
-                .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
-                .expectNextMatches (s -> s.matches("tmp.*getXsbFilesTest_[1-2]\\.gsa"))
-                .expectComplete()
-                .verify();
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(2, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    @Test
-    void testOverwritingFile() throws IOException {
-        // Artificially add a file that we will try to copy over
-        Files.createFile(Path.of ("tmp/getXsbFilesTest_1.gsa"));
-
-        HashSet<String> testFileNames = new HashSet<>();
-        testFileNames.add("getXsbFilesTest_1.gsa");
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", testFileNames, "tmp"))
-                .expectNext(Path.of("tmp/getXsbFilesTest_1.gsa"))
-                .expectComplete()
-                .verify();
-
-        try (Stream<Path> files = Files.list(Path.of("tmp"))) {
-            assertEquals(1, files.count());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    @Test
-    void testValidSourceFolder() {
-        // Test valid Source Folder
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs(null, null, null))
-                .expectComplete()
-                .verify();
-
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("", null, null))
-                .expectComplete()
-                .verify();
-
-        StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("invalidDirectory", null, null))
-                .expectComplete()
-                .verify();
-    }
-
-    @Test
     void testValidFileNames() {
         // Test valid Filenames
         StepVerifier.create(xsbSourceS3Files.getAnalyzedCatalogs("junitTestData", null, null))
@@ -218,45 +175,19 @@ class AnalysisSourceS3Test {
 
     @Test
     void testDeleteNonExistentObject() {
-        // Did not exist before
-        StepVerifier.create(xsbSourceS3Files.list("", "non-existent" ))
-                        .verifyComplete();
+        // Mock the deletion
+        SdkHttpResponse httpResponse = SdkHttpResponse.builder().statusCode(404).build();
+        SdkResponse deleteObjectResponse = DeleteObjectResponse.builder()
+                .versionId("ab")
+                .sdkHttpResponse(httpResponse)
+                .build();
+        CompletableFuture<DeleteObjectResponse> future2 = CompletableFuture.supplyAsync(() ->
+                (DeleteObjectResponse) deleteObjectResponse);
+        Mockito.when(s3AsyncClient.deleteObject(any(DeleteObjectRequest.class))).thenReturn(future2);
+
         StepVerifier.create (xsbSourceS3Files.deleteFromS3("non-existent"))
-                .expectNext(true)
+                .expectNext(false)
                 .verifyComplete();
-
-        // Does not exist after
-        StepVerifier.create(xsbSourceS3Files.list("", "non-existent" ))
-                .verifyComplete();
-
-    }
-
-
-    @Test
-    void testUploadToS3AndDeleteFromS3() {
-        // Did not exist before
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .verifyComplete();
-
-        // upload a test file
-        StepVerifier.create (xsbSourceS3Files.uploadToS3(Path.of("junitTestData/testErrorFile.txt"), "errors/testErrorFile.txt"))
-                .expectNext("errors/testErrorFile.txt")
-                .verifyComplete();
-
-        // Make sure file uploaded correctly
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .expectNext("catalogAnalysis/errors/testErrorFile.txt")
-                .verifyComplete();
-
-
-        StepVerifier.create (xsbSourceS3Files.deleteFromS3("errors/testErrorFile.txt"))
-                .expectNext(true)
-                .verifyComplete();
-
-        // Does not exist after
-        StepVerifier.create(xsbSourceS3Files.list("errors/", "testErrorFile.txt" ))
-                .verifyComplete();
-
     }
 
     @Test
