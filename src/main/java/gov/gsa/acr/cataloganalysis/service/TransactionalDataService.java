@@ -60,7 +60,7 @@ public class TransactionalDataService {
                                 .doFirst(() -> log.info("Moving xsb_data_temp_{}", partition))
                                 .doOnSuccess(s-> log.info("Moved xsb_data_temp_{}", partition));
                     } catch (SecurityException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) { return Mono.error(new IllegalArgumentException(e)); }
-                }, 2);
+                }, 3);
 
     }
 }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -70,6 +71,11 @@ public class XsbDataParser {
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes){
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (!errorHandler.totalErrorsWithinAcceptableThreshold()) return null;
+        // Check if we are asked to force quit.
+        if (errorHandler.getForceQuit()) {
+            log.info("Terminating: The process is being forced to exit!");
+            return null;
+        }
 
         if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
         if (taaCountryCodes == null || taaCountryCodes.isEmpty()) throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");

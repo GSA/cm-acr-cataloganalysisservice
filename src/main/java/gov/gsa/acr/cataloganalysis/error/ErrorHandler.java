@@ -49,6 +49,10 @@ public class ErrorHandler {
     private Boolean totalErrorsWithinAcceptableThreshnold;
 
     @Getter
+    @Setter
+    private Boolean forceQuit;
+
+    @Getter
     private String header;
     @Getter
     private AtomicInteger numParsingErrors;
@@ -94,6 +98,7 @@ public class ErrorHandler {
         dbErrorWriter = null;
         errorFileNames = null;
         this.header = header;
+        forceQuit = Boolean.FALSE;
         timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
 
         try {
@@ -118,6 +123,7 @@ public class ErrorHandler {
             dbErrorWriter.close();
             dbErrorWriter = null;
         }
+        forceQuit = Boolean.FALSE;
     }
 
     public Flux<Path> getErrorFiles() {
