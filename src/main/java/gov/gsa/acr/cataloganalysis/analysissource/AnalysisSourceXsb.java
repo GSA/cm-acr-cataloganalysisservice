@@ -184,7 +184,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
             Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
             rtrn = Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
-                    .publishOn(Schedulers.parallel())
+                    .publishOn(Schedulers.newParallel("sftp"))
                     .flatMap(entry -> downloadFromXSBToLocal(sourceFolder, entry, destinationFolder, null), 4);
         }
         catch (Exception e) {

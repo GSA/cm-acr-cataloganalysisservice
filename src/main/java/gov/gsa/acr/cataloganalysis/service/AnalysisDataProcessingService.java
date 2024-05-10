@@ -243,8 +243,10 @@ public class AnalysisDataProcessingService {
         // Provide a progress report every so many minutes
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
-        return xsbFiles.doOnNext(path -> log.info("Parsing file: " + path))
-                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing), 3)
+        return xsbFiles
+                .doOnNext(path -> log.info("Parsing file: " + path))
+                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
+                //.publishOn(Schedulers.boundedElastic())
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
@@ -300,6 +302,9 @@ public class AnalysisDataProcessingService {
                         Flux::fromStream,
                         Stream::close
                 )
+                // This next scheduler might lead to Out of Memory errors
+                //.publishOn(Schedulers.newBoundedElastic(2, 100000, "parser"))
+                //.publishOn(Schedulers.newSingle("parser"))
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
