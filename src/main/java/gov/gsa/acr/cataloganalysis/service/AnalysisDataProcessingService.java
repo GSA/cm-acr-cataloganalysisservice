@@ -304,7 +304,7 @@ public class AnalysisDataProcessingService {
                 )
                 // This next scheduler might lead to Out of Memory errors
                 //.publishOn(Schedulers.newBoundedElastic(2, 100000, "parser"))
-                .publishOn(Schedulers.newSingle("parser"))
+                //.publishOn(Schedulers.newSingle("parser"))
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
