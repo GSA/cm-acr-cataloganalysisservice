@@ -259,6 +259,7 @@ public class FailFastTest {
         expectedResults.setNumFileErrors(1);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(2);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
         log.info("Triggering message: " + trigger);
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
