@@ -19,7 +19,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class XsbData {
     @Id
-    private  Integer id;
+    private Long id;
 
     @Column("contract_number")
     private String contractNumber;
@@ -57,10 +57,8 @@ public class XsbData {
             sb.append(ls);
         }
         else {
-            this.setContractNumber(contractNumber);
-            // TBD - uncomment these once ready to remove _refresh from contract number
-            //int refreshIndex = contractNumber.indexOf("_refresh");
-            //this.setContractNumber(refreshIndex < 0 ? contractNumber : contractNumber.substring(0, refreshIndex));
+            int refreshIndex = contractNumber.indexOf("_refresh");
+            this.setContractNumber(refreshIndex < 0 ? contractNumber : contractNumber.substring(0, refreshIndex));
         }
 
         // manufacturerName
