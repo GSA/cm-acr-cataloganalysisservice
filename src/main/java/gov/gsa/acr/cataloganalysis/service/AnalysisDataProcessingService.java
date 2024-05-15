@@ -130,7 +130,7 @@ public class AnalysisDataProcessingService {
                         //          has the enrichment data as a JSON blob.
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
-                    .onBackpressureBuffer()
+                    //.onBackpressureBuffer()
                     // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(xsbData -> saveDataRecordToStaging(xsbData)
                             // Bookkeeping, and stats reporting.
@@ -305,7 +305,7 @@ public class AnalysisDataProcessingService {
                 )
                 // This next scheduler might lead to Out of Memory errors
                 //.publishOn(Schedulers.newBoundedElastic(2, 100000, "parser"))
-                //.publishOn(Schedulers.newParallel("parser", 2))
+                .publishOn(Schedulers.newParallel("parser"))
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
