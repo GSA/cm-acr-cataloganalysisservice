@@ -5,6 +5,7 @@ import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -137,6 +138,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/ets/count")
+    @Hidden
     public Mono<Integer> etsCount(){
         return xsbDataRepository.etsCount();
     }
@@ -147,6 +149,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/ets", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getETSProducts(){
         return xsbDataRepository.findAllETS();
     }
@@ -157,6 +160,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/low-outlier/count")
+    @Hidden
     public Mono<Integer> lowOutlierCount(){
         return xsbDataRepository.isLowOutlierCount();
     }
@@ -167,6 +171,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/low-outlier", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getLowOutlierProducts(){
         return xsbDataRepository.findAllLowOutliers();
     }
@@ -178,6 +183,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/mia-risk/count")
+    @Hidden
     public Mono<Integer> miaRiskCount(){
         return xsbDataRepository.isMIARiskCount();
     }
@@ -188,6 +194,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/mia-risk", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getMiaRiskProducts(){
         return xsbDataRepository.findAllMIARisk();
     }
@@ -198,6 +205,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/exceeds-market-threshold/count")
+    @Hidden
     public Mono<Integer> exceedsMarketThresholdCount(){
         return xsbDataRepository.exceedsMarketThresholdCount();
     }
@@ -208,6 +216,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/exceeds-market-threshold", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getExceedsMarketThresholdProducts(){
         return xsbDataRepository.findAllExceedsMarketThreshold();
     }
@@ -218,6 +227,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/isProhibited/count")
+    @Hidden
     public Mono<Integer> isProhibitedCount(){
         return xsbDataRepository.isProhibitedCount();
     }
@@ -228,6 +238,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/isProhibited", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getProhibitedProducts(){
         return xsbDataRepository.findAllProhibitedProducts();
     }
@@ -239,6 +250,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/taa-risk/count")
+    @Hidden
     public Mono<Integer> taaRiskCount(){
         return xsbDataRepository.isTAARiskCount();
     }
@@ -249,6 +261,7 @@ public class AnalysisDataController extends BaseController{
     """
     )
     @GetMapping(value="/taa-risk", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Hidden
     public Flux<XsbData> getTaaRiskProducts(){
         return xsbDataRepository.findAllTAARisk();
     }
