@@ -132,16 +132,17 @@ public class AnalysisDataProcessingService {
                     // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
                     .onBackpressureBuffer()
                     // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
-                    .flatMap(this::saveDataRecordToStaging)
-                    // Bookkeeping, and stats reporting.
-                    .doOnNext(e -> {
-                        Instant currentTime = Instant.now();
-                        int numRecordsSavedSoFar = dbCounter.incrementAndGet();
-                        if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
-                            log.info("Staged {} records", numRecordsSavedSoFar);
-                            lastProgressReportTime.set(currentTime);
-                        }
-                    })
+                    .flatMap(xsbData -> saveDataRecordToStaging(xsbData)
+                            // Bookkeeping, and stats reporting.
+                            .doOnSuccess(v -> {
+                                Instant currentTime = Instant.now();
+                                int numRecordsSavedSoFar = dbCounter.incrementAndGet();
+                                if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
+                                    log.info("Staged {} records", numRecordsSavedSoFar);
+                                    lastProgressReportTime.set(currentTime);
+                                }
+                            })
+                    )
                     .doOnComplete(() -> log.info("Finished saving a total of {} records to the staging table.", dbCounter.get()))
                     // Step 4: Final step, move the data from staging table to the final table.
                     .then(Mono.defer(() -> moveDataFromStagingToFinal(trigger, dbCounter.get())));
@@ -252,7 +253,7 @@ public class AnalysisDataProcessingService {
                     Instant currentTime = Instant.now();
                     int numRecordsParsed = counter.incrementAndGet();
                     if (Duration.between(lastProgressReportTime.get(), currentTime).compareTo(progressMonitorInterval) >= 0) {
-                        log.info("{}: parsed {} records", xsbData.getSourceXsbDataFileName(), numRecordsParsed);
+                        log.info("Parsed {} records  : {}", numRecordsParsed, xsbData.getSourceXsbDataFileName());
                         lastProgressReportTime.set(currentTime);
                     }
                 })
@@ -304,7 +305,7 @@ public class AnalysisDataProcessingService {
                 )
                 // This next scheduler might lead to Out of Memory errors
                 //.publishOn(Schedulers.newBoundedElastic(2, 100000, "parser"))
-                //.publishOn(Schedulers.newSingle("parser"))
+                //.publishOn(Schedulers.newParallel("parser", 2))
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
                 .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
                 .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
@@ -318,7 +319,7 @@ public class AnalysisDataProcessingService {
      * @param xsbData XsbData POJO that needs to be saved to the DB
      * @return The ID of the saved record
      */
-    Mono<Integer> saveDataRecordToStaging(XsbData xsbData) {
+    Mono<Void> saveDataRecordToStaging(XsbData xsbData) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (xsbData == null || !(errorHandler.totalErrorsWithinAcceptableThreshold())) return Mono.empty();
         // Check if we are asked to force quit.
@@ -328,8 +329,6 @@ public class AnalysisDataProcessingService {
         }
         try {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
-                    // TBD: Retry logic here
-                    //.retry(5)
                     //.publishOn(Schedulers.boundedElastic())
                     .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + xsbData, e);

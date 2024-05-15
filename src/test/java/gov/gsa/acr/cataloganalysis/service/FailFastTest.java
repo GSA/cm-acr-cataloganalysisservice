@@ -135,7 +135,7 @@ public class FailFastTest {
     @Test
     void testFailFastForDBErrors() {
         Random rn = new Random();
-        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.just(rn.nextInt(100)));
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
 
         XsbData xsbData = new XsbData();
         xsbData.setContractNumber("contract number 1");
@@ -143,7 +143,7 @@ public class FailFastTest {
         xsbData.setPartNumber("part number 1");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
-                .expectNextCount(1)
+                .expectNext()
                 .expectComplete()
                 .verify();
 
@@ -155,7 +155,7 @@ public class FailFastTest {
         xsbData.setPartNumber("part number 2");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
-                .expectNextCount(1)
+                .expectNext()
                 .expectComplete()
                 .verify();
 
@@ -165,7 +165,7 @@ public class FailFastTest {
         xsbData.setPartNumber("part number 3");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
-                .expectNextCount(1)
+                .expectNext()
                 .expectComplete()
                 .verify();
 
@@ -181,7 +181,7 @@ public class FailFastTest {
         xsbData.setPartNumber("part number 4");
         xsbData.setXsbData(Json.of("{\"dummy\": \"string\"}"));
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
-                .expectNextCount(0)
+                .expectNext()
                 .expectComplete()
                 .verify();
 
@@ -224,7 +224,7 @@ public class FailFastTest {
         trigger.setUniqueFileNames(uniqueFileNames);
 
 
-        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.just(123));
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
