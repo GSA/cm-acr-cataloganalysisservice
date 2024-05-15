@@ -41,7 +41,6 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
             VALUES (:contractNumber, :manufacturer, :partNumber, :xsbData)
             ON CONFLICT (contract_number, manufacturer, part_number)
             DO UPDATE SET xsb_data=EXCLUDED.xsb_data, created_date=EXCLUDED.created_date, modified_date=EXCLUDED.modified_date
-            RETURNING id
             """;
 
     @Query(value = "SELECT count(*) FROM xsb_data_temp")
@@ -110,7 +109,7 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
 
 
     @Query(value = INSERT_INTO_XSB_DATA_TEMP)
-    Mono<Integer> saveXSBDataToTemp(String contractNumber, String manufacturer, String partNumber, Json xsbData);
+    Mono<Void> saveXSBDataToTemp(String contractNumber, String manufacturer, String partNumber, Json xsbData);
 
     @Modifying
     @Query(value = "DELETE FROM xsb_data_temp")
