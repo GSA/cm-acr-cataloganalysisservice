@@ -1,4 +1,10 @@
-FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:20240407
+FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:20240512 
+
+USER root
+RUN apt update \
+    && apt install -y vim less dnsutils curl lsof psmisc
+USER gsa-user
+
 RUN mkdir -p ./src
 COPY ./src ./src
 COPY ./pom.xml ./
