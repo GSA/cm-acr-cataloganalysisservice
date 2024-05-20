@@ -247,7 +247,6 @@ public class AnalysisDataProcessingService {
         return xsbFiles
                 .doOnNext(path -> log.info("Parsing file: " + path))
                 .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
-                //.publishOn(Schedulers.boundedElastic())
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
@@ -301,14 +300,15 @@ public class AnalysisDataProcessingService {
         return Flux.using(
                         () -> Files.lines(xsbFile).skip(1), //Skip the header line
                         Flux::fromStream,
-                        Stream::close
+                        fileStream -> {
+                            fileStream.close();
+                            if (deleteAfterParsing) deleteFile(xsbFile);
+                        }
+                        //Stream::close
                 )
-                // This next scheduler might lead to Out of Memory errors
-                //.publishOn(Schedulers.newBoundedElastic(2, 100000, "parser"))
-                .publishOn(Schedulers.newParallel("parser"))
                 .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
-                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
-                .doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
+                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()));
+                //.doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
 
 
@@ -329,7 +329,6 @@ public class AnalysisDataProcessingService {
         }
         try {
             return xsbDataRepository.saveXSBDataToTemp(xsbData.getContractNumber(), xsbData.getManufacturer(), xsbData.getPartNumber(), xsbData.getXsbData())
-                    //.publishOn(Schedulers.boundedElastic())
                     .onErrorResume(e -> {
                         log.error("Error saving record to DB. " + xsbData, e);
                         errorHandler.handleDBError(xsbData, e.getMessage());
