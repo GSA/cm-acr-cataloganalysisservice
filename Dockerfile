@@ -1,4 +1,4 @@
-FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:20240512 
+FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:20240407 
 
 USER root
 RUN apt update \
