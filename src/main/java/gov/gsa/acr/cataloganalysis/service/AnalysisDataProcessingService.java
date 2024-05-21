@@ -306,9 +306,13 @@ public class AnalysisDataProcessingService {
                         }
                         //Stream::close
                 )
-                .mapNotNull(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
-                .onErrorContinue((e, s) -> errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage()))
-                .publishOn(Schedulers.newParallel("parser"));
+                .publishOn(Schedulers.newParallel("parser"))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
+                .onErrorContinue((e, s) -> {
+                    if (!(e instanceof NullPointerException && "ignore".equals(e.getMessage())))
+                        errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage());
+                });
+
                 //.doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
 
