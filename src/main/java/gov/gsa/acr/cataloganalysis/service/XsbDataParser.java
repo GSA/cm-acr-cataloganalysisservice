@@ -70,11 +70,11 @@ public class XsbDataParser {
 
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes){
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
-        if (!errorHandler.totalErrorsWithinAcceptableThreshold()) return null;
+        if (!errorHandler.totalErrorsWithinAcceptableThreshold()) throw new NullPointerException("ignore");
         // Check if we are asked to force quit.
         if (errorHandler.getForceQuit()) {
             log.info("Terminating: The process is being forced to exit!");
-            return null;
+            throw new NullPointerException("ignore");
         }
 
         if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
