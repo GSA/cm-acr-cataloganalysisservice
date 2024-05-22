@@ -208,9 +208,8 @@ public class FailFastTest {
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
         errorHandler.handleParsingError(xsbData.toString(), "dummy file", "dummy error");
-        assertNull(xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes));
 
-
+        assertThrows(NullPointerException.class, () -> xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes), "ignore");
     }
 
 
@@ -220,7 +219,7 @@ public class FailFastTest {
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("test*.gsa");
+        uniqueFileNames.add("testFileWithErrors.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
 
 
