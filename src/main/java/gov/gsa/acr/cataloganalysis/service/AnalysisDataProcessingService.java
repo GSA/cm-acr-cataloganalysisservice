@@ -129,8 +129,6 @@ public class AnalysisDataProcessingService {
                         // Step 2.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
                         //          has the enrichment data as a JSON blob.
                         return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
-                    // Buffer in case the DB slows down. Parsing is much faster than staging data in a DB.
-                    //.onBackpressureBuffer()
                     // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(xsbData -> saveDataRecordToStaging(xsbData)
                             // Bookkeeping, and stats reporting.
@@ -152,7 +150,7 @@ public class AnalysisDataProcessingService {
         return pipeline
                 // Save all the error files, if any, in S3
                 .then(Flux.defer(this::uploadErrorFilesToS3).collectList())
-                // Get final results like, how many records saved, how many and what kind of errors encountered etc.
+                // Get final results -- how many records saved, how many and what kind of errors encountered etc.
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
                 // Before the pipeline starts, initialize the error handler and reset counter
                 .doFirst(() -> {
@@ -245,7 +243,7 @@ public class AnalysisDataProcessingService {
         final Duration progressMonitorInterval = Duration.ofSeconds(progressReportingIntervalSeconds);
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles
-                .doOnNext(path -> log.info("Parsing file: " + path))
+                .doOnNext(path -> log.info("Parsing file: {}", path))
                 .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
@@ -298,9 +296,9 @@ public class AnalysisDataProcessingService {
 
         // If the file seems valid, create a Flux of all the lines from the file. These will be the raw file lines.
         return Flux.using(
-                        () -> Files.lines(xsbFile).skip(1), //Skip the header line
-                        Flux::fromStream,
-                        fileStream -> {
+                        () -> Files.lines(xsbFile).skip(1), //Open the file as a stream but skip the header line
+                        Flux::fromStream, // Create a Flux of strings from the stream of strings
+                        fileStream -> { // Cleanup after all lines have been parsed
                             fileStream.close();
                             if (deleteAfterParsing) deleteFile(xsbFile);
                         }
@@ -312,8 +310,6 @@ public class AnalysisDataProcessingService {
                     if (!(e instanceof NullPointerException && "ignore".equals(e.getMessage())))
                         errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage());
                 });
-
-                //.doFinally(s -> {if (deleteAfterParsing) deleteFile(xsbFile);});
     }
 
 
