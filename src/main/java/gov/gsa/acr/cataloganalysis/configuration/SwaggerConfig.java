@@ -25,8 +25,8 @@ public class SwaggerConfig {
                         addList("bearer-key"))
                 .components(new Components().addSecuritySchemes
                         ("bearer-key", createAPIKeyScheme()))
-                .info(new Info().title("ACR Data Streaming API")
-                        .description("This microservice is for streaming data.")
+                .info(new Info().title("Catalog Analysis Service")
+                        .description("This microservice triggering XSB analysis jobs.")
                         .version("v1")
                         .contact(new Contact().name("General Services Administration")))
                 .tags(Arrays.asList());
