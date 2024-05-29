@@ -26,7 +26,7 @@ public class SwaggerConfig {
                 .components(new Components().addSecuritySchemes
                         ("bearer-key", createAPIKeyScheme()))
                 .info(new Info().title("Catalog Analysis Service")
-                        .description("This microservice triggering XSB analysis jobs.")
+                        .description("This microservice is for triggering XSB analysis jobs.")
                         .version("v1")
                         .contact(new Contact().name("General Services Administration")))
                 .tags(Arrays.asList());
