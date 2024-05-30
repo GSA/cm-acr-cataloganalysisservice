@@ -233,7 +233,7 @@ public class AnalysisDataProcessingService {
      * @param xsbFiles           A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
      * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources.
-     * @param gsaFeedDate
+     * @param gsaFeedDate        The date when the catalogs were sent to XSB for bi-monthly processing.
      * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
      * stream from all the files
      */
@@ -268,7 +268,7 @@ public class AnalysisDataProcessingService {
      * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources. Important since
      *                           Kubernetes cachaes file in the Page Cache of the pod and that just bloats the memory.
-     * @param gsaFeedDate
+     * @param gsaFeedDate        The date when the catalogs were sent to XSB for bi-monthly processing.
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
     Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {

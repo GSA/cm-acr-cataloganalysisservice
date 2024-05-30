@@ -31,7 +31,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -135,7 +138,6 @@ public class FailFastTest {
 
     @Test
     void testFailFastForDBErrors() {
-        Random rn = new Random();
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
 
         XsbData xsbData = new XsbData();

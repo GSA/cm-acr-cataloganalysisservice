@@ -78,7 +78,7 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
-    void testParsingNullFile() throws IOException {
+    void testParsingNullFile() {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         StepVerifier.create(analysisDataProcessingService.parseXsbFile(null, taaCountryCodes, true, null))
                 .expectComplete()
@@ -202,7 +202,7 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testParsingValidFileWithGsaFeedDate() throws IOException, InterruptedException {
+    void testParsingValidFileWithGsaFeedDate() throws IOException {
         LocalDate now = LocalDate.now();
         String expectedGsaFeedDate = now.toString();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
@@ -404,7 +404,6 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testSaveNullDataRecordToStaging() {
-        Random rn = new Random();
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(null))
                 .expectComplete()
@@ -1156,8 +1155,6 @@ class AnalysisDataProcessingServiceTest {
         trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setGsaFeedDate(LocalDate.now());
 
-        Exception e = new RuntimeException("Dummy RuntimeException");
-
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
@@ -1389,6 +1386,7 @@ class AnalysisDataProcessingServiceTest {
         uniqueFileNames.add("Dummy");
 
         Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
@@ -2170,8 +2168,6 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testTriggerDataUpload_forceQuitProcessRunning() throws InterruptedException {
-
-        Exception e = new RuntimeException("Dummy RuntimeException");
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");

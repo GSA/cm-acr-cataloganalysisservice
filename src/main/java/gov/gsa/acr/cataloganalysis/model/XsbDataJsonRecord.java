@@ -221,7 +221,7 @@ public class XsbDataJsonRecord {
         // Refer:https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbData == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
         String val = null;
-        String ls = System.getProperty("line.separator");
+        String ls = System.lineSeparator();
         StringBuilder sb = new StringBuilder();
 
         this.setModificationNumber(xsbData.get("modificationNumber"));
