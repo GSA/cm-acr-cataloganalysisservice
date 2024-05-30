@@ -30,6 +30,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,7 +82,7 @@ public class FailFastTest {
         Path vallidFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -90,7 +91,7 @@ public class FailFastTest {
         vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -102,7 +103,7 @@ public class FailFastTest {
         Path vallidFile = Path.of("tmp/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(18)
                 .expectComplete()
                 .verify();
@@ -112,7 +113,7 @@ public class FailFastTest {
         vallidFile = Path.of("tmp/fileWithEarlyErrors.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(7)
                 .expectComplete()
                 .verify();
@@ -121,7 +122,7 @@ public class FailFastTest {
         vallidFile = Path.of("tmp/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -191,25 +192,25 @@ public class FailFastTest {
     @Test
     void testFailFastForParseXsbData() {
         String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
         errorHandler.handleDBError(xsbData, "Dummy error");
-        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
+        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
-        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
+        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
         errorHandler.handleParsingError(xsbData.toString(), "dummy file", "dummy error");
 
-        assertThrows(NullPointerException.class, () -> xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes), "ignore");
+        assertThrows(NullPointerException.class, () -> xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
     }
 
 
@@ -221,7 +222,7 @@ public class FailFastTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("testFileWithErrors.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
-
+        trigger.setGsaFeedDate(LocalDate.now());
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
         when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());

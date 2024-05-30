@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,7 +68,7 @@ public class XsbDataParser {
                 .collect(Collectors.toMap(k -> header[k], v -> xsbDataAsArray[v]));
     }
 
-    public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes){
+    public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes, LocalDate gsaFeedDate){
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (!errorHandler.totalErrorsWithinAcceptableThreshold()) throw new NullPointerException("ignore");
         // Check if we are asked to force quit.
@@ -79,7 +79,9 @@ public class XsbDataParser {
 
         if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
         if (taaCountryCodes == null || taaCountryCodes.isEmpty()) throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
-        XsbData xsbData = new XsbData(parseXsbDataToMap(xsbDataString), taaCountryCodes);
+        Map<String, String> parsedDataAsMap = parseXsbDataToMap(xsbDataString);
+        if (gsaFeedDate != null) parsedDataAsMap.put("gsaFeedDate", gsaFeedDate.toString());
+        XsbData xsbData = new XsbData(parsedDataAsMap, taaCountryCodes);
         xsbData.setSourceXsbDataString(xsbDataString);
         xsbData.setSourceXsbDataFileName(sourceFileName);
         return xsbData;

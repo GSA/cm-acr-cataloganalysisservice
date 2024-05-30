@@ -230,6 +230,7 @@ public class XsbDataJsonRecord {
         this.setVendorDescription(xsbData.get("vendorDescription"));
         this.setSolicitationNumber(xsbData.get("solicitationNumber"));
         this.setDunsNumber(xsbData.get("dunsNumber"));
+        this.setGsaFeedDate(xsbData.get("gsaFeedDate"));
         try {
             val = xsbData.get("quantityOfUnit");
             if (val != null && !val.isBlank())

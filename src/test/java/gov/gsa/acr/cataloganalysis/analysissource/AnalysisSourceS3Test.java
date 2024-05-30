@@ -118,9 +118,14 @@ class AnalysisSourceS3Test {
     @Test
     void testScrubbedName() {
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name/"));
-        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("????*<><>file_name*/*////*?"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("??|\"\\??*<><>file_name*/*////*?"));
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("file_name"));
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name"));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir(null));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir(""));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir("?"));
+        assertEquals("a/", xsbSourceS3Files.getScrubbedSourceDir("a"));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir("??|\"\\??*<><>*/*////*?"));
     }
 
     @Test

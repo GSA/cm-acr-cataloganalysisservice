@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -128,7 +129,7 @@ public class AnalysisDataProcessingService {
                                 .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
                         // Step 2.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
                         //          has the enrichment data as a JSON blob.
-                        return parseXsbFiles(xsbFiles, taaCountryCodes, true);})
+                        return parseXsbFiles(xsbFiles, taaCountryCodes, true, trigger.getGsaFeedDate());})
                     // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(xsbData -> saveDataRecordToStaging(xsbData)
                             // Bookkeeping, and stats reporting.
@@ -232,10 +233,11 @@ public class AnalysisDataProcessingService {
      * @param xsbFiles           A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
      * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources.
+     * @param gsaFeedDate
      * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
      * stream from all the files
      */
-    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes, boolean deleteAfterParsing) {
+    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
@@ -244,7 +246,7 @@ public class AnalysisDataProcessingService {
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles
                 .doOnNext(path -> log.info("Parsing file: {}", path))
-                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing))
+                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing, gsaFeedDate))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
@@ -266,9 +268,10 @@ public class AnalysisDataProcessingService {
      * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources. Important since
      *                           Kubernetes cachaes file in the Page Cache of the pod and that just bloats the memory.
+     * @param gsaFeedDate
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
-    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing) {
+    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (!errorHandler.totalErrorsWithinAcceptableThreshold()) {
             log.warn("Too many errors: Exceeded the number of error threshold. Bailing out, not parsing {} file", xsbFile);
@@ -305,7 +308,7 @@ public class AnalysisDataProcessingService {
                         //Stream::close
                 )
                 .publishOn(Schedulers.newParallel("parser"))
-                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes, gsaFeedDate))
                 .onErrorContinue((e, s) -> {
                     if (!(e instanceof NullPointerException && "ignore".equals(e.getMessage())))
                         errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage());
