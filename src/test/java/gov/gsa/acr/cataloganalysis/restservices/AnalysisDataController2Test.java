@@ -4,7 +4,9 @@ import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
+import gov.gsa.acr.cataloganalysis.util.TokenService;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -21,18 +23,22 @@ import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@MockBeans(@MockBean(XsbDataRepository.class))
+@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(TokenService.class)})
 @AutoConfigureWebTestClient
 @Slf4j
 @TestPropertySource(locations="classpath:application-test.properties")
 class AnalysisDataController2Test {
     @Autowired
     WebTestClient webTestClient;
+
+    @Autowired
+    TokenService tokenService;
 
     @Autowired
     AnalysisDataProcessingService analysisDataProcessingService;
@@ -42,6 +48,11 @@ class AnalysisDataController2Test {
 
     @MockBean
     ErrorHandler errorHandler;
+
+    @BeforeEach
+    void authorizeCalls() {
+        when(tokenService.validate(any())).thenReturn(true);
+    }
 
     @Test
     void trigger_useJson() throws InterruptedException {
