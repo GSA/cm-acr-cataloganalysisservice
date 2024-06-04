@@ -51,6 +51,25 @@ class XsbDataJsonRecordTest {
     }
 
     @Test
+    void testNullData(){
+        assertThrows(NullPointerException.class, () -> new XsbDataJsonRecord(null, taaCountryCodes));
+    }
+
+    @Test
+    void testNullContractNumber(){
+        String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~false~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0.0~|~0.0~|~0.0~|~0.0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0.0~|~0.0~|~0.0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0.00~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.50~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
+        Map<String, String> map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        map.replaceAll((k, v) -> null);
+        XsbDataJsonRecord xsbData =  new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals(0, xsbData.getEnrichmentLowerBound());
+
+        map.put("finalPrice", "2.0");
+        map.put("countryOriginInference", "USA");
+        xsbData =  new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals(0, xsbData.getEnrichmentLowerBound());
+    }
+
+    @Test
     void testTradeAgreementViolation() {
         //Valid Country of Origin = US
         String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";

@@ -1324,6 +1324,16 @@ class AnalysisDataProcessingServiceTest {
     }
 
     @Test
+    void testTriggerDataUpload_EmptyUniqueFileNames() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        trigger.setUniqueFileNames(uniqueFileNames);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Trigger.validate(trigger));
+        assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
+    }
+
+    @Test
     void testTriggerFutureGsaFeedDate() {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
