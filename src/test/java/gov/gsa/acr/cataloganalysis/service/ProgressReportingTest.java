@@ -63,12 +63,12 @@ class ProgressReportingTest {
         };
 
         when(xsbDataParser.validateHeader(anyString())).thenReturn(true);
-        when(xsbDataParser.parseXsbData(anyString(), anyString(), any())).thenAnswer((Answer<XsbData>) invocationOnMock -> {
+        when(xsbDataParser.parseXsbData(anyString(), anyString(), any(), any())).thenAnswer((Answer<XsbData>) invocationOnMock -> {
             Thread.sleep(200);
             return new XsbData();
         });
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, false))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, false, null))
                 .expectNextCount(31)
                 .verifyComplete();
            }

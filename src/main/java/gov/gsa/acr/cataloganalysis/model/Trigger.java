@@ -1,10 +1,12 @@
 package gov.gsa.acr.cataloganalysis.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,7 +18,9 @@ public class Trigger {
     "XSB": will look for files on the XSB's SFTP server,
     "S3": Will look for file in the ACR's S3 bucket,
     "LOCAL": Will look for files on the PODs local file system.
-    """)
+    """,
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private AnalysisSourceType sourceType;
     @Schema(description = """
             The folder relative to the base of the source. For example, for the XSB source the base is the root folder "/"
@@ -35,7 +39,9 @@ public class Trigger {
             
             Except in case where the source is S3 bucket. The glob pattern does not work in case of S3, the the values in the files array
             are used as prefix only for looking for files in the S3 bucket.
-            """)
+            """,
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
     private String[] files;
     @Schema(description = """
     if true, then all the existing xsb data will be deleted from the xsb_data table and fresh data will be added.
@@ -43,20 +49,35 @@ public class Trigger {
     data is consumed. Purging old data will get rid of stale records. However, if there is an issue with the some
     of the records, or if new products are discovered in a vendor's catalog, then the existing data should not be
     deleted, but only modified.
-    """)
+    """,
+    defaultValue = "False"
+    )
     private Boolean purgeOldData = Boolean.FALSE;
     @Schema(description = """
     Default value is FALSE. However, if set to TRUE, data is only staged in the xsb_dat_temp table and not moved to the
     final xsb_data table.
-    """)
+    """,
+    defaultValue = "False"
+    )
     private Boolean onlyStageData = Boolean.FALSE;
     @Schema(description = """
     Default value is FALSE. However, if set to TRUE, data is not parsed but only moved from staging table, xsb_data_temp,
     to the final table, xsb_data. This flag will come in handy when something goes wrong only in the final step from a
     previous run, i.e. a previous run was able to  parse and stage data successfully, but the final step of copying the
     data to the final table failed. In this case, this flag saves time since parsing and staging does not have to repeat.
-    """)
+    """,
+    defaultValue = "False"
+    )
     private Boolean onlyMoveStagedData = Boolean.FALSE;
+    @Schema(description = """
+    This specifies the data when catalogs from GSA Advantage were submitted to XSB for bi-monthly processing. The format
+    for this date should be yyyy-MM-dd
+    """,
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @JsonFormat(pattern="yyyy-MM-dd")
+    private LocalDate gsaFeedDate;
+
 
     @Schema(hidden = true)
     private Boolean forceQuit = Boolean.FALSE;
@@ -71,7 +92,7 @@ public class Trigger {
 
     public Set<String> getUniqueFileNames(){
         if (uniqueFileNames == null) {
-            if (files != null && files.length > 0) {
+            if (files != null && files.length != 0) {
                 uniqueFileNames = new HashSet<>();
                 Collections.addAll(uniqueFileNames, files);
             }
@@ -97,6 +118,9 @@ public class Trigger {
             Set<String> uniqueFileNames = trigger.getUniqueFileNames();
             if (uniqueFileNames == null || uniqueFileNames.isEmpty())
                 throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+            // Must have a valid GSA Feed Date
+            if (trigger.getGsaFeedDate() == null || trigger.getGsaFeedDate().isAfter(LocalDate.now()))
+                throw new IllegalArgumentException("Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
 
         }
         // If both onlyStageData and onlyMoveStageData are true, nothing will happen. onlyMoveStageData will not parse any files, and onlyStageData will
