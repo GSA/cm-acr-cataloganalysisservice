@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,6 +58,7 @@ class AnalysisDataProcessingService2Test {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         when(Files.createTempDirectory(any())).thenThrow(new IOException("Dummy"));
         RuntimeException thrown = assertThrows (RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));

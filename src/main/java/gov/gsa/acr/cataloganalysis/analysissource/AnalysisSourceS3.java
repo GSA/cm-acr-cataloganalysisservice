@@ -137,16 +137,18 @@ public class AnalysisSourceS3 implements AnalysisSource {
         if (origSourceDir == null || origSourceDir.isBlank()) return "";
         int beginIndex;
         for (beginIndex = 0; beginIndex < origSourceDir.length() - 1; beginIndex++)
-            if (invalidCharacter(origSourceDir, beginIndex)) break;
+            if (isValidCharacter(origSourceDir, beginIndex)) break;
 
         int endIndex;
         for (endIndex = origSourceDir.length() - 1; endIndex > 0; endIndex--)
-            if (invalidCharacter(origSourceDir, endIndex)) break;
+            if (isValidCharacter(origSourceDir, endIndex)) break;
+
+        if ((beginIndex >= endIndex) && !isValidCharacter(origSourceDir, beginIndex)) return "";
 
         return origSourceDir.substring(beginIndex, endIndex + 1) + '/';
     }
 
-    private boolean invalidCharacter(String origSourceDir, int index) {
+    private boolean isValidCharacter(String origSourceDir, int index) {
         char c = origSourceDir.charAt(index);
         return c != '"' && c != '*' && c != '<' && c != '>' && c != '?' && c != '|' && c != '\\' && c != '/';
     }

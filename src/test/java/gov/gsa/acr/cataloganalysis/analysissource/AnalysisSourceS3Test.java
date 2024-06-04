@@ -20,7 +20,8 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 
 import java.io.IOException;
 import java.net.URI;
@@ -118,9 +119,14 @@ class AnalysisSourceS3Test {
     @Test
     void testScrubbedName() {
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name/"));
-        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("????*<><>file_name*/*////*?"));
+        assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("??|\"\\??*<><>file_name*/*////*?"));
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("file_name"));
         assertEquals("file_name/", xsbSourceS3Files.getScrubbedSourceDir("/file_name"));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir(null));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir(""));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir("?"));
+        assertEquals("a/", xsbSourceS3Files.getScrubbedSourceDir("a"));
+        assertEquals("", xsbSourceS3Files.getScrubbedSourceDir("??|\"\\??*<><>*/*////*?"));
     }
 
     @Test
