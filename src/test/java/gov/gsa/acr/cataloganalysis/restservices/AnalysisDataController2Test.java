@@ -4,7 +4,9 @@ import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
+import gov.gsa.acr.cataloganalysis.util.TokenService;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -16,23 +18,28 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@MockBeans(@MockBean(XsbDataRepository.class))
+@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(TokenService.class)})
 @AutoConfigureWebTestClient
 @Slf4j
 @TestPropertySource(locations="classpath:application-test.properties")
 class AnalysisDataController2Test {
     @Autowired
     WebTestClient webTestClient;
+
+    @Autowired
+    TokenService tokenService;
 
     @Autowired
     AnalysisDataProcessingService analysisDataProcessingService;
@@ -42,6 +49,11 @@ class AnalysisDataController2Test {
 
     @MockBean
     ErrorHandler errorHandler;
+
+    @BeforeEach
+    void authorizeCalls() {
+        when(tokenService.validate(any())).thenReturn(true);
+    }
 
     @Test
     void trigger_useJson() throws InterruptedException {
@@ -55,6 +67,73 @@ class AnalysisDataController2Test {
                 .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB)."));
         Thread.sleep(5000);
     }
+
+    @Test
+    void trigger_useJsonNoGsaFeedDate() throws InterruptedException {
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"sourceType\":\"XSB\", \"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true}"), String.class)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date."));
+        Thread.sleep(5000);
+    }
+
+    @Test
+    void trigger_useJsonEmptyGsaFeedDate() throws InterruptedException {
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"sourceType\":\"XSB\", \"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true, \"gsaFeedDate\":\"\"}"), String.class)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date."));
+        Thread.sleep(5000);
+    }
+
+
+    @Test
+    void trigger_useJsonInvalidGsaFeedDate() throws InterruptedException {
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"sourceType\":\"XSB\", \"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true, \"gsaFeedDate\":\"junk\"}"), String.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+        Thread.sleep(5000);
+    }
+
+
+    @Test
+    void trigger_useJsonInvalidGsaFeedDate2() throws InterruptedException {
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"sourceType\":\"XSB\", \"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true, \"gsaFeedDate\":\"1975-13-01\"}"), String.class)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+        Thread.sleep(5000);
+    }
+
+    @Test
+    void trigger_useJsonValidGsaFeedDate() throws InterruptedException {
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just("{\"sourceType\":\"XSB\", \"files\":[\"36F79722D0055*\", \"test1_8thAug2*\"], \"purgeOldData\":true, \"gsaFeedDate\":\"1975-01-01\"}"), String.class)
+                .exchange()
+                .expectStatus()
+                .isOk();
+        Thread.sleep(5000);
+    }
+
 
     @Test
     void trigger_NoSourceType() throws InterruptedException {
@@ -106,12 +185,55 @@ class AnalysisDataController2Test {
 
 
     @Test
+    void trigger_NoGSAFeedDate() throws InterruptedException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(trigger), Trigger.class)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date."));
+
+        Thread.sleep(5000);
+    }
+
+    @Test
+    void trigger_FutureGSAFeedDate() throws InterruptedException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setGsaFeedDate(LocalDate.now().plusDays(1));
+        trigger.setUniqueFileNames(uniqueFileNames);
+
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(trigger), Trigger.class)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class).value(response -> assertThat(response).isEqualToIgnoringNewLines("\nTrigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date."));
+
+        Thread.sleep(5000);
+    }
+
+
+    @Test
     void trigger_ErrorHandlerError() throws InterruptedException {
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
         Exception e = new RuntimeException("Unexpected error. Unable to delete old error files from previous executions.");
 
         doThrow(e).when(errorHandler).init(anyString());
