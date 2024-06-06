@@ -51,6 +51,25 @@ class XsbDataJsonRecordTest {
     }
 
     @Test
+    void testNullData(){
+        assertThrows(NullPointerException.class, () -> new XsbDataJsonRecord(null, taaCountryCodes));
+    }
+
+    @Test
+    void testNullContractNumber(){
+        String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~false~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0.0~|~0.0~|~0.0~|~0.0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0.0~|~0.0~|~0.0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0.00~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.50~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
+        Map<String, String> map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        map.replaceAll((k, v) -> null);
+        XsbDataJsonRecord xsbData =  new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals(0, xsbData.getEnrichmentLowerBound());
+
+        map.put("finalPrice", "2.0");
+        map.put("countryOriginInference", "USA");
+        xsbData =  new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals(0, xsbData.getEnrichmentLowerBound());
+    }
+
+    @Test
     void testTradeAgreementViolation() {
         //Valid Country of Origin = US
         String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~104479~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~DUCKBACK PRODUCTS~|~DB0019115-20~|~~|~1~|~EA~|~DUCKBACK PRODUCTS~|~DB001911520~|~EA~|~~|~~|~~|~~|~~|~5GAL CedarTon EXT Stain~|~~|~5GAL CedarTon EXT Stain~|~5 Gallon, Cedar-Tone, Exterior Transparent Stain, VOC Less Than 350.~|~6068624~|~1~|~8~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~156.36~|~151.79~|~173.75~|~195.7~|~151.79~|~172.46~|~176.43~|~186.91~|~11.86~|~0~|~0~|~0~|~0~|~HARDWARE ASSOCIATES, INC 47QSHA18D0027~|~GORILLA STATIONERS LLC 47QSEA20D006H~|~HARDWARE, INC. GS-21F-0104W~|~0~|~0~|~0~|~225.74~|~257.52~|~289.29~|~225.74~|~225.74~|~225.74~|~225.74~|~0~|~http://www.walmart.com~|~http://www.walmart.com~|~http://www.walmart.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~87.5~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
@@ -392,6 +411,19 @@ class XsbDataJsonRecordTest {
         Map<String, String> map = xsbDataParser.parseXsbDataToMap(xsbDataString);
         xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
         assertNull(xsbData.getGsaFeedDate());
+    }
+
+    @Test
+    void testGsaFeedDate_NotNull() {
+        String xsbDataString = "47QSWA18D000C~|~~|~MONO MACHINES LLC~|~BZ36E287~|~BZ DEFENSE SKU# BZ36E287 -- MFG. Name: Vermont Gage -- MPN: 362158010 -- UNSPSC= 41111619 -- UOM: EA -- UOM QTY: 1 -- PKG QTY: 1 -- MOQ: 1 Description: Threaded Ring Gage: M27 x 2.00 Thread, Class 6G, Go Class 6G, Tool Steel, NIST Traceability Certification Included. FOR QUOTES, VOLUME DISCOUNTS, STOCK AVAILABILITY OR SPECIAL REQUIREMENTS, PLEASE CONTACT BZ DEFENSE @ +1 (888) 305-5357 OR EMAIL US: GSASales@BZDefense.com~|~~|~~|~C4S6Z1ALKEP1~|~314120~|~332510C~|~FALSE~|~VERMONT GAGE~|~362158010~|~~|~1~|~EA~|~VERMONT PRECISION TOOLS~|~362158010~|~EA~|~~|~~|~~|~~|~~|~Threaded Ring Gage: M27 x 2.00 Thread,~|~~|~M27x2.00 Go Single Ring Thread Gage~|~BZ DEFENSE SKU# BZ36E287 -- MFG. Name: Vermont Gage -- MPN: 362158010 -- UNSPSC= 41111619 -- UOM: EA -- UOM QTY: 1 -- PKG QTY: 1 -- MOQ: 1 Description: Threaded Ring Gage: M27 x 2.00 Thread, Class 6G, Go Class 6G, Tool Steel, NIST Traceability Certification Included. FOR QUOTES, VOLUME DISCOUNTS, STOCK AVAILABILITY OR SPECIAL REQUIREMENTS, PLEASE CONTACT BZ DEFENSE @ +1 (888) 305-5357 OR EMAIL US: GSASales@BZDefense.com~|~17585722~|~1~|~11~|~0~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~~|~307.63~|~349.61~|~~|~307.63~|~344.1~|~343.34~|~426.86~|~31.33~|~0~|~0~|~0~|~0~|~BAHFED CORP GS-35F-0431Y~|~BOTACH INC. 47QSHA19D003Y~|~THE OFFICE GROUP INC GS-21F-0054X~|~0~|~0~|~0~|~432.77~|~488.97~|~545.16~|~432.77~|~432.77~|~432.77~|~432.77~|~0~|~http://www.mscdirect.com~|~http://www.mscdirect.com~|~http://www.mscdirect.com~|~US~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~";
+        XsbDataJsonRecord xsbData;
+        Map<String, String> map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        map.put("gsaFeedDate", "");
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals("", xsbData.getGsaFeedDate());
+        map.put("gsaFeedDate", "1970-01-01");
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertEquals("1970-01-01", xsbData.getGsaFeedDate());
     }
 
     @Test

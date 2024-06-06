@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -76,6 +77,15 @@ class AnalysisDataProcessingServiceTest {
         analysisDataProcessingService.deleteDir(Path.of("tmp"));
     }
 
+    @Test
+    void testParsingNullFile() {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(null, taaCountryCodes, true, null))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("null"), eq("Ignoring File. Cannot invoke \"java.nio.file.Path.getFileSystem()\" because \"path\" is null"), Mockito.any(NullPointerException.class) );
+    }
+
 
     @Test
     void testParsingEmptyFile() throws IOException {
@@ -84,7 +94,7 @@ class AnalysisDataProcessingServiceTest {
         Path emptyFile = Path.of("tmp/emptyFile_1.gsa");
         Files.copy(srcFile, emptyFile);
         assertTrue(Files.exists(emptyFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes, true, null))
                 .expectComplete()
                 .verify();
         assertTrue(Files.exists(srcFile));
@@ -95,7 +105,7 @@ class AnalysisDataProcessingServiceTest {
     void testParsingInvalidFile() {
         Path invalidFile = Path.of("junitTestData/invalid.gsa");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes, false))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes, false, null))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidFile.toString()), eq("Ignoring File. " + invalidFile), Mockito.any(NoSuchFileException.class) );
@@ -108,7 +118,7 @@ class AnalysisDataProcessingServiceTest {
         Path invalidHdrFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
         Files.copy(srcFile, invalidHdrFile);
         assertTrue(Files.exists(invalidHdrFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes, false))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes, false, null))
                 .expectComplete()
                 .verify();
         assertTrue(Files.exists(invalidHdrFile));
@@ -124,7 +134,7 @@ class AnalysisDataProcessingServiceTest {
         Path invalidRecordsFile = Path.of("tmp/testFileWithErrors.gsa");
         Files.copy(srcFile, invalidRecordsFile);
         assertTrue(Files.exists(invalidRecordsFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes, true, null))
                 .expectNextCount(16)
                 .expectComplete()
                 .verify();
@@ -140,7 +150,7 @@ class AnalysisDataProcessingServiceTest {
         Path fileWithJustHeader = Path.of("tmp/testFileWithJustHeader.gsa");
         Files.copy(srcFile, fileWithJustHeader);
         assertTrue(Files.exists(fileWithJustHeader));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes, true, null))
                 .expectComplete()
                 .verify();
 
@@ -157,13 +167,64 @@ class AnalysisDataProcessingServiceTest {
         Path vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
+    }
+
+
+    @Test
+    void testParsingValidFileWithoutGsaFeedDate() throws IOException {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path srcFile = Path.of("junitTestData/testValidFile.gsa");
+        Path vallidFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, vallidFile);
+        assertTrue(Files.exists(vallidFile));
+
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .expectComplete()
+                .verify();
+    }
+
+
+    @Test
+    void testParsingValidFileWithGsaFeedDate() throws IOException {
+        LocalDate now = LocalDate.now();
+        String expectedGsaFeedDate = now.toString();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path srcFile = Path.of("junitTestData/testValidFile.gsa");
+        Path vallidFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, vallidFile);
+        assertTrue(Files.exists(vallidFile));
+
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, now))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .expectComplete()
+                .verify();
+
     }
 
 
@@ -175,7 +236,7 @@ class AnalysisDataProcessingServiceTest {
         Path vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
@@ -192,7 +253,7 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -230,10 +291,10 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFiles[4], filesToParse[4]);
         Files.copy(srcFiles[5], filesToParse[5]);
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes, false))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes, false, null))
                 .verifyComplete();
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, null))
                 .expectNextCount(26)
                 .verifyComplete();
 
@@ -246,8 +307,103 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
+    void testParseXsbFilesWithoutGsaFeedDate() throws IOException {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path[] srcFiles = {
+                Path.of("junitTestData/emptyFile_1.gsa"),
+                Path.of("junitTestData/invalid.gsa"),
+                Path.of("junitTestData/testFileWithInvalidHeader.gsa"),
+                Path.of("junitTestData/testFileWithErrors.gsa"),
+                Path.of("junitTestData/testFileWithJustHeader.gsa"),
+                Path.of("junitTestData/testValidFile.gsa")
+        };
+
+        Path[] filesToParse = {
+                Path.of("tmp/emptyFile_1.gsa"),
+                Path.of("tmp/invalid.gsa"),
+                Path.of("tmp/testFileWithInvalidHeader.gsa"),
+                Path.of("tmp/testFileWithErrors.gsa"),
+                Path.of("tmp/testFileWithJustHeader.gsa"),
+                Path.of("tmp/testValidFile.gsa")
+        };
+
+        Files.copy(srcFiles[0], filesToParse[0]);
+        // Don't copy file at index 1, junitTestData/invalid.gsa. As this is an invalid file and does not exist.
+        Files.copy(srcFiles[2], filesToParse[2]);
+        Files.copy(srcFiles[3], filesToParse[3]);
+        Files.copy(srcFiles[4], filesToParse[4]);
+        Files.copy(srcFiles[5], filesToParse[5]);
+
+
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, null))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .expectNextCount(16)
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
+                .expectComplete()
+                .verify();
+
+    }
+
+
+    @Test
+    void testParseXsbFilesWithGsaFeedDate() throws IOException {
+        LocalDate now = LocalDate.now();
+        String expectedGsaFeedDate = now.toString();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path[] srcFiles = {
+                Path.of("junitTestData/emptyFile_1.gsa"),
+                Path.of("junitTestData/invalid.gsa"),
+                Path.of("junitTestData/testFileWithInvalidHeader.gsa"),
+                Path.of("junitTestData/testFileWithErrors.gsa"),
+                Path.of("junitTestData/testFileWithJustHeader.gsa"),
+                Path.of("junitTestData/testValidFile.gsa")
+        };
+
+        Path[] filesToParse = {
+                Path.of("tmp/emptyFile_1.gsa"),
+                Path.of("tmp/invalid.gsa"),
+                Path.of("tmp/testFileWithInvalidHeader.gsa"),
+                Path.of("tmp/testFileWithErrors.gsa"),
+                Path.of("tmp/testFileWithJustHeader.gsa"),
+                Path.of("tmp/testValidFile.gsa")
+        };
+
+        Files.copy(srcFiles[0], filesToParse[0]);
+        // Don't copy file at index 1, junitTestData/invalid.gsa. As this is an invalid file and does not exist.
+        Files.copy(srcFiles[2], filesToParse[2]);
+        Files.copy(srcFiles[3], filesToParse[3]);
+        Files.copy(srcFiles[4], filesToParse[4]);
+        Files.copy(srcFiles[5], filesToParse[5]);
+
+
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, now))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .expectNextCount(16)
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
+                .expectComplete()
+                .verify();
+
+    }
+
+
+    @Test
     void testSaveNullDataRecordToStaging() {
-        Random rn = new Random();
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(null))
                 .expectComplete()
@@ -309,7 +465,7 @@ class AnalysisDataProcessingServiceTest {
     void testSaveDataRecordToStaging() {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes);
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
@@ -326,7 +482,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.getForceQuit()).thenReturn(true);
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
 
-        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes), "ignore");
+        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(null))
@@ -997,8 +1153,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
-
-        Exception e = new RuntimeException("Dummy RuntimeException");
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1069,6 +1224,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("emptyFile_1.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1132,11 +1288,11 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
         Exception e = new IllegalArgumentException("Dummy");
 
         doThrow(e).when(errorHandler).init(anyString());
 
-        //RuntimeException thrown = assertThrows(RuntimeException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
 
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .verifyError(IllegalArgumentException.class);
@@ -1154,6 +1310,38 @@ class AnalysisDataProcessingServiceTest {
         catch (Exception e){
             fail ("Unexpected Error thrown.", e );
         }
+    }
+
+
+    @Test
+    void testTriggerNullGsaFeedDate() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        assertThrows(IllegalArgumentException.class, () -> Trigger.validate(trigger), "Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
+    }
+
+    @Test
+    void testTriggerDataUpload_EmptyUniqueFileNames() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        trigger.setUniqueFileNames(uniqueFileNames);
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Trigger.validate(trigger));
+        assertEquals("Trigger argument must include files attribute (an array with file names or file name patterns).", e.getMessage());
+    }
+
+    @Test
+    void testTriggerFutureGsaFeedDate() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now().plusDays(1));
+        assertThrows(IllegalArgumentException.class, () -> Trigger.validate(trigger), "Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
     }
 
 
@@ -1208,6 +1396,7 @@ class AnalysisDataProcessingServiceTest {
         uniqueFileNames.add("Dummy");
 
         Trigger trigger = new Trigger();
+        trigger.setUniqueFileNames(uniqueFileNames);
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> analysisDataProcessingService.triggerDataUpload(trigger));
         assertEquals("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).", e.getMessage());
 
@@ -1234,6 +1423,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        trigger.setGsaFeedDate(LocalDate.now());
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectError(NullPointerException.class)
                 .verify();
@@ -1247,6 +1437,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.S3);
+        trigger.setGsaFeedDate(LocalDate.now());
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectError(NullPointerException.class)
                 .verify();
@@ -1301,6 +1492,7 @@ class AnalysisDataProcessingServiceTest {
         Trigger trigger = new Trigger();
         trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         trigger.setSourceFolder("junitTestData");
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
@@ -1331,6 +1523,11 @@ class AnalysisDataProcessingServiceTest {
         assertNotNull(uniqueFileNames);
         assertEquals(4, uniqueFileNames.size());
         assertEquals(6, trigger.getFiles().length);
+
+        trigger.setFiles(new String[]{});
+        uniqueFileNames = trigger.getUniqueFileNames();
+        assertNull(uniqueFileNames);
+        assertEquals(0, trigger.getFiles().length);
     }
 
 
@@ -1341,6 +1538,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
         Exception e = new RuntimeException("Dummy");
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
@@ -1370,6 +1568,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
         Exception e = new RuntimeException("Dummy");
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
@@ -1399,6 +1598,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1428,6 +1628,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1490,6 +1691,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1577,6 +1779,7 @@ class AnalysisDataProcessingServiceTest {
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
         trigger.setOnlyStageData(Boolean.TRUE);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1827,6 +2030,7 @@ class AnalysisDataProcessingServiceTest {
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("test*.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
         doCallRealMethod().when(errorHandler).getNumDbErrors();
@@ -1974,14 +2178,13 @@ class AnalysisDataProcessingServiceTest {
 
     @Test
     void testTriggerDataUpload_forceQuitProcessRunning() throws InterruptedException {
-
-        Exception e = new RuntimeException("Dummy RuntimeException");
         Trigger trigger = new Trigger();
         trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
         trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("emptyFile_1.gsa");
         trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
         Trigger trigger2 = new Trigger();
         trigger2.setForceQuit(Boolean.TRUE);
