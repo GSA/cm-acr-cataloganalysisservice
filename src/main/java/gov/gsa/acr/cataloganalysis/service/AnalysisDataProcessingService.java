@@ -163,7 +163,7 @@ public class AnalysisDataProcessingService {
                 .doFinally(s -> {
                     executing.compareAndSet(true, false);
                     errorHandler.close();
-                    generateFinalReport(dbCounter.get(), s, trigger);
+                    generateFinalReport(dbCounter.get(), s, trigger, Duration.between(start, Instant.now()));
                     deleteDir(tmpDir);
                 });
     }
@@ -478,7 +478,7 @@ public class AnalysisDataProcessingService {
     }
 
 
-    List<String> generateFinalReport(int recordCount, SignalType signalType, Trigger trigger) {
+    List<String> generateFinalReport(int recordCount, SignalType signalType, Trigger trigger, Duration executionDuration) {
         List<String> report = new ArrayList<>();
         List<String> errorFileNames = errorHandler.getErrorFileNames();
         log("===================== Final Report =====================", Level.INFO, report);
@@ -511,6 +511,7 @@ public class AnalysisDataProcessingService {
         else if (signalType == SignalType.ON_ERROR) log("There were some errors while uploading the data. Please see the error logs.", Level.ERROR, report);
         else if (signalType == SignalType.CANCEL) log("The process was canceled. Please see the logs.", Level.WARN, report);
         else log("Finished without any issues!!", Level.INFO, report);
+        if (executionDuration != null) log("Total Time Taken: " + executionDuration, Level.INFO, report);
         log("========================================================", Level.INFO, report);
         return report;
     }

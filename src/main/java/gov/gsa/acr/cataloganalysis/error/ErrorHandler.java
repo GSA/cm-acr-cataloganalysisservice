@@ -220,8 +220,8 @@ public class ErrorHandler {
                 handleError(xsbRecord, srcFileName, error, errorType);
             } else {
                 errorMsgWriter.println(sb.toString());
-                if (errorType.equals("DB") && numAllowedDbErrorBytes > 0) dbErrorWriter.println(xsbRecord);
-                else if (errorType.equals("PARSE") && numAllowedParseErrorBytes > 0)
+                if (errorType.equals("DB")) dbErrorWriter.println(xsbRecord);
+                else if (errorType.equals("PARSE"))
                     parseErrorWriter.println(xsbRecord);
             }
 

@@ -108,11 +108,69 @@ class ErrorHandlerTest {
         assertEquals(1, errHandler.getNumParsingErrors().get());
     }
 
+    @Test
+    void getErrorFiles_NullHeader() {
+        String longMessage = getAlphaNumericString(2000);
+        errHandler.init(null);
+        errHandler.handleParsingError("", "", longMessage);
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_parse*.gsa");
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
+                .expectNextMatches(p -> {
+                    try {
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+
+        assertEquals(1, errHandler.getNumParsingErrors().get());
+    }
+
+
 
     @Test
     void getErrorFiles_TooLongDBMessage() {
         String longMessage = getAlphaNumericString(2000);
         errHandler.init("");
+        errHandler.handleDBError(new XsbData(),  longMessage);
+        String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
+        String regEx2 = StringUtils.globToRegex("*xsb_error_db*.gsa");
+        errHandler.close();
+        StepVerifier.create(errHandler.getErrorFiles())
+                .expectNextMatches(p -> {
+                    try {
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .expectNextMatches(p -> {
+                    try {
+                        return (p.toString().matches(regEx1) || p.toString().matches(regEx2)) && (0 == Files.size(p));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+
+        assertEquals(1, errHandler.getNumDbErrors().get());
+    }
+
+
+    @Test
+    void getErrorFiles_NullHeaderForDBMessage() {
+        String longMessage = getAlphaNumericString(2000);
+        errHandler.init(null);
         errHandler.handleDBError(new XsbData(),  longMessage);
         String regEx1 = StringUtils.globToRegex("*xsb_error_msg*.txt");
         String regEx2 = StringUtils.globToRegex("*xsb_error_db*.gsa");

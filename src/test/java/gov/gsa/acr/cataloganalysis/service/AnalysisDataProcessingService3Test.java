@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import reactor.core.publisher.SignalType;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +54,7 @@ class AnalysisDataProcessingService3Test {
         errorHandler.setErrorDirectory(errorDirectory);
         errorHandler.init("Dummy Header");
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(4, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -61,7 +62,7 @@ class AnalysisDataProcessingService3Test {
         assertEquals("INFO:Finished without any issues!!", report.get(cntr++));
         assertEquals("INFO:========================================================", report.get(cntr++));
 
-        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, new Trigger());
+        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, new Trigger(), null);
 
         cntr = 0;
         assertEquals(4, report.size());
@@ -72,7 +73,7 @@ class AnalysisDataProcessingService3Test {
 
         Trigger t = new Trigger();
         t.setOnlyStageData(Boolean.TRUE);
-        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, t);
+        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, t, null);
         cntr = 0;
         assertEquals(4, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -90,23 +91,41 @@ class AnalysisDataProcessingService3Test {
 
         errorHandler.setDataUploadFailed(Boolean.TRUE);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(3, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
         assertEquals("ERROR:Error moving data from staging to final DB table. Please see logs for error reason.", report.get(cntr++));
         assertEquals("INFO:========================================================", report.get(cntr++));
 
+
         // Reset the error handler. And the report should be all clean
         cntr = 0;
         errorHandler.init("Dummy Header");
-        report = analysisDataProcessingService.generateFinalReport(20, SignalType.ON_COMPLETE, null);
+        report = analysisDataProcessingService.generateFinalReport(20, SignalType.ON_COMPLETE, null, null);
         assertEquals(4, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
         assertEquals("INFO:Saved 20 records in the ACR DB.", report.get(cntr++));
         assertEquals("INFO:Finished without any issues!!", report.get(cntr++));
         assertEquals("INFO:========================================================", report.get(cntr++));
 
+
+    }
+
+    @Test
+    void testGenerateFileReport_processCancelled(){
+        errorHandler.setErrorDirectory(errorDirectory);
+        errorHandler.init("Dummy Header");
+
+        errorHandler.setDataUploadFailed(Boolean.FALSE);
+        // Signale type CANCEL
+        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.CANCEL, null, null);
+
+        assertEquals(4, report.size());
+        assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
+        assertEquals("INFO:Saved 0 records in the ACR DB.", report.get(cntr++));
+        assertEquals("WARN:The process was canceled. Please see the logs.", report.get(cntr++));
+        assertEquals("INFO:========================================================", report.get(cntr++));
     }
 
 
@@ -121,7 +140,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_0.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(0, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(5, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -132,7 +151,7 @@ class AnalysisDataProcessingService3Test {
 
         Trigger t = new Trigger();
         t.setOnlyStageData(Boolean.TRUE);
-        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, t);
+        report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, t, null);
         cntr = 0;
         assertEquals(5, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -157,7 +176,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_parse_dummy_1.gsa");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(15, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(15, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(8, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -171,7 +190,7 @@ class AnalysisDataProcessingService3Test {
 
         Trigger t = new Trigger();
         t.setOnlyStageData(Boolean.TRUE);
-        report = analysisDataProcessingService.generateFinalReport(15, SignalType.ON_COMPLETE, t);
+        report = analysisDataProcessingService.generateFinalReport(15, SignalType.ON_COMPLETE, t, null);
         cntr = 0;
         assertEquals(8, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -203,7 +222,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_0.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(9, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -246,7 +265,7 @@ class AnalysisDataProcessingService3Test {
         dummyFileNames.add("xsb_error_msg_dummy_1.txt");
         errorHandler.setErrorFileNames(dummyFileNames);
 
-        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE, null);
+        List<String> report = analysisDataProcessingService.generateFinalReport(25, SignalType.ON_COMPLETE, null, null);
 
         assertEquals(14, report.size());
         assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
@@ -263,6 +282,24 @@ class AnalysisDataProcessingService3Test {
         assertEquals("WARN:\txsb_error_msg_dummy_0.txt", report.get(cntr++));
         assertEquals("WARN:\txsb_error_msg_dummy_1.txt", report.get(cntr++));
         assertEquals("INFO:========================================================", report.get(cntr++));
+    }
+
+    @Test
+    void testGenerateFinalReport_Duration() {
+        errorHandler.setErrorDirectory(errorDirectory);
+        errorHandler.init("Dummy Header");
+        Duration duration = Duration.parse("P3DT3H12M15.5S");
+
+        List<String> report = analysisDataProcessingService.generateFinalReport(10, SignalType.ON_COMPLETE, null, duration);
+
+        assertEquals(5, report.size());
+        assertEquals("INFO:===================== Final Report =====================", report.get(cntr++));
+        assertEquals("INFO:Saved 10 records in the ACR DB.", report.get(cntr++));
+        assertEquals("INFO:Finished without any issues!!", report.get(cntr++));
+        assertEquals("INFO:Total Time Taken: PT75H12M15.5S", report.get(cntr++));
+        assertEquals("INFO:========================================================", report.get(cntr++));
+
+
     }
 
 
