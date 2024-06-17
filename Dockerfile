@@ -16,6 +16,6 @@ RUN mkdir -p ./external-libs/datadogjar/
 ADD --chown=gsa-user:gsa-user 'https://dtdg.co/latest-java-tracer' ./external-libs/datadogjar/dd-java-agent.jar
 RUN chmod 755 ./external-libs/datadogjar/dd-java-agent.jar
 
-COPY --from=builder /home/gsa-user/target/cm-acr-cataloganalysisservice-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /home/gsa-user/app/target/cm-acr-cataloganalysisservice-0.0.1-SNAPSHOT.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
