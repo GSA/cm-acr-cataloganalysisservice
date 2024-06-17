@@ -5,7 +5,7 @@ FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version}
 COPY src src
 COPY pom.xml pom.xml
 
-RUN mvn -DskipTests clean install verify
+RUN mvn -B -DskipTests clean install verify
 
 
 # --- copy jar file from previous stage
