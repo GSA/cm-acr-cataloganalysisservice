@@ -15,6 +15,6 @@ FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version}
 RUN mkdir -p ./external-libs/datadogjar/
 ADD --chown=gsa-user:gsa-user --chmod=755 'https://dtdg.co/latest-java-tracer' ./external-libs/datadogjar/dd-java-agent.jar
 
-COPY --from=builder /home/gsa-user/target/cm-acr-cataloganalysisservice-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /home/gsa-user/app/target/cm-acr-cataloganalysisservice-0.0.1-SNAPSHOT.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
