@@ -1,5 +1,7 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
+import gov.gsa.acr.cataloganalysis.model.Trigger;
+import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.util.TokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,20 +12,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
-@MockBeans(@MockBean(TokenService.class))
-@TestPropertySource(locations="classpath:application-test.properties")
+@MockBeans({@MockBean(XsbDataRepository.class),@MockBean(TokenService.class)})
+@TestPropertySource(locations="classpath:application-allowedpathsecurity.properties")
 @AutoConfigureWebTestClient
-class InformationControllerTest {
+class SecurityAllowedPathTest {
     @Autowired
     WebTestClient webTestClient;
 
@@ -31,44 +34,12 @@ class InformationControllerTest {
     TokenService tokenService;
 
     @BeforeEach
-    void authorizeCalls() {
-        when(tokenService.validate(any())).thenReturn(true);
-    }
-
-    @Test
-    void testRootEndPoint() {
-        webTestClient
-                // Create a GET request to test an endpoint
-                .get().uri("/api")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("Welcome to Catalog Analysis"));
-    }
-
-    @Test
-    void authFilterReturnsUnauthorized() {
+    void setUp() {
         when(tokenService.validate(any())).thenReturn(false);
-        // Create a GET request to test an endpoint
-        webTestClient.get().uri("/api/info")
-                .exchange()
-                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void testInfoEndPoint() {
-        webTestClient
-                // Create a GET request to test an endpoint
-                .get().uri("/api/info")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("A service for analyzing catalogs in ACR"));
-    }
-
-    @Test
-    void authFilterTestTokens() {
-        when(tokenService.validate("validToken")).thenReturn(true);
-        when(tokenService.validate("invalidToken")).thenReturn(false);
-        when(tokenService.validate(null)).thenReturn(false);
+    void authFilterTestDisabledSecurity() {
         // valid Token
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"Bearer validToken")
@@ -79,14 +50,23 @@ class InformationControllerTest {
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"Bearer invalidToken")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isOk();
 
         // invalid token - without "Bearer" keyword
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"bogusToken")
                 .exchange()
+                .expectStatus().isOk();
+
+
+        Trigger trigger= new Trigger();
+        webTestClient
+                // Create a GET request to test an endpoint
+                .post().uri("/api/trigger")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(trigger), Trigger.class)
+                .exchange()
                 .expectStatus().isUnauthorized();
 
     }
-
 }

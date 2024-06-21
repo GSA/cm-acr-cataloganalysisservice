@@ -209,6 +209,36 @@ public class XsbDataJsonRecord {
     private Double transactionMedianPrice;
     @JsonProperty("transactionMaxPrice")
     private Double transactionMaxPrice;
+    //Start ACREPO-4144
+    @JsonProperty("bioPreferred")
+    private Boolean bioPreferred;
+    @JsonProperty("comprehensiveProcurementGuidelineCompliant")
+    private Boolean comprehensiveProcurementGuidelineCompliant;
+    @JsonProperty("significantNewAlternativesPolicyApproved")
+    private Boolean significantNewAlternativesPolicyApproved;
+    @JsonProperty("federalEnergyManagementProgramEnergyEfficientItem")
+    private Boolean federalEnergyManagementProgramEnergyEfficientItem;
+    @JsonProperty("waterSense")
+    private Boolean waterSense;
+    @JsonProperty("saferChoice")
+    private Boolean saferChoice;
+    @JsonProperty("energyStar")
+    private Boolean energyStar;
+    @JsonProperty("epeat")
+    private Boolean epeat;
+    @JsonProperty("primeItem")
+    private Boolean primeItem;
+    @JsonProperty("epaPrimaryMetalsFree")
+    private Boolean epaPrimaryMetalsFree;
+    @JsonProperty("lowVoc")
+    private Boolean lowVoc;
+    @JsonProperty("standardizedProductName")
+    private String standardizedProductName;
+    @JsonProperty("sinInference")
+    private String sinInference;
+    @JsonProperty("standardizedGlobalPackagingIdentifier")
+    private String standardizedGlobalPackagingIdentifier;
+    //End ACREPO-4144
 
 
     /**
@@ -452,6 +482,23 @@ public class XsbDataJsonRecord {
 
         //Calculated fields.
         calculatedFields(xsbData, taaCountryCodes, sb, ls);
+
+        //Start ACREPO-4144
+        this.setBioPreferred(Boolean.valueOf(xsbData.get("bioPreferred")));
+        this.setComprehensiveProcurementGuidelineCompliant(Boolean.valueOf(xsbData.get("comprehensiveProcurementGuidelineCompliant")));
+        this.setSignificantNewAlternativesPolicyApproved(Boolean.valueOf(xsbData.get("significantNewAlternativesPolicyApproved")));
+        this.setFederalEnergyManagementProgramEnergyEfficientItem(Boolean.valueOf(xsbData.get("federalEnergyManagementProgramEnergyEfficientItem")));
+        this.setWaterSense(Boolean.valueOf(xsbData.get("waterSense")));
+        this.setSaferChoice(Boolean.valueOf(xsbData.get("saferChoice")));
+        this.setEnergyStar(Boolean.valueOf(xsbData.get("energyStar")));
+        this.setEpeat(Boolean.valueOf(xsbData.get("epeat")));
+        this.setPrimeItem(Boolean.valueOf(xsbData.get("primeItem")));
+        this.setEpaPrimaryMetalsFree(Boolean.valueOf(xsbData.get("epaPrimaryMetalsFree")));
+        this.setLowVoc(Boolean.valueOf(xsbData.get("lowVoc")));
+        this.setStandardizedProductName(xsbData.get("standardizedProductName"));
+        this.setSinInference(xsbData.get("sinInference"));
+        this.setStandardizedGlobalPackagingIdentifier(xsbData.get("standardizedGlobalPackagingIdentifier"));
+        //End ACREPO-4144
 
         if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
