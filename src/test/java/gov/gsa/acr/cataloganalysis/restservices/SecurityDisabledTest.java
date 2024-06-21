@@ -13,17 +13,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 @MockBeans(@MockBean(TokenService.class))
-@TestPropertySource(locations="classpath:application-test.properties")
+@TestPropertySource(locations="classpath:application-disabledsecurity.properties")
 @AutoConfigureWebTestClient
-class InformationControllerTest {
+class SecurityDisabledTest {
     @Autowired
     WebTestClient webTestClient;
 
@@ -32,43 +30,11 @@ class InformationControllerTest {
 
     @BeforeEach
     void authorizeCalls() {
-        when(tokenService.validate(any())).thenReturn(true);
-    }
-
-    @Test
-    void testRootEndPoint() {
-        webTestClient
-                // Create a GET request to test an endpoint
-                .get().uri("/api")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("Welcome to Catalog Analysis"));
-    }
-
-    @Test
-    void authFilterReturnsUnauthorized() {
         when(tokenService.validate(any())).thenReturn(false);
-        // Create a GET request to test an endpoint
-        webTestClient.get().uri("/api/info")
-                .exchange()
-                .expectStatus().isUnauthorized();
     }
 
     @Test
-    void testInfoEndPoint() {
-        webTestClient
-                // Create a GET request to test an endpoint
-                .get().uri("/api/info")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class).value(greeting -> assertThat(greeting).isEqualTo("A service for analyzing catalogs in ACR"));
-    }
-
-    @Test
-    void authFilterTestTokens() {
-        when(tokenService.validate("validToken")).thenReturn(true);
-        when(tokenService.validate("invalidToken")).thenReturn(false);
-        when(tokenService.validate(null)).thenReturn(false);
+    void authFilterTestDisabledSecurity() {
         // valid Token
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"Bearer validToken")
@@ -79,13 +45,13 @@ class InformationControllerTest {
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"Bearer invalidToken")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isOk();
 
         // invalid token - without "Bearer" keyword
         webTestClient.get().uri("/api/info")
                 .header(HttpHeaders.AUTHORIZATION,"bogusToken")
                 .exchange()
-                .expectStatus().isUnauthorized();
+                .expectStatus().isOk();
 
     }
 

@@ -164,10 +164,10 @@ class AnalysisDataProcessingServiceTest {
     void testParsingValidFile() throws IOException {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
-        Path vallidFile = Path.of("tmp/testValidFile.gsa");
-        Files.copy(srcFile, vallidFile);
-        assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        Path validFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -491,6 +491,8 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(any(XsbData.class), anyString());
         when(errorHandler.getForceQuit()).thenReturn(false);
     }
+
+
 
     @Test
     void testNothingToMoveFromStagingToFinal() {
@@ -2232,6 +2234,18 @@ class AnalysisDataProcessingServiceTest {
         log.info("Finished ");
 
     }
+
+    @Test
+    void testGetDataUploadResults_NullErrorHandler() {
+        StepVerifier.create(analysisDataProcessingService.getDataUploadResults(null, null, 0))
+                .expectError(IllegalArgumentException.class)
+                .verify();
+
+        StepVerifier.create(analysisDataProcessingService.getDataUploadResults(null, null, 0))
+                .expectErrorMessage("Error Handler cannot be null")
+                .verify();
+    }
+
 
 
 }
