@@ -103,10 +103,90 @@ class XsbDataTest {
                 "is_low_outlier": false,
                 "is_market_research_found": true,
                 "is_mia_risk": false,
-                "is_taa_risk": false}
+                "is_taa_risk": false,
+                "bioPreferred": false,
+                "comprehensiveProcurementGuidelineCompliant": false,
+                "energyStar": false,
+                "epaPrimaryMetalsFree": false,
+                "epeat": false,
+                "federalEnergyManagementProgramEnergyEfficientItem": false,
+                "lowVoc": false,
+                "primeItem": false,
+                "saferChoice": false,
+                "significantNewAlternativesPolicyApproved": false,
+                "sinInference": "NEW",
+                "standardizedProductName": "VERIZON VPN WITH ITS CLOUD MANAGER PER Y",
+                "waterSense": false}
                 """;
         JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.STRICT);
     }
+
+    @Test
+    void testACREPO_4144()  throws JSONException {
+        String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~\n";
+
+        XsbData xsbData = new XsbData(xsbDataParser.parseXsbDataToMap(xsbDataString), taaCountryCodes);
+        assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
+        assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
+        assertEquals("OPT30125380", xsbData.getPartNumber());
+        String expectedJSON = """
+                {"vendorName":"AMERICAN SIGNAL COMPANY",
+                "modificationNumber": "123",
+                "vendorDescription":"Verizon VPN with ITS Cloud Manager per year subscription, available for all models",
+                "dunsNumber":"612764845",
+                "quantityPerUnit":1,
+                "unitOfIssue":"EA",
+                "standardizedManufacturerName":"AMERICAN SIGNAL",
+                "standardizedManufacturerPartNumber":"OPT30125380",
+                "standardizedUnitOfIssue":"EA",
+                "productName":"VERIZON VPN WITH ITS CLOUD MANAGER PER Y",
+                "standardizedProductDescription":"Verizon VPN with ITS Cloud Manager per year subscription, available for all models",
+                "uniqueItemIdentifier":"91580958",
+                "hits":1,
+                "selfHits":1,
+                "ets":false,
+                "deliveryFob":"PP",
+                "finalPrice":344.58,
+                "lowPriceTarget":344.58,
+                "highPriceTarget":437.27,
+                "catalogMinPrice":344.58,
+                "catalogAvgPrice":344.58,
+                "catalogMedianPrice":344.58,
+                "catalogMaxPrice":344.58,
+                "catalogPriceStandardDeviation":0,
+                "transactionMinPrice":0,
+                "transactionAvgPrice":0,
+                "transactionMedianPrice":0,
+                "transactionMaxPrice":0,
+                "catalogMinPriceSupplier":"AMERICAN SIGNAL COMPANY 47QSMA21D08R6",
+                "catalogMedianPriceSupplier":"AMERICAN SIGNAL COMPANY 47QSMA21D08R6",
+                "demandWeightedIndexScore":0,
+                "rankCategory":"Unknown",
+                "salesLikelihood":"Unknown",
+                "isAuthorizedVendor":9,
+                "isProhibited":false,
+                "country_of_origin":"US", "enrichment_lower_bound": 344.58,
+                "enrichment_upper_bound": 344.58,
+                "exceeds_market_threshold": false,
+                "is_low_outlier": false,
+                "is_market_research_found": true,
+                "is_mia_risk": false,
+                "is_taa_risk": false,
+                "bioPreferred": false,
+                "comprehensiveProcurementGuidelineCompliant": false,
+                "energyStar": false,
+                "epaPrimaryMetalsFree": false,
+                "epeat": false,
+                "federalEnergyManagementProgramEnergyEfficientItem": false,
+                "lowVoc": false,
+                "primeItem": false,
+                "saferChoice": false,
+                "significantNewAlternativesPolicyApproved": false,
+                "waterSense": false}
+                """;
+        JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.STRICT);
+    }
+
 
     @Test
     void testInvalidContractNumber(){
