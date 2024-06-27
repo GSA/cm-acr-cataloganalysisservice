@@ -1105,6 +1105,108 @@ class XsbDataJsonRecordTest {
         xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
         assertEquals(-34.79, xsbData.getTransactionMaxPrice());
     }
+
+
+    @Test
+    void testACREPO_4144AdditionalFields(){
+        /*
+        Test following additional fields
+        bioPreferred
+        comprehensiveProcurementGuidelineCompliant
+        significantNewAlternativesPolicyApproved
+        federalEnergyManagementProgramEnergyEfficientItem
+        waterSense
+        saferChoice
+        energyStar
+        epeat
+        primeItem
+        epaPrimaryMetalsFree
+        lowVoc
+        standardizedProductName
+        sinInference
+        standardizedGlobalPackagingIdentifier
+         */
+
+        XsbDataJsonRecord xsbData;
+        Map<String, String> map;
+        // Valid test
+        String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~DUMMY DATA~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~\n";
+        map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertFalse(xsbData.getBioPreferred());
+        assertFalse(xsbData.getComprehensiveProcurementGuidelineCompliant());
+        assertFalse(xsbData.getSignificantNewAlternativesPolicyApproved());
+        assertFalse(xsbData.getFederalEnergyManagementProgramEnergyEfficientItem());
+        assertFalse(xsbData.getWaterSense());
+        assertFalse(xsbData.getSaferChoice());
+        assertFalse(xsbData.getEnergyStar());
+        assertFalse(xsbData.getEpeat());
+        assertFalse(xsbData.getPrimeItem());
+        assertFalse(xsbData.getEpaPrimaryMetalsFree());
+        assertFalse(xsbData.getLowVoc());
+        assertEquals("NEW", xsbData.getSinInference());
+        assertEquals("VERIZON VPN WITH ITS CLOUD MANAGER PER Y", xsbData.getStandardizedProductName());
+        assertEquals("DUMMY DATA", xsbData.getStandardizedGlobalPackagingIdentifier());
+
+
+        // Null values, valid test
+        xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~\n";
+        map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertFalse(xsbData.getBioPreferred());
+        assertFalse(xsbData.getComprehensiveProcurementGuidelineCompliant());
+        assertFalse(xsbData.getSignificantNewAlternativesPolicyApproved());
+        assertFalse(xsbData.getFederalEnergyManagementProgramEnergyEfficientItem());
+        assertFalse(xsbData.getWaterSense());
+        assertFalse(xsbData.getSaferChoice());
+        assertFalse(xsbData.getEnergyStar());
+        assertFalse(xsbData.getEpeat());
+        assertFalse(xsbData.getPrimeItem());
+        assertFalse(xsbData.getEpaPrimaryMetalsFree());
+        assertFalse(xsbData.getLowVoc());
+        assertEquals("", xsbData.getSinInference());
+        assertEquals("", xsbData.getStandardizedProductName());
+        assertEquals("", xsbData.getStandardizedGlobalPackagingIdentifier());
+
+        // Different value
+        xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~OLD~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~Standardized Global Packaging~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~DUMMY PRODUCT NAME~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~\n";
+        map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertTrue(xsbData.getBioPreferred());
+        assertTrue(xsbData.getComprehensiveProcurementGuidelineCompliant());
+        assertTrue(xsbData.getSignificantNewAlternativesPolicyApproved());
+        assertTrue(xsbData.getFederalEnergyManagementProgramEnergyEfficientItem());
+        assertTrue(xsbData.getWaterSense());
+        assertTrue(xsbData.getSaferChoice());
+        assertTrue(xsbData.getEnergyStar());
+        assertTrue(xsbData.getEpeat());
+        assertTrue(xsbData.getPrimeItem());
+        assertTrue(xsbData.getEpaPrimaryMetalsFree());
+        assertTrue(xsbData.getLowVoc());
+        assertEquals("OLD", xsbData.getSinInference());
+        assertEquals("DUMMY PRODUCT NAME", xsbData.getStandardizedProductName());
+        assertEquals("Standardized Global Packaging", xsbData.getStandardizedGlobalPackagingIdentifier());
+
+
+        xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~TRUE~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~Standardized Global Packaging~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~DUMMY PRODUCT NAME~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~TRUE~|~INVALID~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~TRUE~|~FALSE~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0~|~0~|~0~|~0~|~0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0~|~0~|~0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~FALSE~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100~|~~|~US~|~FALSE~|~FALSE~|~~|~~|~~|~~|~\n";
+        map = xsbDataParser.parseXsbDataToMap(xsbDataString);
+        xsbData = new XsbDataJsonRecord(map, taaCountryCodes);
+        assertTrue(xsbData.getBioPreferred());
+        assertFalse(xsbData.getComprehensiveProcurementGuidelineCompliant());
+        assertTrue(xsbData.getSignificantNewAlternativesPolicyApproved());
+        assertTrue(xsbData.getFederalEnergyManagementProgramEnergyEfficientItem());
+        assertTrue(xsbData.getWaterSense());
+        assertTrue(xsbData.getSaferChoice());
+        assertTrue(xsbData.getEnergyStar());
+        assertTrue(xsbData.getEpeat());
+        assertTrue(xsbData.getPrimeItem());
+        assertTrue(xsbData.getEpaPrimaryMetalsFree());
+        assertTrue(xsbData.getLowVoc());
+        assertEquals("NEW", xsbData.getSinInference());
+        assertEquals("DUMMY PRODUCT NAME", xsbData.getStandardizedProductName());
+        assertEquals("Standardized Global Packaging", xsbData.getStandardizedGlobalPackagingIdentifier());
+
+    }
 }
 
 
