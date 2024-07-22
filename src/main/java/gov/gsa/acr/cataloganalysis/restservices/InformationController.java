@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@SuppressWarnings("SameReturnValue")
 @Hidden
 @RestController
 public class InformationController extends BaseController{
