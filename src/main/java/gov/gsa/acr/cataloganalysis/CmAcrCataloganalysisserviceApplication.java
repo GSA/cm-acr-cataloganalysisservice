@@ -9,12 +9,9 @@ import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
 @Slf4j
 @EnableR2dbcAuditing
 public class CmAcrCataloganalysisserviceApplication {
-
-    public CmAcrCataloganalysisserviceApplication() {
-    }
+    public CmAcrCataloganalysisserviceApplication() {}
 
     public static void main(String[] args) {
         SpringApplication.run(CmAcrCataloganalysisserviceApplication.class, args);
     }
-
 }

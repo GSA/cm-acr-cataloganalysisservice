@@ -1,9 +1,9 @@
 package gov.gsa.acr.cataloganalysis.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -16,9 +16,10 @@ import java.util.Map;
 
 @Data
 @Table("xsb_data")
+@NoArgsConstructor
 public class XsbData {
     @Id
-    private  Integer id;
+    private Long id;
 
     @Column("contract_number")
     private String contractNumber;
@@ -55,7 +56,10 @@ public class XsbData {
             sb.append("Invalid data, contract number cannot be NULL or Blank.");
             sb.append(ls);
         }
-        else this.setContractNumber(contractNumber);
+        else {
+            int refreshIndex = contractNumber.indexOf("_refresh");
+            this.setContractNumber(refreshIndex < 0 ? contractNumber : contractNumber.substring(0, refreshIndex));
+        }
 
         // manufacturerName
         String manufacturerName = xsbDataAsAMap.get("manufacturerName");
@@ -78,9 +82,6 @@ public class XsbData {
             XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap, taaCountryCodes);
             ObjectMapper objectMapper = new ObjectMapper();
             this.setXsbData(Json.of(objectMapper.writeValueAsString(xsbDataJsonRecord)));
-        } catch (JsonProcessingException e) {
-            sb.append("Could not convert XSB response data to JSON. ").append(e.getMessage());
-            sb.append(ls);
         }
         catch (Exception e){
             sb.append(e.getMessage());

@@ -1,25 +1,135 @@
 package gov.gsa.acr.cataloganalysis.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 @Data
 public class Trigger {
-    private String sourceType;
-    private String filePattern;
+    @Schema(description = """
+    Source for XSB Files. Has to be one of "XSB", or "LOCAL", or "S3".
+    "XSB": will look for files on the XSB's SFTP server,
+    "S3": Will look for file in the ACR's S3 bucket,
+    "LOCAL": Will look for files on the PODs local file system.
+    """,
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private AnalysisSourceType sourceType;
+    @Schema(description = """
+            The folder relative to the base of the source. For example, for the XSB source the base is the root folder "/"
+            on the XSB's SFTP server.
+            For the S3 bucket the base is the folder "catalogAnalysis"  and for the local file system the base is the
+            root folder "/".
+            """,
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    private String sourceFolder;
+    @Schema(description = """
+            A list of either full file names or glob like patterns. e.g.
+            "files" : [ "47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa", "47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa" ]
+            or
+            "files" : ['myTestSftp*.gsa', "47QSWA19D0073-3003521**"]
+            
+            Except in case where the source is S3 bucket. The glob pattern does not work in case of S3, the the values in the files array
+            are used as prefix only for looking for files in the S3 bucket.
+            """,
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
     private String[] files;
-    private Boolean monitor = Boolean.FALSE;
+    @Schema(description = """
+    if true, then all the existing xsb data will be deleted from the xsb_data table and fresh data will be added.
+    if false (default), then current data is not deleted, but it will be updated. Data should be purged whenever new bi-monthly
+    data is consumed. Purging old data will get rid of stale records. However, if there is an issue with the some
+    of the records, or if new products are discovered in a vendor's catalog, then the existing data should not be
+    deleted, but only modified.
+    """,
+    defaultValue = "False"
+    )
+    private Boolean purgeOldData = Boolean.FALSE;
+    @Schema(description = """
+    Default value is FALSE. However, if set to TRUE, data is only staged in the xsb_dat_temp table and not moved to the
+    final xsb_data table.
+    """,
+    defaultValue = "False"
+    )
+    private Boolean onlyStageData = Boolean.FALSE;
+    @Schema(description = """
+    Default value is FALSE. However, if set to TRUE, data is not parsed but only moved from staging table, xsb_data_temp,
+    to the final table, xsb_data. This flag will come in handy when something goes wrong only in the final step from a
+    previous run, i.e. a previous run was able to  parse and stage data successfully, but the final step of copying the
+    data to the final table failed. In this case, this flag saves time since parsing and staging does not have to repeat.
+    """,
+    defaultValue = "False"
+    )
+    private Boolean onlyMoveStagedData = Boolean.FALSE;
+    @Schema(description = """
+    This specifies the data when catalogs from GSA Advantage were submitted to XSB for bi-monthly processing. The format
+    for this date should be yyyy-MM-dd
+    """,
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @JsonFormat(pattern="yyyy-MM-dd")
+    private LocalDate gsaFeedDate;
+
+
+    @Schema(hidden = true)
+    private Boolean forceQuit = Boolean.FALSE;
+
+    @Schema(hidden = true)
     private Set<String> uniqueFileNames;
+
+    public void setFiles(String[] newFiles){
+        files = newFiles;
+        uniqueFileNames = null;
+    }
 
     public Set<String> getUniqueFileNames(){
         if (uniqueFileNames == null) {
-            if (files != null && files.length > 0) {
+            if (files != null && files.length != 0) {
                 uniqueFileNames = new HashSet<>();
-                for (String fn : files) uniqueFileNames.add(fn);
+                Collections.addAll(uniqueFileNames, files);
             }
         }
         return uniqueFileNames;
+    }
+
+    public static void validate(Trigger trigger){
+        // Trigger is required
+        if (trigger == null) throw new IllegalArgumentException("Illegal argument, trigger, cannot be null!");
+
+        if (!trigger.getOnlyMoveStagedData()) {
+            // Must have a valid source type
+            if (trigger.getSourceType() == null)
+                throw new IllegalArgumentException("Trigger argument must include a sourceType attribute (value of sourceType should be one of LOCAL, S3 or XSB).");
+            // For LOCAL source type, source folder is required
+            if (AnalysisSourceType.LOCAL.equals(trigger.getSourceType())) {
+                String sourceFolder = trigger.getSourceFolder();
+                if (sourceFolder == null || sourceFolder.isBlank() || (Files.notExists(Path.of(sourceFolder))))
+                    throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
+            }
+            // Need files to download.
+            Set<String> uniqueFileNames = trigger.getUniqueFileNames();
+            if (uniqueFileNames == null || uniqueFileNames.isEmpty())
+                throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+            // Must have a valid GSA Feed Date
+            if (trigger.getGsaFeedDate() == null || trigger.getGsaFeedDate().isAfter(LocalDate.now()))
+                throw new IllegalArgumentException("Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
+
+        }
+        // If both onlyStageData and onlyMoveStageData are true, nothing will happen. onlyMoveStageData will not parse any files, and onlyStageData will
+        // not move any data from the staging to final table.
+        if (trigger.getOnlyStageData() && trigger.getOnlyMoveStagedData())
+            throw new IllegalArgumentException ("onlyStageData and onlyMoveStagedData cannot be both TRUE simultaneously. Nothing will happen in this case. One (or both) has to be FALSE");
+    }
+
+    public enum AnalysisSourceType {
+        XSB, LOCAL, S3
     }
 }
