@@ -257,7 +257,7 @@ public class FailFastTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of("errors/xsb_error_parse_dummy.gsa", "errors/xsb_error_parse_dummy.gsa"));
-        expectedResults.setNumRecordsSavedInTempDB(1);
+        expectedResults.setNumRecordsSavedInTempDB(17);
         expectedResults.setNumFileErrors(1);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(2);
@@ -268,7 +268,7 @@ public class FailFastTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(17)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();

@@ -239,7 +239,10 @@ public class XsbDataJsonRecord {
     @JsonProperty("standardizedGlobalPackagingIdentifier")
     private String standardizedGlobalPackagingIdentifier;
     //End ACREPO-4144
-
+    //Start ACREPO-4207
+    @JsonProperty("mdfGroupId")
+    private String mdfGroupId;
+    //End ACREPO-4207
 
     /**
      * Creates an object that will be saved as a JSON in the database.
@@ -499,6 +502,9 @@ public class XsbDataJsonRecord {
         this.setSinInference(xsbData.get("sinInference"));
         this.setStandardizedGlobalPackagingIdentifier(xsbData.get("standardizedGlobalPackagingIdentifier"));
         //End ACREPO-4144
+        //Start ACREPO-4207
+        this.setMdfGroupId(xsbData.get("mdfGroupId"));
+        //End ACREPO-4207
 
         if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
