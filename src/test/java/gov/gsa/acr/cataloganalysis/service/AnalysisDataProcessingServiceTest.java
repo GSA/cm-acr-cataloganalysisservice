@@ -135,12 +135,12 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFile, invalidRecordsFile);
         assertTrue(Files.exists(invalidRecordsFile));
         StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes, true, null))
-                .expectNextCount(16)
+                .expectNextCount(17)
                 .expectComplete()
                 .verify();
 
         assertTrue(Files.exists(srcFile));
-        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(Mockito.anyString(),eq(invalidRecordsFile.toString()), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.times(4)).handleParsingError(Mockito.anyString(),eq(invalidRecordsFile.toString()), Mockito.anyString());
     }
 
 
@@ -169,6 +169,40 @@ class AnalysisDataProcessingServiceTest {
         assertTrue(Files.exists(validFile));
         StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
                 .expectNextCount(10)
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
+    }
+
+
+    @Test
+    void testParsingFileWithoutMdfGroupId() throws IOException {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path srcFile = Path.of("junitTestData/47QSCA18D000Z-3003677_20240507141350_8389982608816780647_report_1.gsa");
+        Path validFile = Path.of("tmp/47QSCA18D000Z-3003677_20240507141350_8389982608816780647_report_1.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("mdfGroupId")))
+                .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("mdfGroupId")))
+                .expectComplete()
+                .verify();
+        Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.never()).handleFileError(Mockito.anyString(), Mockito.anyString(), Mockito.any(Exception.class));
+    }
+
+    @Test
+    void testParsingFileWithMdfGroupId() throws IOException {
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        Path srcFile = Path.of("junitTestData/47QSMA19D08P6-3013582_20240807190023_4963524368564643147_report_1.gsa");
+        Path validFile = Path.of("tmp/47QSMA19D08P6-3013582_20240807190023_4963524368564643147_report_1.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+                .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"mdfGroupId\":\""+46020247+"\"")))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
@@ -295,13 +329,13 @@ class AnalysisDataProcessingServiceTest {
                 .verifyComplete();
 
         StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, null))
-                .expectNextCount(26)
+                .expectNextCount(27)
                 .verifyComplete();
 
         Mockito.verify(errorHandler, Mockito.never()).handleDBError(Mockito.any(XsbData.class), Mockito.anyString());
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(Mockito.anyString(), matches("Ignoring File.*"), Mockito.any(NoSuchFileException.class) );
         Mockito.verify(errorHandler, Mockito.times(2)).handleFileError(Mockito.anyString(), matches("Ignoring File.*"), Mockito.any(NoSuchElementException.class) );
-        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(errorHandler, Mockito.times(4)).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
 
     }
 
@@ -345,7 +379,7 @@ class AnalysisDataProcessingServiceTest {
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
-                .expectNextCount(16)
+                .expectNextCount(17)
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .expectComplete()
                 .verify();
@@ -394,7 +428,7 @@ class AnalysisDataProcessingServiceTest {
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
-                .expectNextCount(16)
+                .expectNextCount(17)
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .expectComplete()
                 .verify();
@@ -1733,7 +1767,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -1744,7 +1778,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
@@ -1768,7 +1802,7 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
-        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
+        Mockito.verify(errorHandler, Mockito.times(4)).handleParsingError(anyString(), anyString(), anyString());
 
     }
 
@@ -1821,7 +1855,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -1832,7 +1866,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
@@ -1856,7 +1890,7 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
-        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
+        Mockito.verify(errorHandler, Mockito.times(4)).handleParsingError(anyString(), anyString(), anyString());
 
     }
 
@@ -2077,7 +2111,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -2088,7 +2122,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
@@ -2112,7 +2146,7 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
 
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(anyString(), anyString(), any());
-        Mockito.verify(errorHandler, Mockito.times(5)).handleParsingError(anyString(), anyString(), anyString());
+        Mockito.verify(errorHandler, Mockito.times(4)).handleParsingError(anyString(), anyString(), anyString());
 
     }
 
