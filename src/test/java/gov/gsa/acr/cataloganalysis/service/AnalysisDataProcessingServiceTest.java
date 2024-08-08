@@ -1767,7 +1767,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(27);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -1778,7 +1778,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(27)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
@@ -1855,7 +1855,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(27);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -1866,7 +1866,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(27)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
@@ -2111,7 +2111,7 @@ class AnalysisDataProcessingServiceTest {
 
         DataUploadResults expectedResults = new DataUploadResults();
         expectedResults.setErrorFileNames(List.of());
-        expectedResults.setNumRecordsSavedInTempDB(27);
+        expectedResults.setNumRecordsSavedInTempDB(33);
         expectedResults.setNumFileErrors(0);
         expectedResults.setNumDbErrors(0);
         expectedResults.setNumParsingErrors(0);
@@ -2122,7 +2122,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectNext(expectedResults)
                 .verifyComplete();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(27)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(33)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
         Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
         Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
