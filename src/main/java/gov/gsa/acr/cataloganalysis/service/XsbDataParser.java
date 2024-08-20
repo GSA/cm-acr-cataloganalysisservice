@@ -24,12 +24,16 @@ public class XsbDataParser {
     private String defaultDelimiter;
     @Value("${xsb.report.file.header}")
     private String defaultHeader;
+    @Value("${xsb.report.file.extended.header}")
+    private String extendedHeader;
     @Getter
     private String delimRegex;
     @Getter
     private String delimString;
     @Getter
     private String[] header;
+    @Getter
+    private String[] extendedHeaderArray;
     @Getter
     private String headerString;
 
@@ -39,11 +43,14 @@ public class XsbDataParser {
         delimString = delimRegex.replace("\\", "");
         headerString = defaultHeader;
         header = headerString.split(delimRegex, -1);
+        extendedHeaderArray = extendedHeader.split(delimRegex, -1);
     }
 
 
     public boolean validateHeader(String rawHeaderString){
-        return headerString.equals(rawHeaderString);
+        if (rawHeaderString == null) return false;
+        if (rawHeaderString.startsWith(extendedHeader)) return true;
+        else return rawHeaderString.startsWith(headerString);
     }
 
     private void validateRequest(String xsbDataString){
@@ -56,16 +63,22 @@ public class XsbDataParser {
         // Validate the string. Throw exception if not valid. Otherwise, continue parsing.
         validateRequest(xsbDataString);
         String [] xsbDataAsArray = xsbDataString.split(delimRegex, -1);
-        if (xsbDataAsArray.length != header.length)
+        if (header.length > xsbDataAsArray.length)
             throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + header.length + ", found " + xsbDataAsArray.length);
+        if (header.length < xsbDataAsArray.length && extendedHeaderArray.length > xsbDataAsArray.length)
+            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + extendedHeaderArray.length + ", found " + xsbDataAsArray.length);
+
         return xsbDataAsArray;
     }
 
     public Map<String, String> parseXsbDataToMap(String xsbDataString){
         String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString);
-        return IntStream.range(0, header.length)
+        int numberOfFields;
+        if (xsbDataAsArray.length == header.length) numberOfFields = header.length;
+        else numberOfFields = extendedHeaderArray.length;
+        return IntStream.range(0, numberOfFields)
                 .boxed()
-                .collect(Collectors.toMap(k -> header[k], v -> xsbDataAsArray[v]));
+                .collect(Collectors.toMap(k -> extendedHeaderArray[k], v -> xsbDataAsArray[v]));
     }
 
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes, LocalDate gsaFeedDate){
