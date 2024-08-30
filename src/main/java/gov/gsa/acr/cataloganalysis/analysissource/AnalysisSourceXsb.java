@@ -88,13 +88,16 @@ public class AnalysisSourceXsb implements AnalysisSource {
         return new SftpProgressMonitor() {
             private long totalBytesDownloadedUntilNow;
             private long totalDownloadFileSize;
-            private String srcFileName, dstFileName;
-            Instant start, end, lastProgressReportTime;
+            private String srcFileName,
+                    dstFileName;
+            Instant start,
+                    end,
+                    lastProgressReportTime;
             private Duration progressMonitorInterval;
+            private final String MN = "sftpProgressMonitor: ";
 
             @Override
             public void init(int i, String s, String s1, long l) {
-                final String MN = "sftpProgressMonitor: ";
                 totalDownloadFileSize = l;
                 totalBytesDownloadedUntilNow = 0;
                 srcFileName = s;
@@ -109,7 +112,6 @@ public class AnalysisSourceXsb implements AnalysisSource {
 
             @Override
             public boolean count(long l) {
-                final String MN = "sftpProgressMonitor: ";
                 totalBytesDownloadedUntilNow += l;
                 int percentage = (int) (totalBytesDownloadedUntilNow * 100.0 / totalDownloadFileSize + 0.5);
                 Instant currentTime = Instant.now();
@@ -123,7 +125,6 @@ public class AnalysisSourceXsb implements AnalysisSource {
             @Override
             public void end() {
                 end = Instant.now();
-                final String MN = "sftpProgressMonitor: ";
                 log.info(MN + "Finished successfully downloading {} file to {}. Time taken: {}", srcFileName, dstFileName, Duration.between(start, end));
             }
         };
