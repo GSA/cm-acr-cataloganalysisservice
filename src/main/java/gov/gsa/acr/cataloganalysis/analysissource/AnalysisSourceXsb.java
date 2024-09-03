@@ -88,11 +88,11 @@ public class AnalysisSourceXsb implements AnalysisSource {
         return new SftpProgressMonitor() {
             private long totalBytesDownloadedUntilNow;
             private long totalDownloadFileSize;
-            private String srcFileName,
-                    dstFileName;
-            Instant start,
-                    end,
-                    lastProgressReportTime;
+            private String srcFileName;
+            private String dstFileName;
+            Instant start;
+            Instant end;
+            Instant lastProgressReportTime;
             private Duration progressMonitorInterval;
             private final String MN = "sftpProgressMonitor: ";
 
