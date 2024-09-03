@@ -1,3 +1,3 @@
-on_commit to: feature {
+on_commit to: feature, {
     static_code_analysis()
 }
