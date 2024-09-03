@@ -29,7 +29,6 @@ keywords{
     hotfix      =  /^[Hh]ot[Ff]ix-.*/
     release     =  /^[Rr]elease-(\d+.)*\d$/
     feature     =  /^[Ff]eature.*/
-    acrepo4264  =  /^feature\/ACREPO-4265/
 }
 
 libraries{
