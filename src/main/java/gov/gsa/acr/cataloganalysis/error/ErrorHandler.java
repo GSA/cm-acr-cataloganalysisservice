@@ -67,6 +67,8 @@ public class ErrorHandler {
     @Setter
     private List<String> errorFileNames;
 
+    private final String PARSE = "PARSE";
+
     private void deleteOldErrorFiles() {
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory))
                 .filter(Files::isRegularFile)
@@ -142,7 +144,7 @@ public class ErrorHandler {
 
     public void handleParsingError(String xsbRecord, String srcFileName, String error) {
         numParsingErrors.incrementAndGet();
-        handleError(xsbRecord, srcFileName, error, "PARSE");
+        handleError(xsbRecord, srcFileName, error, PARSE);
     }
 
     public void handleDBError(XsbData xsbRecord, String error) {
@@ -173,7 +175,7 @@ public class ErrorHandler {
                 if (header == null || header.isBlank())
                     log.error("Error initializing the errorHandler. Header string is null");
                 else dbErrorWriter.println(header);
-            } else if (errorType.equals("PARSE") && parseErrorWriter == null) {
+            } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
                 Path opPath = Path.of(getParseErrorFileName());
                 BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
@@ -207,7 +209,7 @@ public class ErrorHandler {
                     dbErrorWriter = null;
                     tryAgain = true;
                 }
-            } else if (errorType.equals("PARSE")) {
+            } else if (errorType.equals(PARSE)) {
                 numAllowedParseErrorBytes = parseErrorWriter.numBytesAllowed(xsbRecord);
                 if (numAllowedParseErrorBytes == 0) {
                     parseErrorWriter.close();
@@ -221,7 +223,7 @@ public class ErrorHandler {
             } else {
                 errorMsgWriter.println(sb.toString());
                 if (errorType.equals("DB")) dbErrorWriter.println(xsbRecord);
-                else if (errorType.equals("PARSE"))
+                else if (errorType.equals(PARSE))
                     parseErrorWriter.println(xsbRecord);
             }
 
