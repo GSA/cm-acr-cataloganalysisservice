@@ -94,7 +94,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
             Instant end;
             Instant lastProgressReportTime;
             private Duration progressMonitorInterval;
-            private final String MN = "sftpProgressMonitor: ";
+            private static final String MN = "sftpProgressMonitor: ";
 
             @Override
             public void init(int i, String s, String s1, long l) {

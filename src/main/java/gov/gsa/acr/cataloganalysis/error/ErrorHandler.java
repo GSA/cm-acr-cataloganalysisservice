@@ -46,7 +46,7 @@ public class ErrorHandler {
     private int parseErrorChunk;
     private int dbErrorChunk;
     private String timeStamp;
-    private Boolean totalErrorsWithinAcceptableThreshnold;
+    private boolean totalErrorsWithinAcceptableThreshnold;
 
     @Getter
     @Setter
@@ -67,7 +67,7 @@ public class ErrorHandler {
     @Setter
     private List<String> errorFileNames;
 
-    private final String PARSE = "PARSE";
+    private static final String PARSE = "PARSE";
 
     private void deleteOldErrorFiles() {
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory))
@@ -87,7 +87,7 @@ public class ErrorHandler {
     }
 
     public void init(String header) {
-        totalErrorsWithinAcceptableThreshnold = Boolean.TRUE;
+        totalErrorsWithinAcceptableThreshnold = true;
         numParsingErrors = new AtomicInteger(0);
         numDbErrors = new AtomicInteger(0);
         numFileErrors = new AtomicInteger(0);
