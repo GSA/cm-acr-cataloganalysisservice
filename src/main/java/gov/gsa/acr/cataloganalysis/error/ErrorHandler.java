@@ -68,6 +68,7 @@ public class ErrorHandler {
     private List<String> errorFileNames;
 
     private static final String PARSE = "PARSE";
+    private static final String ERROR_MSG = "Error initializing the errorHandler. Header string is null";
 
     private void deleteOldErrorFiles() {
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory))
@@ -164,24 +165,27 @@ public class ErrorHandler {
         boolean tryAgain = false;
         try {
             if (errorMsgWriter == null) {
-                Path opPath = Path.of(getErrorMessageFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                errorMsgWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
+                errorMsgWriter = new BoundedPrintWriter(
+                        Files.newBufferedWriter(Path.of(getErrorMessageFileName()),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+                        maxErrorFileSizeBytes);
             }
             if (errorType.equals("DB") && dbErrorWriter == null) {
-                Path opPath = Path.of(getDBErrorFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                dbErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
-                if (header == null || header.isBlank())
-                    log.error("Error initializing the errorHandler. Header string is null");
-                else dbErrorWriter.println(header);
+                dbErrorWriter = new BoundedPrintWriter(
+                        Files.newBufferedWriter(Path.of(getDBErrorFileName()),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+                        maxErrorFileSizeBytes);
+                if (header == null || header.isBlank()) {
+                    log.error(ERROR_MSG);
+                } else dbErrorWriter.println(header);
             } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
-                Path opPath = Path.of(getParseErrorFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
-                if (header == null || header.isBlank())
-                    log.error("Error initializing the errorHandler. Header string is null");
-                else parseErrorWriter.println(header);
+                parseErrorWriter = new BoundedPrintWriter(
+                        Files.newBufferedWriter(Path.of(getParseErrorFileName()),
+                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+                        maxErrorFileSizeBytes);
+                if (header == null || header.isBlank()) {
+                    log.error(ERROR_MSG);
+                } else parseErrorWriter.println(header);
             }
 
             StringBuilder sb = new StringBuilder();
@@ -193,25 +197,20 @@ public class ErrorHandler {
 
             // Check if this file has reached its max limit, if so then the number of allowed bytes will be zero.
             // Create a new chunk in that case.
-            long numAllowedErrorMessageBytes = errorMsgWriter.numBytesAllowed(sb.toString());
-            if (numAllowedErrorMessageBytes == 0) {
+            if (errorMsgWriter.numBytesAllowed(sb.toString()) == 0) {
                 errorMsgWriter.close();
                 errorMsgWriter = null;
                 tryAgain = true;
             }
 
-            long numAllowedDbErrorBytes = 0;
-            long numAllowedParseErrorBytes = 0;
             if (errorType.equals("DB")) {
-                numAllowedDbErrorBytes = dbErrorWriter.numBytesAllowed(xsbRecord);
-                if (numAllowedDbErrorBytes == 0) {
+                if (dbErrorWriter.numBytesAllowed(xsbRecord) == 0) {
                     dbErrorWriter.close();
                     dbErrorWriter = null;
                     tryAgain = true;
                 }
             } else if (errorType.equals(PARSE)) {
-                numAllowedParseErrorBytes = parseErrorWriter.numBytesAllowed(xsbRecord);
-                if (numAllowedParseErrorBytes == 0) {
+                if (parseErrorWriter.numBytesAllowed(xsbRecord) == 0) {
                     parseErrorWriter.close();
                     parseErrorWriter = null;
                     tryAgain = true;
