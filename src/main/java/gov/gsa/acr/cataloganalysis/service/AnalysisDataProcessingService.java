@@ -479,11 +479,7 @@ public class AnalysisDataProcessingService {
 
     }
 
-
-    List<String> generateFinalReport(int recordCount, SignalType signalType, Trigger trigger, Duration executionDuration) {
-        List<String> report = new ArrayList<>();
-        List<String> errorFileNames = errorHandler.getErrorFileNames();
-        log("===================== Final Report =====================", Level.INFO, report);
+    private void reportRecordCounts(int recordCount, Trigger trigger, List<String> report){
         if (trigger != null && trigger.getOnlyStageData()) {
             log("Saved "+ recordCount + " records in the ACR DB staging table (xsb_data_temp).", Level.INFO, report);
         }
@@ -491,16 +487,31 @@ public class AnalysisDataProcessingService {
             log("Error moving data from staging to final DB table. Please see logs for error reason.", Level.ERROR, report);
         }
         else log("Saved "+ recordCount + " records in the ACR DB.", Level.INFO, report);
+    }
+
+    private void reportParsingErrors(List<String> report, List<String> errorFileNames){
         if (errorHandler.getNumParsingErrors() != null && errorHandler.getNumParsingErrors().get() > 0) {
             log("Number of parsing errors: " + errorHandler.getNumParsingErrors().get(), Level.WARN, report);
             log("Please see the below file(s) saved in S3 to get a list of all records that had parsing issues.", Level.WARN, report);
             errorFileNames.stream().filter(name -> name.contains("xsb_error_parse_")).forEach(name -> log("\t"+name, Level.WARN, report));
         }
+    }
+
+    private void reportDbErrors(List<String> report, List<String> errorFileNames){
         if (errorHandler.getNumDbErrors() != null && errorHandler.getNumDbErrors().get() > 0) {
             log("Number of db errors: " + errorHandler.getNumDbErrors().get(), Level.WARN, report);
             log("Please see the below file(s) saved in S3 to get a list of all records that had DB issues.", Level.WARN, report);
             errorFileNames.stream().filter(name -> name.contains("xsb_error_db_")).forEach(name -> log("\t"+name, Level.WARN, report));
         }
+    }
+
+    List<String> generateFinalReport(int recordCount, SignalType signalType, Trigger trigger, Duration executionDuration) {
+        List<String> report = new ArrayList<>();
+        List<String> errorFileNames = errorHandler.getErrorFileNames();
+        log("===================== Final Report =====================", Level.INFO, report);
+        reportRecordCounts(recordCount, trigger, report);
+        reportParsingErrors(report, errorFileNames);
+        reportDbErrors(report, errorFileNames);
         if (errorHandler.getDataUploadFailed()
             || (errorHandler.getNumFileErrors() != null && errorHandler.getNumFileErrors().get() > 0)
             || (errorHandler.getNumParsingErrors() != null && errorHandler.getNumParsingErrors().get() > 0 )
