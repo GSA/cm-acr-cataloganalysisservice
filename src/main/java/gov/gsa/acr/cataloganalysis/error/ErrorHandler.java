@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.io.BufferedWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -158,35 +155,26 @@ public class ErrorHandler {
         handleError(error, srcFileName, t.toString(), "FILE");
     }
 
+    private BoundedPrintWriter createBoundedPrintWriter(String errorFileName) throws IOException {
+        return new BoundedPrintWriter(Files.newBufferedWriter(Path.of(errorFileName), StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING), maxErrorFileSizeBytes);
+    }
+
     private void handleError(String xsbRecord, String srcFileName, String error, String errorType) {
         if (totalErrorsWithinAcceptableThreshnold) {
             totalErrorsWithinAcceptableThreshnold = ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
         }
         boolean tryAgain = false;
         try {
-            if (errorMsgWriter == null) {
-                errorMsgWriter = new BoundedPrintWriter(
-                        Files.newBufferedWriter(Path.of(getErrorMessageFileName()),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
-                        maxErrorFileSizeBytes);
-            }
+            if (errorMsgWriter == null) errorMsgWriter = createBoundedPrintWriter(getErrorMessageFileName());
             if (errorType.equals("DB") && dbErrorWriter == null) {
-                dbErrorWriter = new BoundedPrintWriter(
-                        Files.newBufferedWriter(Path.of(getDBErrorFileName()),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
-                        maxErrorFileSizeBytes);
-                if (header == null || header.isBlank()) {
-                    log.error(ERROR_MSG);
-                } else dbErrorWriter.println(header);
+                dbErrorWriter = createBoundedPrintWriter(getDBErrorFileName());
+                if (header != null && !header.isBlank()) dbErrorWriter.println(header);
             } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
-                parseErrorWriter = new BoundedPrintWriter(
-                        Files.newBufferedWriter(Path.of(getParseErrorFileName()),
-                                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
-                        maxErrorFileSizeBytes);
-                if (header == null || header.isBlank()) {
-                    log.error(ERROR_MSG);
-                } else parseErrorWriter.println(header);
+                parseErrorWriter = createBoundedPrintWriter(getParseErrorFileName());
+                if (header != null && !header.isBlank()) parseErrorWriter.println(header);
             }
+            if (header == null || header.isBlank()) log.error(ERROR_MSG);
 
             StringBuilder sb = new StringBuilder();
             sb.append(xsbRecord).append(ls)
@@ -203,18 +191,14 @@ public class ErrorHandler {
                 tryAgain = true;
             }
 
-            if (errorType.equals("DB")) {
-                if (dbErrorWriter.numBytesAllowed(xsbRecord) == 0) {
-                    dbErrorWriter.close();
-                    dbErrorWriter = null;
-                    tryAgain = true;
-                }
-            } else if (errorType.equals(PARSE)) {
-                if (parseErrorWriter.numBytesAllowed(xsbRecord) == 0) {
-                    parseErrorWriter.close();
-                    parseErrorWriter = null;
-                    tryAgain = true;
-                }
+            if (errorType.equals("DB") && (dbErrorWriter.numBytesAllowed(xsbRecord) == 0)) {
+                dbErrorWriter.close();
+                dbErrorWriter = null;
+                tryAgain = true;
+            } else if (errorType.equals(PARSE) && (parseErrorWriter.numBytesAllowed(xsbRecord) == 0)) {
+                parseErrorWriter.close();
+                parseErrorWriter = null;
+                tryAgain = true;
             }
 
             if (tryAgain) {
