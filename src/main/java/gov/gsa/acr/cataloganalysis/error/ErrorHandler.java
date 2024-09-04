@@ -233,7 +233,7 @@ public class ErrorHandler {
 
     }
 
-    public Boolean totalErrorsWithinAcceptableThreshold() {
+    public boolean totalErrorsWithinAcceptableThreshold() {
         return totalErrorsWithinAcceptableThreshnold;
     }
 
