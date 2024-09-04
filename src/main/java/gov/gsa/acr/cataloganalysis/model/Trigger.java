@@ -86,7 +86,8 @@ public class Trigger {
     private Set<String> uniqueFileNames;
 
     private void validateUniqueFileNames(){
-        if (uniqueFileNames == null || uniqueFileNames.isEmpty())
+        Set<String> uniqFileNames = getUniqueFileNames();
+        if (uniqFileNames == null || uniqFileNames.isEmpty())
             throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
     }
 
@@ -123,7 +124,6 @@ public class Trigger {
                     throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
             }
             // Need files to download.
-            Set<String> uniqueFileNames = trigger.getUniqueFileNames();
             trigger.validateUniqueFileNames();
             // Must have a valid GSA Feed Date
             trigger.validateGSAFeedDate();

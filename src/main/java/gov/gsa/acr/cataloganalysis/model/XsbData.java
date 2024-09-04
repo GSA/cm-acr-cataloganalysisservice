@@ -51,14 +51,14 @@ public class XsbData {
         StringBuilder sb = new StringBuilder();
 
         // contractNumber
-        String contractNumber = xsbDataAsAMap.get("contractNumber");
-        if (contractNumber == null || contractNumber.isBlank() ) {
+        String cntrctNumber = xsbDataAsAMap.get("contractNumber");
+        if (cntrctNumber == null || cntrctNumber.isBlank() ) {
             sb.append("Invalid data, contract number cannot be NULL or Blank.");
             sb.append(ls);
         }
         else {
-            int refreshIndex = contractNumber.indexOf("_refresh");
-            this.setContractNumber(refreshIndex < 0 ? contractNumber : contractNumber.substring(0, refreshIndex));
+            int refreshIndex = cntrctNumber.indexOf("_refresh");
+            this.setContractNumber(refreshIndex < 0 ? cntrctNumber : cntrctNumber.substring(0, refreshIndex));
         }
 
         // manufacturerName
