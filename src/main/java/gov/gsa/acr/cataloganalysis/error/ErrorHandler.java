@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.io.BufferedWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -68,6 +65,7 @@ public class ErrorHandler {
     private List<String> errorFileNames;
 
     private static final String PARSE = "PARSE";
+    private static final String ERROR_MSG = "Error initializing the errorHandler. Header string is null";
 
     private void deleteOldErrorFiles() {
         try (Stream<Path> stream = Files.list(Path.of(errorDirectory))
@@ -157,32 +155,26 @@ public class ErrorHandler {
         handleError(error, srcFileName, t.toString(), "FILE");
     }
 
+    private BoundedPrintWriter createBoundedPrintWriter(String errorFileName) throws IOException {
+        return new BoundedPrintWriter(Files.newBufferedWriter(Path.of(errorFileName), StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING), maxErrorFileSizeBytes);
+    }
+
     private void handleError(String xsbRecord, String srcFileName, String error, String errorType) {
         if (totalErrorsWithinAcceptableThreshnold) {
             totalErrorsWithinAcceptableThreshnold = ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
         }
         boolean tryAgain = false;
         try {
-            if (errorMsgWriter == null) {
-                Path opPath = Path.of(getErrorMessageFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                errorMsgWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
-            }
+            if (errorMsgWriter == null) errorMsgWriter = createBoundedPrintWriter(getErrorMessageFileName());
             if (errorType.equals("DB") && dbErrorWriter == null) {
-                Path opPath = Path.of(getDBErrorFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                dbErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
-                if (header == null || header.isBlank())
-                    log.error("Error initializing the errorHandler. Header string is null");
-                else dbErrorWriter.println(header);
+                dbErrorWriter = createBoundedPrintWriter(getDBErrorFileName());
+                if (header != null && !header.isBlank()) dbErrorWriter.println(header);
             } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
-                Path opPath = Path.of(getParseErrorFileName());
-                BufferedWriter bw = Files.newBufferedWriter(opPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                parseErrorWriter = new BoundedPrintWriter(bw, maxErrorFileSizeBytes);
-                if (header == null || header.isBlank())
-                    log.error("Error initializing the errorHandler. Header string is null");
-                else parseErrorWriter.println(header);
+                parseErrorWriter = createBoundedPrintWriter(getParseErrorFileName());
+                if (header != null && !header.isBlank()) parseErrorWriter.println(header);
             }
+            if (header == null || header.isBlank()) log.error(ERROR_MSG);
 
             StringBuilder sb = new StringBuilder();
             sb.append(xsbRecord).append(ls)
@@ -193,29 +185,20 @@ public class ErrorHandler {
 
             // Check if this file has reached its max limit, if so then the number of allowed bytes will be zero.
             // Create a new chunk in that case.
-            long numAllowedErrorMessageBytes = errorMsgWriter.numBytesAllowed(sb.toString());
-            if (numAllowedErrorMessageBytes == 0) {
+            if (errorMsgWriter.numBytesAllowed(sb.toString()) == 0) {
                 errorMsgWriter.close();
                 errorMsgWriter = null;
                 tryAgain = true;
             }
 
-            long numAllowedDbErrorBytes = 0;
-            long numAllowedParseErrorBytes = 0;
-            if (errorType.equals("DB")) {
-                numAllowedDbErrorBytes = dbErrorWriter.numBytesAllowed(xsbRecord);
-                if (numAllowedDbErrorBytes == 0) {
-                    dbErrorWriter.close();
-                    dbErrorWriter = null;
-                    tryAgain = true;
-                }
-            } else if (errorType.equals(PARSE)) {
-                numAllowedParseErrorBytes = parseErrorWriter.numBytesAllowed(xsbRecord);
-                if (numAllowedParseErrorBytes == 0) {
-                    parseErrorWriter.close();
-                    parseErrorWriter = null;
-                    tryAgain = true;
-                }
+            if (errorType.equals("DB") && (dbErrorWriter.numBytesAllowed(xsbRecord) == 0)) {
+                dbErrorWriter.close();
+                dbErrorWriter = null;
+                tryAgain = true;
+            } else if (errorType.equals(PARSE) && (parseErrorWriter.numBytesAllowed(xsbRecord) == 0)) {
+                parseErrorWriter.close();
+                parseErrorWriter = null;
+                tryAgain = true;
             }
 
             if (tryAgain) {
@@ -233,7 +216,7 @@ public class ErrorHandler {
 
     }
 
-    public Boolean totalErrorsWithinAcceptableThreshold() {
+    public boolean totalErrorsWithinAcceptableThreshold() {
         return totalErrorsWithinAcceptableThreshnold;
     }
 
