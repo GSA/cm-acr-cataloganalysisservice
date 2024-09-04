@@ -545,14 +545,13 @@ public class XsbDataJsonRecord {
 
         try {
             tmpVal = xsbData.get(CATALOG_MEDIAN_PRICE);
-            boolean isLowOutlier = false;
+            boolean lowOutlier = false;
             if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank()) {
                 if (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5))) {
-                    //true if ([catalogMedianPrice] > 0) && ((([finalPrice]/[catalogMedianPrice])-1)<(-0.5))
-                    isLowOutlier = true;
+                    lowOutlier = true;
                 }
             }
-            this.setIsLowOutlier(isLowOutlier);
+            this.setIsLowOutlier(lowOutlier);
         } catch (Exception e) {
             sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(tmpVal).append(", ").append(val).append(ls);
         }
