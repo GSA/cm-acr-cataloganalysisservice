@@ -244,6 +244,10 @@ public class XsbDataJsonRecord {
     private String mdfGroupId;
     //End ACREPO-4207
 
+    private static final String CATALOG_PRICE_STD_DEVIATION = "catalogPriceStandardDeviation";
+    private static final String CATALOG_MEDIAN_PRICE = "catalogMedianPrice";
+    private static final String COUNTRY_ORIGIN_INFERENCE = "countryOriginInference";
+
     /**
      * Creates an object that will be saved as a JSON in the database.
      *
@@ -294,7 +298,7 @@ public class XsbDataJsonRecord {
         }
         this.setFsc(xsbData.get("fsc"));
         try {
-            val = xsbData.get("catalogPriceStandardDeviation");
+            val = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
             if (val != null && !val.isBlank())
                 this.setCatalogPriceStandardDeviation(Double.valueOf(val));
         } catch (Exception e) {
@@ -309,7 +313,7 @@ public class XsbDataJsonRecord {
 
         // Begin ACREPO-2432
         try {
-            val = xsbData.get("catalogMedianPrice");
+            val = xsbData.get(CATALOG_MEDIAN_PRICE);
             if (val != null && !val.isBlank()) this.setCatalogMedianPrice(Double.valueOf(val));
         } catch (Exception e) {
             sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
@@ -336,7 +340,7 @@ public class XsbDataJsonRecord {
             sb.append("Invalid data, Commercial catalog min price. Must be a valid number. Value encountered: ").append(val).append(ls);
         }
         this.setCommercialCatalogMinPriceSupplier(xsbData.get("commercialCatalogMinPriceSupplier"));
-        this.setCountryOriginInference(xsbData.get("countryOriginInference"));
+        this.setCountryOriginInference(xsbData.get(COUNTRY_ORIGIN_INFERENCE));
         this.setCountryOfOrigin(xsbData.get("countryOrigin"));
         try {
             val = xsbData.get("highPriceTarget");
@@ -346,7 +350,7 @@ public class XsbDataJsonRecord {
         }
         this.setInvalidReason(xsbData.get("invalidReason"));
         try {
-            val = xsbData.get("catalogMedianPrice");
+            val = xsbData.get(CATALOG_MEDIAN_PRICE);
             if (val != null && !val.isBlank())
                 this.setIsMarketResearchFound((Double.parseDouble(val)) > 0.0);
             else this.setIsMarketResearchFound(false);
@@ -414,7 +418,7 @@ public class XsbDataJsonRecord {
         }
 
         try {
-            val = xsbData.get("catalogPriceStandardDeviation");
+            val = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
             if (val != null && !val.isBlank())
                 this.setCatalogPriceStandardDeviation(Double.valueOf(val));
         } catch (Exception e) {
@@ -513,7 +517,7 @@ public class XsbDataJsonRecord {
         String val = xsbData.get("finalPrice") ; // temporary value holder from the map passed in as the argument
         String tmpVal = null; // temporary value holder from the map passed in as the argument
         try {
-            tmpVal = xsbData.get("catalogPriceStandardDeviation");
+            tmpVal = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
             this.setEnrichmentLowerBound(0.0);
             if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
                 this.setEnrichmentLowerBound(Double.parseDouble(val) - Double.parseDouble(tmpVal));
@@ -521,7 +525,7 @@ public class XsbDataJsonRecord {
             sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
         }
         try {
-            tmpVal = xsbData.get("catalogPriceStandardDeviation");
+            tmpVal = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
             this.setEnrichmentUpperBound(0.0);
             if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
                 this.setEnrichmentUpperBound(Double.parseDouble(val) + Double.parseDouble(tmpVal));
@@ -536,19 +540,18 @@ public class XsbDataJsonRecord {
         } catch (Exception e) {
             sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
         }
-        this.setIsTaaRisk(isTradeAgreementViolated(xsbData.get("countryOriginInference"), taaCountryCodes)); //ACREPO-2143
-        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get("countryOriginInference"), xsbData.get("countryOrigin")));
+        this.setIsTaaRisk(isTradeAgreementViolated(xsbData.get(COUNTRY_ORIGIN_INFERENCE), taaCountryCodes)); //ACREPO-2143
+        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get(COUNTRY_ORIGIN_INFERENCE), xsbData.get("countryOrigin")));
 
         try {
-            tmpVal = xsbData.get("catalogMedianPrice");
-            boolean isLowOutlier = false;
+            tmpVal = xsbData.get(CATALOG_MEDIAN_PRICE);
+            boolean lowOutlier = false;
             if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank()) {
                 if (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5))) {
-                    //true if ([catalogMedianPrice] > 0) && ((([finalPrice]/[catalogMedianPrice])-1)<(-0.5))
-                    isLowOutlier = true;
+                    lowOutlier = true;
                 }
             }
-            this.setIsLowOutlier(isLowOutlier);
+            this.setIsLowOutlier(lowOutlier);
         } catch (Exception e) {
             sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(tmpVal).append(", ").append(val).append(ls);
         }
