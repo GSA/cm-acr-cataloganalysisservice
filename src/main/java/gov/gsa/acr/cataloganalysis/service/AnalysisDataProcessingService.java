@@ -52,6 +52,8 @@ public class AnalysisDataProcessingService {
     private final XsbDataParser xsbDataParser;
     private final TransactionalDataService transactionalDataService;
 
+    private final static String TERMINATION_MSG = "Terminating: The process is being forced to exit!";
+
     /**
      * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
      *
@@ -280,7 +282,7 @@ public class AnalysisDataProcessingService {
 
         // Check if we are asked to force quit.
         if (errorHandler.getForceQuit()) {
-            log.info("Terminating: The process is being forced to exit!");
+            log.info(TERMINATION_MSG);
             return Flux.empty();
         }
 
@@ -328,7 +330,7 @@ public class AnalysisDataProcessingService {
         if (xsbData == null || !(errorHandler.totalErrorsWithinAcceptableThreshold())) return Mono.empty();
         // Check if we are asked to force quit.
         if (errorHandler.getForceQuit()) {
-            log.info("Terminating: The process is being forced to exit!");
+            log.info(TERMINATION_MSG);
             return Mono.empty();
         }
         try {
@@ -366,7 +368,7 @@ public class AnalysisDataProcessingService {
 
              // Check if we are asked to force quit.
              if (errorHandler.getForceQuit()) {
-                 log.info("Terminating: The process is being forced to exit!");
+                 log.info(TERMINATION_MSG);
                  return Mono.empty();
              }
 
