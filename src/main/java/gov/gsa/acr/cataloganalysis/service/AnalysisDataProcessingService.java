@@ -66,7 +66,7 @@ public class AnalysisDataProcessingService {
             // This is to be used only in special circumstances to force quit the process. Mainly to be used during the
             // development/bug fixing phase where the process has to be killed before it completes, specially if it is
             // taking a long time to complete.
-            if (trigger.getForceQuit()) {
+            if (trigger != null && trigger.getForceQuit()) {
                 errorHandler.setForceQuit(Boolean.TRUE);
                 DataUploadResults results = new DataUploadResults();
                 results.setForcedQuit(Boolean.TRUE);
@@ -74,6 +74,11 @@ public class AnalysisDataProcessingService {
             }
             else throw new ConcurrentModificationException("Process is currently running!");
         }
+        // Rare case, we may need to force delete whatever is in staging
+        if (trigger != null && trigger.getForceDeleteStagedData()){
+            return deleteOldStagingData().thenReturn(new DataUploadResults());
+        }
+
         // Trigger validation throws an IllegalArgumentException if invalid.
         Trigger.validate(trigger);
         // Variables needed for reporting Progress every so often

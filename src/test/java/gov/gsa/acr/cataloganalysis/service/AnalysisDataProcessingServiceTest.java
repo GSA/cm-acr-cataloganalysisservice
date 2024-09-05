@@ -1115,6 +1115,18 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
+    void testDeleteOldStagingDataUsingTrigger() {
+        Trigger trigger = new Trigger();
+        trigger.setForceDeleteStagedData(Boolean.TRUE);
+        DataUploadResults expectedResults = new DataUploadResults();
+
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+    }
+
+
+    @Test
     void testFindTaaCompliantCountries_Exception() {
         Exception e = new RuntimeException("Dummy");
         when(xsbDataRepository.findTaaCompliantCountries()).thenThrow(e);

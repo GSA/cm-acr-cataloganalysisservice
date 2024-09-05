@@ -83,6 +83,9 @@ public class Trigger {
     private Boolean forceQuit = Boolean.FALSE;
 
     @Schema(hidden = true)
+    private Boolean forceDeleteStagedData = Boolean.FALSE;
+
+    @Schema(hidden = true)
     private Set<String> uniqueFileNames;
 
     private void validateUniqueFileNames(){
