@@ -358,7 +358,6 @@ public class XsbDataJsonRecord {
 
     private void calculatedFields(Map<String, String> xsbData, List<String> taaCountryCodes, StringBuilder sb, String ls) {
         String val = xsbData.get("finalPrice") ; // temporary value holder from the map passed in as the argument
-        String tmpVal = null; // temporary value holder from the map passed in as the argument
         this.setEnrichmentLowerBound(xsbData, val, sb, ls);
         this.setEnrichmentUpperBound(xsbData, val, sb, ls);
         this.setExceedsMarketThreshold(xsbData, val, sb, ls);
