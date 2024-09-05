@@ -1120,9 +1120,40 @@ class AnalysisDataProcessingServiceTest {
         trigger.setForceDeleteStagedData(Boolean.TRUE);
         DataUploadResults expectedResults = new DataUploadResults();
 
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                 .expectNext(expectedResults)
                 .verifyComplete();
+    }
+
+
+    @Test
+    void testDeleteOldStagingDataExceptionUsingTrigger() {
+        Exception e = new RuntimeException("Dummy");
+        Trigger trigger = new Trigger();
+        trigger.setForceDeleteStagedData(Boolean.TRUE);
+        DataUploadResults expectedResults = new DataUploadResults();
+
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenThrow(e);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectError(RuntimeException.class)
+                .verify();
+
+    }
+
+
+    @Test
+    void testDeleteOldStagingDataErrorUsingTrigger() {
+        Exception e = new RuntimeException("Dummy");
+        Trigger trigger = new Trigger();
+        trigger.setForceDeleteStagedData(Boolean.TRUE);
+        DataUploadResults expectedResults = new DataUploadResults();
+
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectError(RuntimeException.class)
+                .verify();
+
     }
 
 
