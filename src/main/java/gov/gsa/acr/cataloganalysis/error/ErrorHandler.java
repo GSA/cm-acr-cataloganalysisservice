@@ -160,21 +160,26 @@ public class ErrorHandler {
                         StandardOpenOption.TRUNCATE_EXISTING), maxErrorFileSizeBytes);
     }
 
+    private void createErrorWriters(String errorType) throws IOException {
+        if (errorMsgWriter == null) errorMsgWriter = createBoundedPrintWriter(getErrorMessageFileName());
+        if (errorType.equals("DB") && dbErrorWriter == null) {
+            dbErrorWriter = createBoundedPrintWriter(getDBErrorFileName());
+            if (header != null && !header.isBlank()) dbErrorWriter.println(header);
+        } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
+            parseErrorWriter = createBoundedPrintWriter(getParseErrorFileName());
+            if (header != null && !header.isBlank()) parseErrorWriter.println(header);
+        }
+        if (header == null || header.isBlank()) log.error(ERROR_MSG);
+    }
+
+
     private void handleError(String xsbRecord, String srcFileName, String error, String errorType) {
         if (totalErrorsWithinAcceptableThreshnold) {
             totalErrorsWithinAcceptableThreshnold = ((numDbErrors.get() + numParsingErrors.get()) < errorThreshold);
         }
         boolean tryAgain = false;
         try {
-            if (errorMsgWriter == null) errorMsgWriter = createBoundedPrintWriter(getErrorMessageFileName());
-            if (errorType.equals("DB") && dbErrorWriter == null) {
-                dbErrorWriter = createBoundedPrintWriter(getDBErrorFileName());
-                if (header != null && !header.isBlank()) dbErrorWriter.println(header);
-            } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
-                parseErrorWriter = createBoundedPrintWriter(getParseErrorFileName());
-                if (header != null && !header.isBlank()) parseErrorWriter.println(header);
-            }
-            if (header == null || header.isBlank()) log.error(ERROR_MSG);
+            createErrorWriters(errorType);
 
             StringBuilder sb = new StringBuilder();
             sb.append(xsbRecord).append(ls)
