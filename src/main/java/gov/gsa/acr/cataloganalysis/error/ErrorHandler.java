@@ -180,15 +180,6 @@ public class ErrorHandler {
         boolean tryAgain = false;
         try {
             createErrorWriters(errorType);
-//            if (errorMsgWriter == null) errorMsgWriter = createBoundedPrintWriter(getErrorMessageFileName());
-//            if (errorType.equals("DB") && dbErrorWriter == null) {
-//                dbErrorWriter = createBoundedPrintWriter(getDBErrorFileName());
-//                if (header != null && !header.isBlank()) dbErrorWriter.println(header);
-//            } else if (errorType.equals(PARSE) && parseErrorWriter == null) {
-//                parseErrorWriter = createBoundedPrintWriter(getParseErrorFileName());
-//                if (header != null && !header.isBlank()) parseErrorWriter.println(header);
-//            }
-//            if (header == null || header.isBlank()) log.error(ERROR_MSG);
 
             StringBuilder sb = new StringBuilder();
             sb.append(xsbRecord).append(ls)
