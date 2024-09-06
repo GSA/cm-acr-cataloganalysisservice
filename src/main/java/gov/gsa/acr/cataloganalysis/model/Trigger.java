@@ -83,7 +83,21 @@ public class Trigger {
     private Boolean forceQuit = Boolean.FALSE;
 
     @Schema(hidden = true)
+    private Boolean forceDeleteStagedData = Boolean.FALSE;
+
+    @Schema(hidden = true)
     private Set<String> uniqueFileNames;
+
+    private void validateUniqueFileNames(){
+        Set<String> uniqFileNames = getUniqueFileNames();
+        if (uniqFileNames == null || uniqFileNames.isEmpty())
+            throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+    }
+
+    private void validateGSAFeedDate(){
+        if (getGsaFeedDate() == null || getGsaFeedDate().isAfter(LocalDate.now()))
+            throw new IllegalArgumentException("Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
+    }
 
     public void setFiles(String[] newFiles){
         files = newFiles;
@@ -91,11 +105,9 @@ public class Trigger {
     }
 
     public Set<String> getUniqueFileNames(){
-        if (uniqueFileNames == null) {
-            if (files != null && files.length != 0) {
-                uniqueFileNames = new HashSet<>();
-                Collections.addAll(uniqueFileNames, files);
-            }
+        if (uniqueFileNames == null && (files != null && files.length != 0)) {
+            uniqueFileNames = new HashSet<>();
+            Collections.addAll(uniqueFileNames, files);
         }
         return uniqueFileNames;
     }
@@ -115,13 +127,9 @@ public class Trigger {
                     throw new IllegalArgumentException("A valid sourceFolder attribute is required for LOCAL sourceType. Received, " + sourceFolder);
             }
             // Need files to download.
-            Set<String> uniqueFileNames = trigger.getUniqueFileNames();
-            if (uniqueFileNames == null || uniqueFileNames.isEmpty())
-                throw new IllegalArgumentException("Trigger argument must include files attribute (an array with file names or file name patterns).");
+            trigger.validateUniqueFileNames();
             // Must have a valid GSA Feed Date
-            if (trigger.getGsaFeedDate() == null || trigger.getGsaFeedDate().isAfter(LocalDate.now()))
-                throw new IllegalArgumentException("Trigger argument must include a valid GSA Feed Date in yyyy-MM-dd format. The GSA Feed Date may not be a future date.");
-
+            trigger.validateGSAFeedDate();
         }
         // If both onlyStageData and onlyMoveStageData are true, nothing will happen. onlyMoveStageData will not parse any files, and onlyStageData will
         // not move any data from the staging to final table.

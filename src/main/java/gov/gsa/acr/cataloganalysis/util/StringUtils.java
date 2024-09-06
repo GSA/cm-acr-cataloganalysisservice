@@ -1,6 +1,8 @@
 package gov.gsa.acr.cataloganalysis.util;
 
 public class StringUtils {
+    private StringUtils() {}
+
     public static String globToRegex(String string) {
         StringBuilder buffer = new StringBuilder();
 
