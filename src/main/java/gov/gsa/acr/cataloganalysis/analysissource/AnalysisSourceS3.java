@@ -22,6 +22,9 @@ public class AnalysisSourceS3 implements AnalysisSource {
 
     private final ErrorHandler errHandler;
 
+    // To reference a S3 object, you need to have a forward slash as a separator.
+    private static final String S3_PATH_DELIMITER = "/";
+
     public AnalysisSourceS3(S3AsyncClient s3client, S3ClientConfigurationProperties s3config, ErrorHandler errHandler) {
         this.s3client = s3client;
         this.s3config = s3config;
@@ -44,7 +47,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
 
             future = s3client.deleteObject(request);
             return Mono.fromFuture(future)
-                    .map((response) -> {
+                    .map(response -> {
                         checkResponse(response);
                         return response.sdkHttpResponse().isSuccessful();
                     })
@@ -72,7 +75,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
                             .key(s3config.getBaseDir() + destination)
                             .build(), source);
             return Mono.fromFuture(future)
-                    .map((response) -> {
+                    .map(response -> {
                         checkResponse(response);
                         return destination;
                     })
@@ -111,7 +114,7 @@ public class AnalysisSourceS3 implements AnalysisSource {
     public Mono<Path> downloadFromS3(String key, String destinationFolder) {
         try {
             Path sourcePath = Path.of(key);
-            Path destinationPath = Path.of(destinationFolder + "/" + sourcePath.getFileName());
+            Path destinationPath = Path.of(destinationFolder + S3_PATH_DELIMITER + sourcePath.getFileName());
             GetObjectRequest request = GetObjectRequest.builder().bucket(s3config.getBucket()).key(key).build();
 
             return Mono.fromFuture(s3client.getObject(request, destinationPath))
