@@ -1,6 +1,6 @@
-ARG image_version="20241215"
+ARG image_version="20240818"
 
-FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version} as builder
+FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version} AS builder
 
 COPY src src
 COPY pom.xml pom.xml
@@ -13,7 +13,6 @@ ARG image_version
 FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version}
 
 RUN mkdir -p ./external-libs/datadogjar/
-
 ADD --chown=gsa-user:gsa-user 'https://dtdg.co/latest-java-tracer' ./external-libs/datadogjar/dd-java-agent.jar
 RUN chmod 755 ./external-libs/datadogjar/dd-java-agent.jar
 

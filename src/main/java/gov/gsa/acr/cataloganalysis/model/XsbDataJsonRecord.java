@@ -239,7 +239,14 @@ public class XsbDataJsonRecord {
     @JsonProperty("standardizedGlobalPackagingIdentifier")
     private String standardizedGlobalPackagingIdentifier;
     //End ACREPO-4144
+    //Start ACREPO-4207
+    @JsonProperty("mdfGroupId")
+    private String mdfGroupId;
+    //End ACREPO-4207
 
+    private static final String CATALOG_PRICE_STD_DEVIATION = "catalogPriceStandardDeviation";
+    private static final String CATALOG_MEDIAN_PRICE = "catalogMedianPrice";
+    private static final String COUNTRY_ORIGIN_INFERENCE = "countryOriginInference";
 
     /**
      * Creates an object that will be saved as a JSON in the database.
@@ -250,7 +257,6 @@ public class XsbDataJsonRecord {
     public XsbDataJsonRecord(Map<String, String> xsbData, List<String> taaCountryCodes) {
         // Refer:https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbData == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
-        String val = null;
         String ls = System.lineSeparator();
         StringBuilder sb = new StringBuilder();
 
@@ -261,20 +267,8 @@ public class XsbDataJsonRecord {
         this.setSolicitationNumber(xsbData.get("solicitationNumber"));
         this.setDunsNumber(xsbData.get("dunsNumber"));
         this.setGsaFeedDate(xsbData.get("gsaFeedDate"));
-        try {
-            val = xsbData.get("quantityOfUnit");
-            if (val != null && !val.isBlank())
-                this.setQuantityOfUnit(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Quantity Of Unit. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("quantityPerUnit");
-            if (val != null && !val.isBlank())
-                this.setQuantityPerUnit(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Quantity Per Unit. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setQuantityOfUnit(xsbData, sb, ls);
+        this.setQuantityPerUnit(xsbData, sb, ls);
         this.setAbilityOneItem(xsbData.get("abilityOneItem"));
         this.setGlobalPackagingIdentifier(xsbData.get("globalPackagingIdentifier"));
         this.setProductName(xsbData.get("productName"));
@@ -282,21 +276,9 @@ public class XsbDataJsonRecord {
         this.setUnitOfIssue(xsbData.get("unitOfIssue"));
         this.setProductType(xsbData.get("productType"));
         this.setDeliveryFob(xsbData.get("deliveryFob"));
-        try {
-            val = xsbData.get("finalPrice");
-            if (val != null && !val.isBlank())
-                this.setFinalPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Final Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setFinalPrice(xsbData, sb, ls);
         this.setFsc(xsbData.get("fsc"));
-        try {
-            val = xsbData.get("catalogPriceStandardDeviation");
-            if (val != null && !val.isBlank())
-                this.setCatalogPriceStandardDeviation(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setCatalogPriceStandardDeviation(xsbData, sb, ls);
         this.setUniqueItemIdentifier(xsbData.get("uniqueItemIdentifier"));
         this.setEts(Boolean.valueOf(xsbData.get("ets")));
         this.setIsProhibited(Boolean.valueOf(xsbData.get("isProhibited")));
@@ -305,180 +287,47 @@ public class XsbDataJsonRecord {
         this.setStandardizedUnitOfIssue(xsbData.get("standardizedUnitOfIssue"));
 
         // Begin ACREPO-2432
-        try {
-            val = xsbData.get("catalogMedianPrice");
-            if (val != null && !val.isBlank()) this.setCatalogMedianPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setCatalogMedianPrice(xsbData, sb, ls);
         this.setCatalogMedianPriceSupplier(xsbData.get("catalogMedianPriceSupplier"));
-        try {
-            val = xsbData.get("catalogMinPrice");
-            if (val != null && !val.isBlank()) this.setCatalogMinPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setCatalogMinPrice(xsbData, sb, ls);
         this.setCatalogMinPriceSupplier(xsbData.get("catalogMinPriceSupplier"));
-        try {
-            val = xsbData.get("commercialCatalogMedianPrice");
-            if (val != null && !val.isBlank()) this.setCommercialCatalogMedianPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Commercial catalog median price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setCommercialCatalogMedianPrice(xsbData, sb, ls);
         this.setCommercialCatalogMedianPriceSupplier(xsbData.get("commercialCatalogMedianPriceSupplier"));
-        try {
-            val = xsbData.get("commercialCatalogMinPrice");
-            if (val != null && !val.isBlank()) this.setCommercialCatalogMinPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Commercial catalog min price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setCommercialCatalogMinPrice(xsbData, sb, ls);
         this.setCommercialCatalogMinPriceSupplier(xsbData.get("commercialCatalogMinPriceSupplier"));
-        this.setCountryOriginInference(xsbData.get("countryOriginInference"));
+        this.setCountryOriginInference(xsbData.get(COUNTRY_ORIGIN_INFERENCE));
         this.setCountryOfOrigin(xsbData.get("countryOrigin"));
-        try {
-            val = xsbData.get("highPriceTarget");
-            if (val != null && !val.isBlank()) this.setHighPriceTarget(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setHighPriceTarget(xsbData, sb, ls);
         this.setInvalidReason(xsbData.get("invalidReason"));
-        try {
-            val = xsbData.get("catalogMedianPrice");
-            if (val != null && !val.isBlank())
-                this.setIsMarketResearchFound((Double.parseDouble(val)) > 0.0);
-            else this.setIsMarketResearchFound(false);
-        } catch (Exception e) {
-            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("lowPriceTarget");
-            if (val != null && !val.isBlank()) this.setLowPriceTarget(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Low Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setIsMarketResearchFound(xsbData, sb, ls);
+        this.setLowPriceTarget(xsbData, sb, ls);
         this.setNsn(xsbData.get("nsn"));
         this.setStandardizedProductDescription(xsbData.get("standardizedProductDescription"));
-        try {
-            val = xsbData.get("tdrMedianPrice");
-            if (val != null && !val.isBlank()) this.setTdrMedianPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Tdr Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("tdrMinPrice");
-            if (val != null && !val.isBlank()) this.setTdrMinPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("tdrMaxPrice");
-            if (val != null && !val.isBlank()) this.setTdrMaxPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("vppIndicator");
-            if (val != null && !val.isBlank()) this.setVppIndicator(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, VPP Indicator. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setTdrMedianPrice(xsbData, sb, ls);
+        this.setTdrMinPrice(xsbData, sb, ls);
+        this.setTdrMaxPrice(xsbData, sb, ls);
+        this.setVppIndicator(xsbData, sb, ls);
         this.setProhibitionCondition(xsbData.get("prohibitionCondition"));
         this.setProhibitionReason(xsbData.get("prohibitionReason"));
         this.setProhibitionComment(xsbData.get("prohibitionComment"));
         // End ACREPO-2432
 
         // Begin ACREPO-3215
-        try {
-            val = xsbData.get("annualDemandQuantity");
-            if (val != null && !val.isBlank())
-                this.setAnnualDemandQuantity(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Annual Demand Quantity. Must be a valid integer. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("catalogAvgPrice");
-            if (val != null && !val.isBlank()) this.setCatalogAvgPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Average Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("catalogMaxPrice");
-            if (val != null && !val.isBlank()) this.setCatalogMaxPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Max Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("catalogPriceStandardDeviation");
-            if (val != null && !val.isBlank())
-                this.setCatalogPriceStandardDeviation(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("transactionMinPrice");
-            if (val != null && !val.isBlank())
-                this.setTransactionMinPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Transaction Minimum Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("transactionAvgPrice");
-            if (val != null && !val.isBlank())
-                this.setTransactionAvgPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Transaction Average Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("transactionMedianPrice");
-            if (val != null && !val.isBlank())
-                this.setTransactionMedianPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Transaction Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
-
-        try {
-            val = xsbData.get("transactionMaxPrice");
-            if (val != null && !val.isBlank())
-                this.setTransactionMaxPrice(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Transaction Maximum Price. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setAnnualDemandQuantity(xsbData, sb, ls);
+        this.setCatalogAvgPrice(xsbData, sb, ls);
+        this.setCatalogMaxPrice(xsbData, sb, ls);
+        this.setTransactionMinPrice(xsbData, sb, ls);
+        this.setTransactionAvgPrice(xsbData, sb, ls);
+        this.setTransactionMedianPrice(xsbData, sb, ls);
+        this.setTransactionMaxPrice(xsbData, sb, ls);
         // End ACREPO-3215
 
-        try {
-            val = xsbData.get("isAuthorizedVendor");
-            if (val != null && !val.isBlank())
-                this.setIsAuthorizedVendor(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Authorized vendor. Must be a valid integer. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("hits");
-            if (val != null && !val.isBlank()) this.setHits(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, for hits. Must be a valid integer. Value encountered: ").append(val).append(ls);
-        }
-        try {
-            val = xsbData.get("selfHits");
-            if (val != null && !val.isBlank()) this.setSelfHits(Integer.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, for Self hits. Must be a valid integer. Value encountered: ").append(val).append(ls);
-        }
+        this.setIsAuthorizedVendor(xsbData, sb, ls);
+        this.setHits(xsbData, sb, ls);
+        this.setSelfHits(xsbData, sb, ls);
         this.setRankCategory(xsbData.get("rankCategory"));
         this.setSalesLikelihood(xsbData.get("salesLikelihood"));
-        try {
-            val = xsbData.get("demandWeightedIndexScore");
-            if (val != null && !val.isBlank())
-                this.setDemandWeightedIndexScore(Double.valueOf(val));
-        } catch (Exception e) {
-            sb.append("Invalid data, Demand Weighted Index Score. Must be a valid number. Value encountered: ").append(val).append(ls);
-        }
+        this.setDemandWeightedIndexScore(xsbData, sb, ls);
 
         //Calculated fields.
         calculatedFields(xsbData, taaCountryCodes, sb, ls);
@@ -500,52 +349,21 @@ public class XsbDataJsonRecord {
         this.setStandardizedGlobalPackagingIdentifier(xsbData.get("standardizedGlobalPackagingIdentifier"));
         //End ACREPO-4144
 
+        //Start ACREPO-4207
+        this.setMdfGroupId(xsbData.get("mdfGroupId"));
+        //End ACREPO-4207
+
         if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
 
     private void calculatedFields(Map<String, String> xsbData, List<String> taaCountryCodes, StringBuilder sb, String ls) {
         String val = xsbData.get("finalPrice") ; // temporary value holder from the map passed in as the argument
-        String tmpVal = null; // temporary value holder from the map passed in as the argument
-        try {
-            tmpVal = xsbData.get("catalogPriceStandardDeviation");
-            this.setEnrichmentLowerBound(0.0);
-            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
-                this.setEnrichmentLowerBound(Double.parseDouble(val) - Double.parseDouble(tmpVal));
-        } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
-        }
-        try {
-            tmpVal = xsbData.get("catalogPriceStandardDeviation");
-            this.setEnrichmentUpperBound(0.0);
-            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
-                this.setEnrichmentUpperBound(Double.parseDouble(val) + Double.parseDouble(tmpVal));
-        } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
-        }
-        try {
-            tmpVal = xsbData.get("highPriceTarget");
-            this.setExceedsMarketThreshold(false);
-            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
-                this.setExceedsMarketThreshold(Double.parseDouble(val) > Double.parseDouble(tmpVal));
-        } catch (Exception e) {
-            sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
-        }
-        this.setIsTaaRisk(isTradeAgreementViolated(xsbData.get("countryOriginInference"), taaCountryCodes)); //ACREPO-2143
-        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get("countryOriginInference"), xsbData.get("countryOrigin")));
-
-        try {
-            tmpVal = xsbData.get("catalogMedianPrice");
-            boolean isLowOutlier = false;
-            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank()) {
-                if (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5))) {
-                    //true if ([catalogMedianPrice] > 0) && ((([finalPrice]/[catalogMedianPrice])-1)<(-0.5))
-                    isLowOutlier = true;
-                }
-            }
-            this.setIsLowOutlier(isLowOutlier);
-        } catch (Exception e) {
-            sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(tmpVal).append(", ").append(val).append(ls);
-        }
+        this.setEnrichmentLowerBound(xsbData, val, sb, ls);
+        this.setEnrichmentUpperBound(xsbData, val, sb, ls);
+        this.setExceedsMarketThreshold(xsbData, val, sb, ls);
+        this.setIsTaaRisk(isTradeAgreementViolated(xsbData.get(COUNTRY_ORIGIN_INFERENCE), taaCountryCodes)); //ACREPO-2143
+        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get(COUNTRY_ORIGIN_INFERENCE), xsbData.get("countryOrigin")));
+        this.setIsLowOutlier(xsbData, val, sb, ls);
     }
 
     private Boolean isTradeAgreementViolated(String countryOriginInference, List<String> taaCompliantCountryCodes){
@@ -557,5 +375,330 @@ public class XsbDataJsonRecord {
     private Boolean isMiaMisrepresented(String countryOriginInference, String countryOfOrigin){
         if (countryOriginInference == null || countryOriginInference.isEmpty()) return Boolean.FALSE;
         else return countryOfOrigin != null && countryOfOrigin.equals("US") && !countryOriginInference.equals("US");
+    }
+
+    private void setQuantityOfUnit(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("quantityOfUnit");
+            if (val != null && !val.isBlank())
+                this.setQuantityOfUnit(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Quantity Of Unit. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setQuantityPerUnit(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("quantityPerUnit");
+            if (val != null && !val.isBlank())
+                this.setQuantityPerUnit(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Quantity Per Unit. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setFinalPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("finalPrice");
+            if (val != null && !val.isBlank())
+                this.setFinalPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Final Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCatalogPriceStandardDeviation(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
+            if (val != null && !val.isBlank())
+                this.setCatalogPriceStandardDeviation(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Catalog Price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCatalogMedianPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get(CATALOG_MEDIAN_PRICE);
+            if (val != null && !val.isBlank()) this.setCatalogMedianPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Catalog Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCatalogMinPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("catalogMinPrice");
+            if (val != null && !val.isBlank()) this.setCatalogMinPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Catalog Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCommercialCatalogMedianPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("commercialCatalogMedianPrice");
+            if (val != null && !val.isBlank()) this.setCommercialCatalogMedianPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Commercial catalog median price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCommercialCatalogMinPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("commercialCatalogMinPrice");
+            if (val != null && !val.isBlank()) this.setCommercialCatalogMinPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Commercial catalog min price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setHighPriceTarget(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("highPriceTarget");
+            if (val != null && !val.isBlank()) this.setHighPriceTarget(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setIsMarketResearchFound(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get(CATALOG_MEDIAN_PRICE);
+            if (val != null && !val.isBlank())
+                this.setIsMarketResearchFound((Double.parseDouble(val)) > 0.0);
+            else this.setIsMarketResearchFound(false);
+        } catch (Exception e) {
+            sb.append("Invalid data, High Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setLowPriceTarget(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("lowPriceTarget");
+            if (val != null && !val.isBlank()) this.setLowPriceTarget(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Low Price Target. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTdrMedianPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("tdrMedianPrice");
+            if (val != null && !val.isBlank()) this.setTdrMedianPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Tdr Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTdrMinPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("tdrMinPrice");
+            if (val != null && !val.isBlank()) this.setTdrMinPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTdrMaxPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("tdrMaxPrice");
+            if (val != null && !val.isBlank()) this.setTdrMaxPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Tdr Min Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setVppIndicator(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("vppIndicator");
+            if (val != null && !val.isBlank()) this.setVppIndicator(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, VPP Indicator. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setAnnualDemandQuantity(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("annualDemandQuantity");
+            if (val != null && !val.isBlank())
+                this.setAnnualDemandQuantity(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Annual Demand Quantity. Must be a valid integer. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCatalogAvgPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("catalogAvgPrice");
+            if (val != null && !val.isBlank()) this.setCatalogAvgPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Catalog Average Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setCatalogMaxPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("catalogMaxPrice");
+            if (val != null && !val.isBlank()) this.setCatalogMaxPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Catalog Max Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTransactionMinPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("transactionMinPrice");
+            if (val != null && !val.isBlank())
+                this.setTransactionMinPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Transaction Minimum Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTransactionAvgPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("transactionAvgPrice");
+            if (val != null && !val.isBlank())
+                this.setTransactionAvgPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Transaction Average Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTransactionMedianPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("transactionMedianPrice");
+            if (val != null && !val.isBlank())
+                this.setTransactionMedianPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Transaction Median Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setTransactionMaxPrice(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("transactionMaxPrice");
+            if (val != null && !val.isBlank())
+                this.setTransactionMaxPrice(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Transaction Maximum Price. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setIsAuthorizedVendor(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("isAuthorizedVendor");
+            if (val != null && !val.isBlank())
+                this.setIsAuthorizedVendor(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Authorized vendor. Must be a valid integer. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setHits(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("hits");
+            if (val != null && !val.isBlank()) this.setHits(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, for hits. Must be a valid integer. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setSelfHits(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("selfHits");
+            if (val != null && !val.isBlank()) this.setSelfHits(Integer.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, for Self hits. Must be a valid integer. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setDemandWeightedIndexScore(Map<String, String> xsbData, StringBuilder sb, String ls){
+        String val = null;
+        try {
+            val = xsbData.get("demandWeightedIndexScore");
+            if (val != null && !val.isBlank())
+                this.setDemandWeightedIndexScore(Double.valueOf(val));
+        } catch (Exception e) {
+            sb.append("Invalid data, Demand Weighted Index Score. Must be a valid number. Value encountered: ").append(val).append(ls);
+        }
+    }
+
+    private void setEnrichmentLowerBound(Map<String, String> xsbData, String val, StringBuilder sb, String ls){
+        String tmpVal = null;
+        try {
+            tmpVal = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
+            this.setEnrichmentLowerBound(0.0);
+            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
+                this.setEnrichmentLowerBound(Double.parseDouble(val) - Double.parseDouble(tmpVal));
+        } catch (Exception e) {
+            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
+        }
+    }
+
+    private void setEnrichmentUpperBound(Map<String, String> xsbData, String val, StringBuilder sb, String ls){
+        String tmpVal = null;
+        try {
+            tmpVal = xsbData.get(CATALOG_PRICE_STD_DEVIATION);
+            this.setEnrichmentUpperBound(0.0);
+            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
+                this.setEnrichmentUpperBound(Double.parseDouble(val) + Double.parseDouble(tmpVal));
+        } catch (Exception e) {
+            sb.append("Invalid data, for Final Price or Catalog price Standard Deviation. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
+        }
+
+    }
+
+    private void setExceedsMarketThreshold(Map<String, String> xsbData, String val, StringBuilder sb, String ls){
+        String tmpVal = null;
+        try {
+            tmpVal = xsbData.get("highPriceTarget");
+            this.setExceedsMarketThreshold(false);
+            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank())
+                this.setExceedsMarketThreshold(Double.parseDouble(val) > Double.parseDouble(tmpVal));
+        } catch (Exception e) {
+            sb.append("Invalid data, for Final Price or high price target. Must be a valid number. Value encountered: ").append(val).append(", ").append(tmpVal).append(ls);
+        }
+    }
+
+    private void setIsLowOutlier(Map<String, String> xsbData, String val, StringBuilder sb, String ls){
+        String tmpVal = null;
+        try {
+            tmpVal = xsbData.get(CATALOG_MEDIAN_PRICE);
+            boolean lowOutlier = false;
+            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank() &&
+                (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5)))) {
+                lowOutlier = true;
+            }
+            this.setIsLowOutlier(lowOutlier);
+        } catch (Exception e) {
+            sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(tmpVal).append(", ").append(val).append(ls);
+        }
     }
 }
