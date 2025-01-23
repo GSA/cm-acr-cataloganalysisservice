@@ -376,15 +376,16 @@ public class XsbDataJsonRecord {
     }
 
     private void setSingleUsePlasticsFree(Map<String, String> xsbData) {
-        /*
-         * singleUsePlastics is unlike the other booleans. The other booleans are required fields, so will always be true or false
-         * singleUsePlastics may not appear in the data at all, so we set it to null if it's not present.
-         */
-        Boolean boolVal = null;
         String stringVal = xsbData.get("singleUsePlasticsFree");
-        if (stringVal != null)
-            boolVal = Boolean.valueOf(stringVal);
-        this.singleUsePlasticsFree = boolVal;
+        if (stringVal == null) {
+            this.singleUsePlasticsFree = null;
+            return;
+        }
+        if (stringVal.isEmpty()) {
+            this.singleUsePlasticsFree = null;
+            return;
+        }
+        this.singleUsePlasticsFree = Boolean.valueOf(stringVal);
     }
 
     private void calculatedFields(Map<String, String> xsbData, List<String> taaCountryCodes, StringBuilder sb, String ls) {
@@ -741,8 +742,12 @@ public class XsbDataJsonRecord {
             return;
         }
 
-        String[] countryArray;
-        countryArray = countryListString.split(COUNTRY_DELIM_REGEX);
+        if (countryListString.isEmpty()) {
+            this.countryOriginInferences = List.of();
+            return;
+        }
+
+        String[] countryArray = countryListString.split(COUNTRY_DELIM_REGEX, -1);
         this.countryOriginInferences = Arrays.asList(countryArray);
     }
 }
