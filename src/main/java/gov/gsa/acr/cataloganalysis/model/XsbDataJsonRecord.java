@@ -99,7 +99,7 @@ public class XsbDataJsonRecord {
     private String countryOriginInference;
     @JsonProperty("countryOriginInferences")
     private List<String> countryOriginInferences;
-    @JsonProperty("countryOriginInferenceSource")
+    @JsonProperty("countryOriginInferencesSource")
     private String countryOriginInferencesSource;
     @JsonProperty("demandWeightedIndexScore")
     private Double demandWeightedIndexScore;
