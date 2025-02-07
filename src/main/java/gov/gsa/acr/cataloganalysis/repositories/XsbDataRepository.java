@@ -118,8 +118,7 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'T'")
     Flux<String> findTaaCompliantCountries();
 
-    //@Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
-    @Query(value = "select count from (SELECT pg_sleep(3900), count(0) FROM xsb_data WHERE (xsb_data -> 'ets')::boolean) a")
+    @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
     Mono<Integer> etsCount();
 
     @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
