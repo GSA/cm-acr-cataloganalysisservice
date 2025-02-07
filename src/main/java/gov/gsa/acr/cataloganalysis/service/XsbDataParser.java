@@ -66,7 +66,7 @@ public class XsbDataParser {
     }
 
     public Map<String, String> parseXsbDataToMap(String xsbDataString){
-        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString.trim());
+        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString);
         int len = Math.min(xsbDataAsArray.length, this.extendedHeader.length);
         return IntStream.range(0, len)
                 .boxed()
