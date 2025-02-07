@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonPropertyOrder({
         "catalogMedianPrice",
         "catalogMedianPriceSupplier",
