@@ -162,7 +162,7 @@ public class AnalysisDataProcessingService {
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
                 // Before the pipeline starts, initialize the error handler and reset counter
                 .doFirst(() -> {
-                    errorHandler.init(xsbDataParser.getBaselineHeaderString());
+                    errorHandler.init(xsbDataParser.getHeaderString());
                     dbCounter.set(0);
                 })
                 // Finally, no mater if an exception is encountered, execute this block which resets the lock, closed
@@ -274,7 +274,7 @@ public class AnalysisDataProcessingService {
      * @param xsbFile            The Xsb File to be processed
      * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources. Important since
-     *                           Kubernetes caches file in the Page Cache of the pod and that just bloats the memory.
+     *                           Kubernetes cachaes file in the Page Cache of the pod and that just bloats the memory.
      * @param gsaFeedDate        The date when the catalogs were sent to XSB for bi-monthly processing.
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
@@ -295,7 +295,7 @@ public class AnalysisDataProcessingService {
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             String header = rawProductsFromXSB.findFirst().get();
             if (!xsbDataParser.validateHeader(header))
-                throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", does not contain " + xsbDataParser.getBaselineHeaderString());
+                throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", is different from expected header, " + xsbDataParser.getHeaderString());
         } catch (Exception e) {
             // If the header is invalid, we cannot do much with the file. The quality of data is not reliable.
             errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);

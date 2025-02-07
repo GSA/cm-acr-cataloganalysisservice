@@ -17,7 +17,7 @@ public interface AnalysisSource {
             return true;
         }
         if (fileNames.isEmpty() || fileNames.size() > 25) {
-            String message = "Either too many files to download or no files provided for download. Maximum 25 files are allowed at a time.";
+            String message = "Either too many files to download or no files provided for download. Maximum 20 files are allowed at a time.";
             Exception e = new IllegalArgumentException(message);
             log.error(MN + message, e);
             return true;
