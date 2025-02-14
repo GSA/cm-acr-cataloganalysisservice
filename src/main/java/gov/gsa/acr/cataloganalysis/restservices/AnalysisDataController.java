@@ -143,7 +143,8 @@ public class AnalysisDataController extends BaseController{
     @GetMapping(value="/ets/count")
     @Hidden
     public Mono<Integer> etsCount(){
-        return xsbDataRepository.etsCount();
+        log.info("Getting ETS Count.");
+        return xsbDataRepository.etsCount().doOnNext(c-> log.info("ETS Count: {}", c));
     }
 
     @Operation(summary = "Get all products that have the ETS flag set to true.",
