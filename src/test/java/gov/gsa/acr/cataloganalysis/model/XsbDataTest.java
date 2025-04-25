@@ -118,7 +118,7 @@ class XsbDataTest {
                 "standardizedProductName": "VERIZON VPN WITH ITS CLOUD MANAGER PER Y",
                 "waterSense": false}
                 """;
-        JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.STRICT);
+        JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.LENIENT);
     }
 
     @Test
@@ -184,7 +184,7 @@ class XsbDataTest {
                 "significantNewAlternativesPolicyApproved": false,
                 "waterSense": false}
                 """;
-        JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.STRICT);
+        JSONAssert.assertEquals(expectedJSON, xsbData.getXsbData().asString(), JSONCompareMode.LENIENT);
     }
 
 

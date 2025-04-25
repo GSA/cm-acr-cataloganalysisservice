@@ -162,7 +162,7 @@ public class AnalysisDataProcessingService {
                 .flatMap(errorFileNames -> getDataUploadResults(errorFileNames, errorHandler, dbCounter.get()))
                 // Before the pipeline starts, initialize the error handler and reset counter
                 .doFirst(() -> {
-                    errorHandler.init(xsbDataParser.getHeaderString());
+                    errorHandler.init(xsbDataParser.getBaselineHeaderString());
                     dbCounter.set(0);
                 })
                 // Finally, no mater if an exception is encountered, execute this block which resets the lock, closed
@@ -295,7 +295,7 @@ public class AnalysisDataProcessingService {
         try (Stream<String> rawProductsFromXSB = Files.lines(xsbFile)) {
             String header = rawProductsFromXSB.findFirst().get();
             if (!xsbDataParser.validateHeader(header))
-                throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", is different from expected header, " + xsbDataParser.getHeaderString());
+                throw new NoSuchElementException("Header String for file " + xsbFile + ", " + header + ", does not contain " + xsbDataParser.getBaselineHeaderString());
         } catch (Exception e) {
             // If the header is invalid, we cannot do much with the file. The quality of data is not reliable.
             errorHandler.handleFileError(String.valueOf(xsbFile), "Ignoring File. " + e.getMessage(), e);

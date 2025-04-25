@@ -5,10 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
         "catalogMedianPrice",
         "catalogMedianPriceSupplier",
@@ -20,6 +21,8 @@ import java.util.Map;
         "commercialCatalogMinPrice",
         "commercialCatalogMinPriceSupplier",
         "countryOriginInference",
+        "countryOriginInferences",
+        "countryOriginSource",
         "demandWeightedIndexScore",
         "dunsNumber",
         "enrichment_lower_bound",
@@ -42,6 +45,7 @@ import java.util.Map;
         "prohibitionComment",
         "salesLikelihood",
         "selfHits",
+        "singleUsePlasticsFree",
         "standardizedManufacturerName",
         "standardizedManufacturerPartNumber",
         "standardizedProductDescription",
@@ -93,6 +97,10 @@ public class XsbDataJsonRecord {
     private String commercialCatalogMinPriceSupplier;
     @JsonProperty("countryOriginInference")
     private String countryOriginInference;
+    @JsonProperty("countryOriginInferences")
+    private List<String> countryOriginInferences;
+    @JsonProperty("countryOriginInferencesSource")
+    private String countryOriginInferencesSource;
     @JsonProperty("demandWeightedIndexScore")
     private Double demandWeightedIndexScore;
     @JsonProperty("dunsNumber")
@@ -137,6 +145,8 @@ public class XsbDataJsonRecord {
     private String salesLikelihood;
     @JsonProperty("selfHits")
     private Integer selfHits;
+    @JsonProperty("singleUsePlasticsFree")
+    private Boolean singleUsePlasticsFree;
     @JsonProperty("standardizedManufacturerName")
     private String standardizedManufacturerName;
     @JsonProperty("standardizedManufacturerPartNumber")
@@ -247,6 +257,10 @@ public class XsbDataJsonRecord {
     private static final String CATALOG_PRICE_STD_DEVIATION = "catalogPriceStandardDeviation";
     private static final String CATALOG_MEDIAN_PRICE = "catalogMedianPrice";
     private static final String COUNTRY_ORIGIN_INFERENCE = "countryOriginInference";
+    private static final String COUNTRY_ORIGIN_INFERENCES = "countryOriginInferences";
+
+    private static final String COUNTRY_DELIM = "<*>";
+    private static final String COUNTRY_DELIM_REGEX = "<\\*>";
 
     /**
      * Creates an object that will be saved as a JSON in the database.
@@ -296,6 +310,9 @@ public class XsbDataJsonRecord {
         this.setCommercialCatalogMinPrice(xsbData, sb, ls);
         this.setCommercialCatalogMinPriceSupplier(xsbData.get("commercialCatalogMinPriceSupplier"));
         this.setCountryOriginInference(xsbData.get(COUNTRY_ORIGIN_INFERENCE));
+        this.setCountryOriginInferences(xsbData);
+        this.setCountryOriginInferencesSource(xsbData.get("countryOriginInferencesSource"));
+        this.setSingleUsePlasticsFree(xsbData);
         this.setCountryOfOrigin(xsbData.get("countryOrigin"));
         this.setHighPriceTarget(xsbData, sb, ls);
         this.setInvalidReason(xsbData.get("invalidReason"));
@@ -375,6 +392,36 @@ public class XsbDataJsonRecord {
     private Boolean isMiaMisrepresented(String countryOriginInference, String countryOfOrigin){
         if (countryOriginInference == null || countryOriginInference.isEmpty()) return Boolean.FALSE;
         else return countryOfOrigin != null && countryOfOrigin.equals("US") && !countryOriginInference.equals("US");
+    }
+
+    private void setSingleUsePlasticsFree(Map<String, String> xsbData) {
+        String stringVal = xsbData.get("singleUsePlasticsFree");
+        if (stringVal == null) {
+            this.singleUsePlasticsFree = null;
+            return;
+        }
+        if (stringVal.isEmpty()) {
+            this.singleUsePlasticsFree = null;
+            return;
+        }
+        this.singleUsePlasticsFree = Boolean.valueOf(stringVal);
+    }
+
+    private void setCountryOriginInferences(Map<String, String> xsbData) {
+        String countryListString = xsbData.get(COUNTRY_ORIGIN_INFERENCES);
+
+        if (countryListString == null) {
+            this.countryOriginInferences = null;
+            return;
+        }
+
+        if (countryListString.isEmpty()) {
+            this.countryOriginInferences = List.of();
+            return;
+        }
+
+        String[] countryArray = countryListString.split(COUNTRY_DELIM_REGEX, -1);
+        this.countryOriginInferences = Arrays.asList(countryArray);
     }
 
     private void setQuantityOfUnit(Map<String, String> xsbData, StringBuilder sb, String ls){
@@ -691,11 +738,8 @@ public class XsbDataJsonRecord {
         String tmpVal = null;
         try {
             tmpVal = xsbData.get(CATALOG_MEDIAN_PRICE);
-            boolean lowOutlier = false;
-            if (val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank() &&
-                (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5)))) {
-                lowOutlier = true;
-            }
+            boolean lowOutlier = val != null && !val.isBlank() && tmpVal != null && !tmpVal.isBlank() &&
+                    (Double.parseDouble(tmpVal) > 0 && (((Double.parseDouble(val) / Double.parseDouble(tmpVal)) - 1) < (-0.5)));
             this.setIsLowOutlier(lowOutlier);
         } catch (Exception e) {
             sb.append("Invalid data, for Catalog Median Price or Final Price. Must be a valid number. Value encountered: ").append(tmpVal).append(", ").append(val).append(ls);
