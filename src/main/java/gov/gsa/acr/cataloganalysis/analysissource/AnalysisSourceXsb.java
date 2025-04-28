@@ -70,8 +70,9 @@ public class AnalysisSourceXsb implements AnalysisSource {
         Channel channel = session.openChannel("sftp");
         channel.connect();
         ChannelSftp channelSftp = (ChannelSftp) channel;
+        log.info("PWD1: {}", channelSftp.pwd());
         channelSftp.cd(sftpGsaFileReportDir);
-        log.info("PWD2: " + channelSftp.pwd());
+        log.info("PWD2: {}", channelSftp.pwd());
         return (ChannelSftp) channel;
     }
 
