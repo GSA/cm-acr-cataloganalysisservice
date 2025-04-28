@@ -22,7 +22,7 @@ import java.util.Map;
         "commercialCatalogMinPriceSupplier",
         "countryOriginInference",
         "countryOriginInferences",
-        "countryOriginSource",
+        "countryOriginInferencesSource",
         "demandWeightedIndexScore",
         "dunsNumber",
         "enrichment_lower_bound",
