@@ -71,6 +71,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
         channel.connect();
         ChannelSftp channelSftp = (ChannelSftp) channel;
         channelSftp.cd(sftpGsaFileReportDir);
+        log.info("PWD2: " + channelSftp.pwd());
         return (ChannelSftp) channel;
     }
 
@@ -143,6 +144,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
                     String destFileName = destinationFolder + File.separator + sourceFileName;
                     ChannelSftp channelSftp = defaultChannelSftp;
                     Path dest = Path.of(destFileName);
+                    log.info("sourceFileName: " + sourceFileName + ", destFileName: " + destFileName);
                     try {
                         if (channelSftp == null) channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
                         channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
@@ -182,6 +184,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
         Flux<Path> rtrn = Flux.empty();
         try {
             channelSftp = createDownloadChannelSftp(sourceFolder);
+            log.info("FTP cwd: " + channelSftp.pwd());
             Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
             rtrn = Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
