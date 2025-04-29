@@ -81,6 +81,8 @@ public class AnalysisDataProcessingService {
 
         // Trigger validation throws an IllegalArgumentException if invalid.
         Trigger.validate(trigger);
+
+        log.info("Trigger source: " + trigger.getSourceFolder());
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
