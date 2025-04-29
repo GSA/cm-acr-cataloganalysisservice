@@ -220,6 +220,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
      * a single stream
      */
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+        log.info("defaultSftpGsaFileReportDir {}", defaultSftpGsaFileReportDir);
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
         log.info("sourceFolder {}, srcDir {}", sourceFolder, srcDir);
         if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
