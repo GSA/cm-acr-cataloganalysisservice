@@ -45,10 +45,9 @@ public class XsbDataParser {
     }
 
     public boolean validateHeader(String rawHeaderString){
-        if (rawHeaderString == null)
-            return false;
-        else
-            return rawHeaderString.startsWith(baselineHeaderString);
+        if (rawHeaderString == null) return false;
+        if (rawHeaderString.startsWith(extendedHeaderString)) return true;
+        else return rawHeaderString.startsWith(baselineHeaderString);
     }
 
     private void validateRequest(String xsbDataString){
@@ -63,15 +62,17 @@ public class XsbDataParser {
         validateRequest(xsbDataString);
         String [] xsbDataAsArray = xsbDataString.split(delimRegex, -1);
         if (baselineHeader.length > xsbDataAsArray.length)
-            throw new IllegalArgumentException("Invalid XSB data row. Fewer data elements than the minimum number of columns. Minimum number of columns " + baselineHeader.length + ", number of data elements " + xsbDataAsArray.length);
+            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + baselineHeader.length + ", found " + xsbDataAsArray.length);
+        if (baselineHeader.length < xsbDataAsArray.length && extendedHeader.length > xsbDataAsArray.length)
+            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + extendedHeader.length + ", found " + xsbDataAsArray.length);
 
         return xsbDataAsArray;
     }
 
     public Map<String, String> parseXsbDataToMap(String xsbDataString){
-        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString.trim());
-        int len = Math.min(xsbDataAsArray.length, this.extendedHeader.length);
-        return IntStream.range(0, len)
+        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString);
+        int numberOfFields = Math.min(xsbDataAsArray.length, this.extendedHeader.length);
+        return IntStream.range(0, numberOfFields)
                 .boxed()
                 .collect(Collectors.toMap(k -> this.extendedHeader[k], v -> xsbDataAsArray[v]));
     }
