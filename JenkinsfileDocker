@@ -1,33 +1,42 @@
 pipeline {
     agent any
     environment {
-        imagename ="acr/cataloganalysisservice"
-        registry='556904013717.dkr.ecr.us-east-1.amazonaws.com'
-
+        service_name="cataloganalysisservice"
+        image_name ="acr/$service_name"
+        vpc_registry='556904013717.dkr.ecr.us-east-1.amazonaws.com'
+        mcaas_registry='752281881774.dkr.ecr.us-east-1.amazonaws.com'
     }
+
     stages {
         stage('Build Docker image') {
             steps {
-               sh """aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin  752281881774.dkr.ecr.us-east-1.amazonaws.com
-               docker build --no-cache -t acr/cataloganalysisservice:$GIT_COMMIT ."""
+                sh """
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $vpc_registry
+                    docker build -t $image_name:$GIT_COMMIT .
+                """
             }
         }
         stage('Tagging docker image') {
             steps {
-               sh "docker tag acr/cataloganalysisservice:$GIT_COMMIT 556904013717.dkr.ecr.us-east-1.amazonaws.com/acr/cataloganalysisservice:$GIT_COMMIT"
+                sh "docker tag $image_name:$GIT_COMMIT $vpc_registry/$image_name:$GIT_COMMIT"
             }
         }
         stage('Pushing to ECR') {
             steps {
-                sh "docker push 556904013717.dkr.ecr.us-east-1.amazonaws.com/acr/cataloganalysisservice:$GIT_COMMIT"
+                sh """
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $vpc_registry
+                    docker push $vpc_registry/$image_name:$GIT_COMMIT
+                """
             }
         }
         stage('Update flux') {
             steps {
-              build job: 'flux-update', parameters: [[$class: 'StringParameterValue', name: 'FLUX_HASH', value: env.GIT_COMMIT], [$class: 'StringParameterValue', name: 'FLUX_FILENAME', value: 'cataloganalysisservice.yaml']]
+                build job: 'flux-update', parameters: [
+                    [$class: 'StringParameterValue', name: 'FLUX_HASH', value: env.GIT_COMMIT], 
+                    [$class: 'StringParameterValue', name: 'FLUX_FILENAME', value: "${service_name}.yaml"]
+                ]
             }
         }
 
     }
 }
-
