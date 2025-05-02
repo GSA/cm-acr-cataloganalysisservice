@@ -70,7 +70,10 @@ public class AnalysisSourceXsb implements AnalysisSource {
         Channel channel = session.openChannel("sftp");
         channel.connect();
         ChannelSftp channelSftp = (ChannelSftp) channel;
+        log.info("PWD1: {}", channelSftp.pwd());
+        log.info("sftpGsaFileReportDir: {}", sftpGsaFileReportDir);
         channelSftp.cd(sftpGsaFileReportDir);
+        log.info("PWD2: {}", channelSftp.pwd());
         return (ChannelSftp) channel;
     }
 
@@ -143,6 +146,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
                     String destFileName = destinationFolder + File.separator + sourceFileName;
                     ChannelSftp channelSftp = defaultChannelSftp;
                     Path dest = Path.of(destFileName);
+                    log.info("sourceFileName: " + sourceFileName + ", destFileName: " + destFileName);
                     try {
                         if (channelSftp == null) channelSftp = createDownloadChannelSftp(sftpGsaFilesReportDir);
                         channelSftp.get(sourceFileName, destFileName, sftpProgressMonitor);
@@ -182,6 +186,7 @@ public class AnalysisSourceXsb implements AnalysisSource {
         Flux<Path> rtrn = Flux.empty();
         try {
             channelSftp = createDownloadChannelSftp(sourceFolder);
+            log.info("FTP cwd: " + channelSftp.pwd());
             Vector<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(fileNamePattern);
             rtrn = Flux.fromIterable(lsEntries)
                     .filter(lsEntry -> lsEntry.getAttrs().isReg()) // Ignore directories, block files etc. Only download regular files.
@@ -215,7 +220,9 @@ public class AnalysisSourceXsb implements AnalysisSource {
      * a single stream
      */
     public Flux<Path> getAnalyzedCatalogs(String sourceFolder, Set<String> fileNamePatterns, String destinationFolder) {
+        log.info("defaultSftpGsaFileReportDir {}", defaultSftpGsaFileReportDir);
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
+        log.info("sourceFolder {}, srcDir {}", sourceFolder, srcDir);
         if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
         return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder), 4);
     }

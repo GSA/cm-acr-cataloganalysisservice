@@ -23,38 +23,37 @@ public class XsbDataParser {
     @Value("${xsb.report.file.delimiter}")
     private String defaultDelimiter;
     @Value("${xsb.report.file.header}")
-    private String defaultHeader;
+    @Getter
+    private String baselineHeaderString;
     @Value("${xsb.report.file.extended.header}")
-    private String extendedHeader;
+    private String extendedHeaderString;
     @Getter
     private String delimRegex;
     @Getter
     private String delimString;
     @Getter
-    private String[] header;
+    private String[] baselineHeader;
     @Getter
-    private String[] extendedHeaderArray;
-    @Getter
-    private String headerString;
+    private String[] extendedHeader;
 
     @PostConstruct
     public void init(){
         delimRegex = defaultDelimiter;
         delimString = delimRegex.replace("\\", "");
-        headerString = defaultHeader;
-        header = headerString.split(delimRegex, -1);
-        extendedHeaderArray = extendedHeader.split(delimRegex, -1);
+        baselineHeader = baselineHeaderString.split(delimRegex, -1);
+        extendedHeader = extendedHeaderString.split(delimRegex, -1);
     }
 
-
     public boolean validateHeader(String rawHeaderString){
-        if (rawHeaderString == null) return false;
-        if (rawHeaderString.startsWith(extendedHeader)) return true;
-        else return rawHeaderString.startsWith(headerString);
+        if (rawHeaderString == null)
+            return false;
+        else
+            return rawHeaderString.startsWith(baselineHeaderString);
     }
 
     private void validateRequest(String xsbDataString){
-        if (xsbDataString == null || xsbDataString.isBlank()) throw new IllegalArgumentException("A Blank XSB data row.");
+        if (xsbDataString == null || xsbDataString.isBlank())
+            throw new IllegalArgumentException("A Blank XSB data row.");
         if (!xsbDataString.contains(delimString))
             throw new IllegalArgumentException("Input string is not formatted correctly. it is not delimited with expected delimiter, " + delimString);
     }
@@ -63,22 +62,18 @@ public class XsbDataParser {
         // Validate the string. Throw exception if not valid. Otherwise, continue parsing.
         validateRequest(xsbDataString);
         String [] xsbDataAsArray = xsbDataString.split(delimRegex, -1);
-        if (header.length > xsbDataAsArray.length)
-            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + header.length + ", found " + xsbDataAsArray.length);
-        if (header.length < xsbDataAsArray.length && extendedHeaderArray.length > xsbDataAsArray.length)
-            throw new IllegalArgumentException("Invalid XSB data row. The number of fields do not match expected count. Expected " + extendedHeaderArray.length + ", found " + xsbDataAsArray.length);
+        if (baselineHeader.length > xsbDataAsArray.length)
+            throw new IllegalArgumentException("Invalid XSB data row. Fewer data elements than the minimum number of columns. Minimum number of columns " + baselineHeader.length + ", number of data elements " + xsbDataAsArray.length);
 
         return xsbDataAsArray;
     }
 
     public Map<String, String> parseXsbDataToMap(String xsbDataString){
-        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString);
-        int numberOfFields;
-        if (xsbDataAsArray.length == header.length) numberOfFields = header.length;
-        else numberOfFields = extendedHeaderArray.length;
-        return IntStream.range(0, numberOfFields)
+        String [] xsbDataAsArray = parseXsbDataToArray(xsbDataString.trim());
+        int len = Math.min(xsbDataAsArray.length, this.extendedHeader.length);
+        return IntStream.range(0, len)
                 .boxed()
-                .collect(Collectors.toMap(k -> extendedHeaderArray[k], v -> xsbDataAsArray[v]));
+                .collect(Collectors.toMap(k -> this.extendedHeader[k], v -> xsbDataAsArray[v]));
     }
 
     public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes, LocalDate gsaFeedDate){
@@ -90,10 +85,13 @@ public class XsbDataParser {
             throw new NullPointerException("ignore");
         }
 
-        if (sourceFileName == null || sourceFileName.isBlank()) throw new IllegalArgumentException("A Null source file name.");
-        if (taaCountryCodes == null || taaCountryCodes.isEmpty()) throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
+        if (sourceFileName == null || sourceFileName.isBlank())
+            throw new IllegalArgumentException("A Null source file name.");
+        if (taaCountryCodes == null || taaCountryCodes.isEmpty())
+            throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
         Map<String, String> parsedDataAsMap = parseXsbDataToMap(xsbDataString);
-        if (gsaFeedDate != null) parsedDataAsMap.put("gsaFeedDate", gsaFeedDate.toString());
+        if (gsaFeedDate != null)
+            parsedDataAsMap.put("gsaFeedDate", gsaFeedDate.toString());
         XsbData xsbData = new XsbData(parsedDataAsMap, taaCountryCodes);
         xsbData.setSourceXsbDataString(xsbDataString);
         xsbData.setSourceXsbDataFileName(sourceFileName);
