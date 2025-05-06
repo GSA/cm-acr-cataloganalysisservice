@@ -24,13 +24,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -126,9 +124,9 @@ public class AnalysisDataProcessingService {
 
             // Step 1: Find all Trade Agreement (TAA) countries. Very important for a key flag. No sense
             //         in proceeding if this fails.
-            pipeline = findTaaCompliantCountries()
+            pipeline = findNonTaaCompliantCountries()
                     // Step 2: Once we have the TAA countries, start parsing the files.
-                    .flatMapMany(taaCountryCodes -> {
+                    .flatMapMany(nonTAACountryCodes -> {
                         // Step 2.1: Download all XSB files from the source specified in the trigger (XSB, S3 or Local)
                         //           to the temp dir.
                         Flux<Path> xsbFiles = analysisSourceFactory
@@ -136,7 +134,7 @@ public class AnalysisDataProcessingService {
                                 .getAnalyzedCatalogs(trigger.getSourceFolder(), trigger.getUniqueFileNames(), tmpDir.toFile().getAbsolutePath());
                         // Step 2.2: Parse the files and convert the content from ~|~ text row to a XsbData POJO, that
                         //          has the enrichment data as a JSON blob.
-                        return parseXsbFiles(xsbFiles, taaCountryCodes, true, trigger.getGsaFeedDate());})
+                        return parseXsbFiles(xsbFiles, nonTAACountryCodes, true, trigger.getGsaFeedDate());})
                     // Step 3: As XsbData becomes available on the stream, start saving the records in the staging table.
                     .flatMap(xsbData -> saveDataRecordToStaging(xsbData)
                             // Bookkeeping, and stats reporting.
@@ -213,18 +211,11 @@ public class AnalysisDataProcessingService {
      *
      * @return Asynchronously returns a list of countries that have a trade agreement with the USA
      */
-    Mono<List<String>> findTaaCompliantCountries() {
+    Mono<Set<String>> findNonTaaCompliantCountries() {
         String errorMsg = "Unable to get a list of TAA compliant country codes. Exiting!";
         try {
-            return xsbDataRepository.findTaaCompliantCountries()
-                    .collectList()
-                    .<List<String>>handle((list, sink) -> {
-                        if (list.isEmpty()) {
-                            sink.error(new NoSuchElementException("Did not find a single country with trade agreement. Most likely an error!"));
-                            return;
-                        }
-                        sink.next(list);
-                    })
+            return xsbDataRepository.findNonTAACompliantCountries()
+                    .collect(Collectors.toSet())
                     .doOnError(e -> log.error(errorMsg, e));
         } catch (Exception e) {
             log.error(errorMsg, e);
@@ -238,13 +229,13 @@ public class AnalysisDataProcessingService {
      * used to parse a single file. XsbData objects from all the individual files are collected into a single stream.
      *
      * @param xsbFiles           A stream of Xsb Files that need to be parsed and converted to a stream of XsbData objects
-     * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
+     * @param nonTAACountryCodes    Country codes for all the countries that USA does not have a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources.
      * @param gsaFeedDate        The date when the catalogs were sent to XSB for bi-monthly processing.
      * @return A stream of XsbData POJO object created from each data line of ALL the XSB files, collected into a single
      * stream from all the files
      */
-    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, List<String> taaCountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
+    Flux<XsbData> parseXsbFiles(Flux<Path> xsbFiles, Set<String> nonTAACountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
         // Variables needed for reporting Progress every so often
         Instant start = Instant.now();
         final AtomicReference<Instant> lastProgressReportTime = new AtomicReference<>(start);
@@ -253,7 +244,7 @@ public class AnalysisDataProcessingService {
         AtomicInteger counter = new AtomicInteger(0);
         return xsbFiles
                 .doOnNext(path -> log.info("Parsing file: {}", path))
-                .flatMap(path -> parseXsbFile(path, taaCountryCodes, deleteAfterParsing, gsaFeedDate))
+                .flatMap(path -> parseXsbFile(path, nonTAACountryCodes, deleteAfterParsing, gsaFeedDate))
                 .doFirst(() -> counter.set(0))
                 .doOnNext(xsbData -> {
                     Instant currentTime = Instant.now();
@@ -272,13 +263,13 @@ public class AnalysisDataProcessingService {
      * lines that have problems are separated into an error file for further analysis.
      *
      * @param xsbFile            The Xsb File to be processed
-     * @param taaCountryCodes    Country codes for all the countries that USA has a valid Trade Agreement
+     * @param nonTAACountryCodes    Country codes for all the countries that USA does not have a valid Trade Agreement
      * @param deleteAfterParsing Cleanup the files after parsing and make minimal use of the resources. Important since
      *                           Kubernetes cachaes file in the Page Cache of the pod and that just bloats the memory.
      * @param gsaFeedDate        The date when the catalogs were sent to XSB for bi-monthly processing.
      * @return A stream of XsbData POJO object created from each data line of the XSB file.
      */
-    Flux<XsbData> parseXsbFile(Path xsbFile, List<String> taaCountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
+    Flux<XsbData> parseXsbFile(Path xsbFile, Set<String> nonTAACountryCodes, boolean deleteAfterParsing, LocalDate gsaFeedDate) {
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (!errorHandler.totalErrorsWithinAcceptableThreshold()) {
             log.warn("Too many errors: Exceeded the number of error threshold. Bailing out, not parsing {} file", xsbFile);
@@ -315,7 +306,7 @@ public class AnalysisDataProcessingService {
                         //Stream::close
                 )
                 .publishOn(Schedulers.newParallel("parser"))
-                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), taaCountryCodes, gsaFeedDate))
+                .map(xsbData -> xsbDataParser.parseXsbData(xsbData, xsbFile.toString(), nonTAACountryCodes, gsaFeedDate))
                 .onErrorContinue((e, s) -> {
                     if (!(e instanceof NullPointerException && "ignore".equals(e.getMessage())))
                         errorHandler.handleParsingError(String.valueOf(s), String.valueOf(xsbFile), e.getMessage());

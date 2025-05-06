@@ -64,7 +64,7 @@ public class FailFastTest {
     @Autowired
     private AnalysisSourceS3 xsbSourceS3Files;
 
-    List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
+    Set<String> nonTAACountryCodes = Set.of("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW");
 
 
     @BeforeEach
@@ -85,7 +85,7 @@ public class FailFastTest {
         Path vallidFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -94,7 +94,7 @@ public class FailFastTest {
         vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, nonTAACountryCodes, true, null))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -103,29 +103,29 @@ public class FailFastTest {
     @Test
     void testNumErrorsExceedThreshold() throws IOException {
         Path srcFile = Path.of("junitTestData/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa");
-        Path vallidFile = Path.of("tmp/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa");
-        Files.copy(srcFile, vallidFile);
-        assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        Path validFile = Path.of("tmp/47QSMA21D08R6-7000039_20230901135843_5367723946113572875_report_1.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(18)
                 .expectComplete()
                 .verify();
 
 
         srcFile = Path.of("junitTestData/fileWithEarlyErrors.gsa");
-        vallidFile = Path.of("tmp/fileWithEarlyErrors.gsa");
-        Files.copy(srcFile, vallidFile);
-        assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        validFile = Path.of("tmp/fileWithEarlyErrors.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(7)
                 .expectComplete()
                 .verify();
 
         srcFile = Path.of("junitTestData/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa");
-        vallidFile = Path.of("tmp/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa");
-        Files.copy(srcFile, vallidFile);
-        assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        validFile = Path.of("tmp/47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -193,26 +193,26 @@ public class FailFastTest {
 
     @Test
     void testFailFastForParseXsbData() {
-        String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
+        String xsbDataString = "47QSMA21D08R6~|~123~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~~|~";
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
         errorHandler.handleDBError(xsbData, "Dummy error");
-        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
+        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
-        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
+        xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null);
         assertEquals("47QSMA21D08R6", xsbData.getContractNumber());
         assertEquals("AMERICAN SIGNAL COMPANY", xsbData.getManufacturer());
         assertEquals("OPT30125380", xsbData.getPartNumber());
 
         errorHandler.handleParsingError(xsbData.toString(), "dummy file", "dummy error");
 
-        assertThrows(NullPointerException.class, () -> xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
+        assertThrows(NullPointerException.class, () -> xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "ignore");
     }
 
 
@@ -249,7 +249,7 @@ public class FailFastTest {
         when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         when(xsbSourceS3Files.uploadToS3(any(), anyString())).thenReturn(Mono.just("errors/xsb_error_parse_dummy.gsa"));
 

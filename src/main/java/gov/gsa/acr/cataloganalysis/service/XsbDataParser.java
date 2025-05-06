@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -77,7 +77,7 @@ public class XsbDataParser {
                 .collect(Collectors.toMap(k -> this.extendedHeader[k], v -> xsbDataAsArray[v]));
     }
 
-    public XsbData parseXsbData(String xsbDataString, String sourceFileName, List<String> taaCountryCodes, LocalDate gsaFeedDate){
+    public XsbData parseXsbData(String xsbDataString, String sourceFileName, Set<String> nonTAACountryCodes, LocalDate gsaFeedDate){
         // Check if we have too many errors already. If yes, no point moving forward, bail off now.
         if (!errorHandler.totalErrorsWithinAcceptableThreshold()) throw new NullPointerException("ignore");
         // Check if we are asked to force quit.
@@ -88,12 +88,12 @@ public class XsbDataParser {
 
         if (sourceFileName == null || sourceFileName.isBlank())
             throw new IllegalArgumentException("A Null source file name.");
-        if (taaCountryCodes == null || taaCountryCodes.isEmpty())
+        if (nonTAACountryCodes == null || nonTAACountryCodes.isEmpty())
             throw new IllegalArgumentException("invalid list of Trade agreement country codes, either null or empty.");
         Map<String, String> parsedDataAsMap = parseXsbDataToMap(xsbDataString);
         if (gsaFeedDate != null)
             parsedDataAsMap.put("gsaFeedDate", gsaFeedDate.toString());
-        XsbData xsbData = new XsbData(parsedDataAsMap, taaCountryCodes);
+        XsbData xsbData = new XsbData(parsedDataAsMap, nonTAACountryCodes);
         xsbData.setSourceXsbDataString(xsbDataString);
         xsbData.setSourceXsbDataFileName(sourceFileName);
         return xsbData;
