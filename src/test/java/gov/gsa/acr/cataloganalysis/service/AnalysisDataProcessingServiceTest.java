@@ -1281,6 +1281,63 @@ class AnalysisDataProcessingServiceTest {
         }
     }
 
+    @Test
+    void testTriggerDataUpload_alreadyExecuting_2() throws InterruptedException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        doCallRealMethod().when(errorHandler).setForceQuit(anyBoolean());
+        doCallRealMethod().when(errorHandler).getForceQuit();
+        doCallRealMethod().when(errorHandler).getErrorFiles();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        Mono<DataUploadResults> mono = analysisDataProcessingService.triggerDataUpload(trigger);
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        service.submit(() -> {
+            log.info("Triggered first time");
+            mono.subscribe(results -> log.info("First process results {}", results), ex -> log.error("Unexpected Error", ex));
+        });
+
+        Thread.sleep(1000);
+
+        log.info("Triggered second time");
+        try {
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(null))
+                    .verifyError(ConcurrentModificationException.class);
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        } catch (ConcurrentModificationException ex) {
+            log.info("Test Passed: Expected ConcurrentModificationException");
+            assertEquals("Process is currently running!", ex.getMessage());
+        } catch (Exception exception){
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        }
+
+        service.awaitTermination(20, TimeUnit.SECONDS);
+        Thread.sleep(10000);
+        try {
+            log.info("Triggered third time");
+            when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                    .verifyError(RuntimeException.class);
+            log.info("Test Passed again: Did not expect a ConcurrentModificationException now");
+        } catch (ConcurrentModificationException ex) {
+            fail("ConcurrentModificationException Should NOT have been thrown now.");
+        }
+    }
+
+
 
     @Test
     void testTriggerDataupload_simultaneousThreads() throws InterruptedException {
@@ -1728,36 +1785,6 @@ class AnalysisDataProcessingServiceTest {
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
         Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
-
-
-        /////////////////////////////////////////////////////
-        /*
-        Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
-        trigger.setSourceFolder("junitTestData");
-        Set<String> uniqueFileNames = new HashSet<>();
-        uniqueFileNames.add("Dummy");
-        trigger.setUniqueFileNames(uniqueFileNames);
-        trigger.setGsaFeedDate(LocalDate.now());
-
-        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
-        doCallRealMethod().when(errorHandler).getNumDbErrors();
-        doCallRealMethod().when(errorHandler).getNumParsingErrors();
-        doCallRealMethod().when(errorHandler).getNumFileErrors();
-        doCallRealMethod().when(errorHandler).init(anyString());
-        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.empty());
-
-        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-
-        errorHandler.setErrorDirectory(errorDirectory);
-
-        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
-                .expectComplete()
-                .verify();
-
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAllXsbDataTemp();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).findNonTAACompliantCountries();
-*/
     }
 
     @Test
@@ -2384,7 +2411,183 @@ class AnalysisDataProcessingServiceTest {
                 .verify();
     }
 
+    @Test
+    void testTriggerTAACompliance() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("TS-21F-00015-taa_1234567_20250506123456_123456789_report_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW")));
+
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(10);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(10)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
+
+        Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
+        Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
+
+    }
+
+    @Test
+    void testTriggerMIACompliance() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("TS-21F-00015-mia_1234567_20250506123456_123456789_report_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
+
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW")));
+
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
+
+        Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
+        Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
+
+    }
 
 }
 

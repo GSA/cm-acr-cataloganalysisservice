@@ -381,7 +381,7 @@ public class XsbDataJsonRecord {
         this.setEnrichmentUpperBound(xsbData, val, sb, ls);
         this.setExceedsMarketThreshold(xsbData, val, sb, ls);
         this.setIsTaaRisk(isTradeAgreementViolated(nonTAACountryCodes)); //ACREPO-2143
-        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get(COUNTRY_ORIGIN_INFERENCE), xsbData.get("countryOrigin")));
+        this.setIsMiaRisk(isMiaMisrepresented());
         this.setIsLowOutlier(xsbData, val, sb, ls);
     }
 
@@ -393,7 +393,7 @@ public class XsbDataJsonRecord {
                && nonTAACompliantCountryCodes.containsAll(this.countryOriginInferences);
     }
 
-    private Boolean isMiaMisrepresented(String countryOriginInference, String countryOfOrigin){
+    private Boolean isMiaMisrepresented(){
         // Per logic defined in https://docs.google.com/document/d/1kL7cFLZbX8MH-AHvyPkkZK4pcfXjwhwB5wOScGsLU7s/edit?tab=t.0
         if (this.countryOriginInferences == null
             || this.countryOriginInferencesSource == null
