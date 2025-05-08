@@ -259,9 +259,7 @@ public class XsbDataJsonRecord {
     private static final String COUNTRY_ORIGIN_INFERENCES = "countryOriginInferences";
     private static final String ABILITY_ONE = "AbilityOne";
     private static final String VENDOR_POOL = "Vendor Pool";
-
-    private static final String COUNTRY_DELIM = "<*>";
-    private static final String COUNTRY_DELIM_REGEX = "<\\*>";
+    private static final String COUNTRY_DELIM_REGEX = ",";
 
     /**
      * Creates an object that will be saved as a JSON in the database.
@@ -422,6 +420,8 @@ public class XsbDataJsonRecord {
             this.countryOriginInferences = null;
             return;
         }
+
+        countryListString = countryListString.startsWith("\"") || countryListString.startsWith("'") ? countryListString.substring(1, countryListString.length() -1) : countryListString;
 
         String[] countryArray = countryListString.split(COUNTRY_DELIM_REGEX, -1);
         // Filter out any duplicates or empty strings,  but keep the order, which is important.
