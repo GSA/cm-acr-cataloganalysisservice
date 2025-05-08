@@ -421,7 +421,7 @@ public class XsbDataJsonRecord {
             return;
         }
 
-        countryListString = countryListString.startsWith("\"") || countryListString.startsWith("'") ? countryListString.substring(1, countryListString.length() -1) : countryListString;
+        countryListString = countryListString.startsWith("\"") ? countryListString.substring(1, countryListString.length() -1) : countryListString;
 
         String[] countryArray = countryListString.split(COUNTRY_DELIM_REGEX, -1);
         // Filter out any duplicates or empty strings,  but keep the order, which is important.
