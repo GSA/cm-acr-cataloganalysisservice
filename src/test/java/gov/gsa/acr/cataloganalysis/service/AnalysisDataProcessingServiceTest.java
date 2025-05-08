@@ -65,7 +65,7 @@ class AnalysisDataProcessingServiceTest {
     @Autowired
     private AnalysisDataProcessingService analysisDataProcessingService;
 
-    List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
+    Set<String> nonTAACountryCodes = Set.of("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW");
 
     @BeforeEach
     void setUp() throws IOException {
@@ -80,7 +80,7 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testParsingNullFile() {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(null, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(null, nonTAACountryCodes, true, null))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq("null"), eq("Ignoring File. Cannot invoke \"java.nio.file.Path.getFileSystem()\" because \"path\" is null"), Mockito.any(NullPointerException.class) );
@@ -94,7 +94,7 @@ class AnalysisDataProcessingServiceTest {
         Path emptyFile = Path.of("tmp/emptyFile_1.gsa");
         Files.copy(srcFile, emptyFile);
         assertTrue(Files.exists(emptyFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(emptyFile, nonTAACountryCodes, true, null))
                 .expectComplete()
                 .verify();
         assertTrue(Files.exists(srcFile));
@@ -105,7 +105,7 @@ class AnalysisDataProcessingServiceTest {
     void testParsingInvalidFile() {
         Path invalidFile = Path.of("junitTestData/invalid.gsa");
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, taaCountryCodes, false, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidFile, nonTAACountryCodes, false, null))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.times(1)).handleFileError(eq(invalidFile.toString()), eq("Ignoring File. " + invalidFile), Mockito.any(NoSuchFileException.class) );
@@ -118,7 +118,7 @@ class AnalysisDataProcessingServiceTest {
         Path invalidHdrFile = Path.of("tmp/testFileWithInvalidHeader.gsa");
         Files.copy(srcFile, invalidHdrFile);
         assertTrue(Files.exists(invalidHdrFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, taaCountryCodes, false, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidHdrFile, nonTAACountryCodes, false, null))
                 .expectComplete()
                 .verify();
         assertTrue(Files.exists(invalidHdrFile));
@@ -134,7 +134,7 @@ class AnalysisDataProcessingServiceTest {
         Path invalidRecordsFile = Path.of("tmp/testFileWithErrors.gsa");
         Files.copy(srcFile, invalidRecordsFile);
         assertTrue(Files.exists(invalidRecordsFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(invalidRecordsFile, nonTAACountryCodes, true, null))
                 .expectNextCount(17)
                 .expectComplete()
                 .verify();
@@ -150,7 +150,7 @@ class AnalysisDataProcessingServiceTest {
         Path fileWithJustHeader = Path.of("tmp/testFileWithJustHeader.gsa");
         Files.copy(srcFile, fileWithJustHeader);
         assertTrue(Files.exists(fileWithJustHeader));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(fileWithJustHeader, nonTAACountryCodes, true, null))
                 .expectComplete()
                 .verify();
 
@@ -167,7 +167,7 @@ class AnalysisDataProcessingServiceTest {
         Path validFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(10)
                 .expectComplete()
                 .verify();
@@ -184,7 +184,7 @@ class AnalysisDataProcessingServiceTest {
         Path validFile = Path.of("tmp/47QSCA18D000Z-3003677_20240507141350_8389982608816780647_report_1.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("mdfGroupId")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("mdfGroupId")))
                 .expectComplete()
@@ -201,7 +201,7 @@ class AnalysisDataProcessingServiceTest {
         Path validFile = Path.of("tmp/47QSMA19D08P6-3013582_20240807190023_4963524368564643147_report_1.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"mdfGroupId\":\""+46020247+"\"")))
                 .expectComplete()
                 .verify();
@@ -215,11 +215,11 @@ class AnalysisDataProcessingServiceTest {
     void testParsingValidFileWithoutGsaFeedDate() throws IOException {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
-        Path vallidFile = Path.of("tmp/testValidFile.gsa");
-        Files.copy(srcFile, vallidFile);
-        assertTrue(Files.exists(vallidFile));
+        Path validFile = Path.of("tmp/testValidFile.gsa");
+        Files.copy(srcFile, validFile);
+        assertTrue(Files.exists(validFile));
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
@@ -245,7 +245,7 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, now))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, nonTAACountryCodes, true, now))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
@@ -270,7 +270,7 @@ class AnalysisDataProcessingServiceTest {
         Path vallidFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, nonTAACountryCodes, true, null))
                 .expectComplete()
                 .verify();
         Mockito.verify(errorHandler, Mockito.never()).handleParsingError(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
@@ -287,7 +287,7 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFile, vallidFile);
         assertTrue(Files.exists(vallidFile));
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(false);
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(vallidFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -325,10 +325,10 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFiles[4], filesToParse[4]);
         Files.copy(srcFiles[5], filesToParse[5]);
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), taaCountryCodes, false, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.empty(), nonTAACountryCodes, false, null))
                 .verifyComplete();
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), nonTAACountryCodes, true, null))
                 .expectNextCount(27)
                 .verifyComplete();
 
@@ -369,7 +369,7 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFiles[5], filesToParse[5]);
 
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), nonTAACountryCodes, true, null))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
                 .assertNext(xsbData -> assertFalse(xsbData.getXsbData().asString().contains("gsaFeedDate")))
@@ -418,7 +418,7 @@ class AnalysisDataProcessingServiceTest {
         Files.copy(srcFiles[5], filesToParse[5]);
 
 
-        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), taaCountryCodes, true, now))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFiles(Flux.fromIterable(Arrays.asList(filesToParse)), nonTAACountryCodes, true, now))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
                 .assertNext(xsbData -> assertTrue(xsbData.getXsbData().asString().contains("\"gsaFeedDate\":\""+expectedGsaFeedDate+"\"")))
@@ -498,8 +498,8 @@ class AnalysisDataProcessingServiceTest {
     @Test
     void testSaveDataRecordToStaging() {
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null);
+        String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~~|~";
+        XsbData xsbData = xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null);
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(xsbData))
@@ -516,7 +516,7 @@ class AnalysisDataProcessingServiceTest {
         when(errorHandler.getForceQuit()).thenReturn(true);
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
 
-        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
+        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "ignore");
 
         when(xsbDataRepository.saveXSBDataToTemp(anyString(), anyString(), anyString(), any())).thenReturn(Mono.empty());
         StepVerifier.create(analysisDataProcessingService.saveDataRecordToStaging(null))
@@ -1158,37 +1158,37 @@ class AnalysisDataProcessingServiceTest {
 
 
     @Test
-    void testFindTaaCompliantCountries_Exception() {
+    void testFindNonTaaCompliantCountries_Exception() {
         Exception e = new RuntimeException("Dummy");
-        when(xsbDataRepository.findTaaCompliantCountries()).thenThrow(e);
-        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenThrow(e);
+        StepVerifier.create(analysisDataProcessingService.findNonTaaCompliantCountries())
                 .expectError()
                 .verify();
     }
 
 
     @Test
-    void testFindTaaCompliantCountries_Error() {
+    void testFindNonTaaCompliantCountries_Error() {
         Exception e = new RuntimeException("Dummy");
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
-        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.error(e));
+        StepVerifier.create(analysisDataProcessingService.findNonTaaCompliantCountries())
                 .expectError()
                 .verify();
     }
 
     @Test
-    void testFindTaaCompliantCountries_noCountries() {
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(List.of()));
-        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
-                .verifyError(NoSuchElementException.class);
+    void testFindNonTaaCompliantCountries_noCountries() {
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Set.of()));
+        StepVerifier.create(analysisDataProcessingService.findNonTaaCompliantCountries())
+                .expectNext(Set.of());
     }
 
 
     @Test
-    void testFindTaaCompliantCountries() {
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
-        StepVerifier.create(analysisDataProcessingService.findTaaCompliantCountries())
-                .expectNext(Arrays.asList("AF", "AG", "AM", "AO", "AT"))
+    void testFindNonTaaCompliantCountries() {
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        StepVerifier.create(analysisDataProcessingService.findNonTaaCompliantCountries())
+                .expectNext(Set.of("AF", "AG", "AM", "AO", "AT"))
                 .verifyComplete();
     }
 
@@ -1243,7 +1243,7 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getForceQuit();
         doCallRealMethod().when(errorHandler).getErrorFiles();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
         when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -1272,7 +1272,7 @@ class AnalysisDataProcessingServiceTest {
         Thread.sleep(10000);
         try {
             log.info("Triggered third time");
-            when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+            when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
             StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
                     .verifyError(RuntimeException.class);
             log.info("Test Passed again: Did not expect a ConcurrentModificationException now");
@@ -1280,6 +1280,63 @@ class AnalysisDataProcessingServiceTest {
             fail("ConcurrentModificationException Should NOT have been thrown now.");
         }
     }
+
+    @Test
+    void testTriggerDataUpload_alreadyExecuting_2() throws InterruptedException {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("Dummy");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        doCallRealMethod().when(errorHandler).setForceQuit(anyBoolean());
+        doCallRealMethod().when(errorHandler).getForceQuit();
+        doCallRealMethod().when(errorHandler).getErrorFiles();
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        Mono<DataUploadResults> mono = analysisDataProcessingService.triggerDataUpload(trigger);
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        service.submit(() -> {
+            log.info("Triggered first time");
+            mono.subscribe(results -> log.info("First process results {}", results), ex -> log.error("Unexpected Error", ex));
+        });
+
+        Thread.sleep(1000);
+
+        log.info("Triggered second time");
+        try {
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(null))
+                    .verifyError(ConcurrentModificationException.class);
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        } catch (ConcurrentModificationException ex) {
+            log.info("Test Passed: Expected ConcurrentModificationException");
+            assertEquals("Process is currently running!", ex.getMessage());
+        } catch (Exception exception){
+            fail("Test Failed: Expected a ConcurrentModificationException");
+        }
+
+        service.awaitTermination(20, TimeUnit.SECONDS);
+        Thread.sleep(10000);
+        try {
+            log.info("Triggered third time");
+            when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+            StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                    .verifyError(RuntimeException.class);
+            log.info("Test Passed again: Did not expect a ConcurrentModificationException now");
+        } catch (ConcurrentModificationException ex) {
+            fail("ConcurrentModificationException Should NOT have been thrown now.");
+        }
+    }
+
 
 
     @Test
@@ -1314,7 +1371,7 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getForceQuit();
         doCallRealMethod().when(errorHandler).getErrorFiles();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
         when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -1625,7 +1682,7 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.error(e));
 
@@ -1635,7 +1692,7 @@ class AnalysisDataProcessingServiceTest {
                 .expectError(RuntimeException.class)
                 .verify();
 
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).findTaaCompliantCountries();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).findNonTAACompliantCountries();
 
     }
 
@@ -1655,7 +1712,7 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.error(e));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.error(e));
 
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
 
@@ -1666,14 +1723,15 @@ class AnalysisDataProcessingServiceTest {
                 .verify();
 
         Mockito.verify(xsbDataRepository, Mockito.never()).deleteAllXsbDataTemp();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).findTaaCompliantCountries();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).findNonTAACompliantCountries();
     }
 
 
     @Test
     void testTriggerDataUpload_NoTAACountriesFound() {
         Trigger trigger = new Trigger();
-        trigger.setSourceType(Trigger.AnalysisSourceType.XSB);
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
         Set<String> uniqueFileNames = new HashSet<>();
         uniqueFileNames.add("Dummy");
         trigger.setUniqueFileNames(uniqueFileNames);
@@ -1684,18 +1742,48 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getNumParsingErrors();
         doCallRealMethod().when(errorHandler).getNumFileErrors();
         doCallRealMethod().when(errorHandler).init(anyString());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.empty());
 
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.empty());
 
         errorHandler.setErrorDirectory(errorDirectory);
 
-        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
-                .expectError(NoSuchElementException.class)
-                .verify();
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(0);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
 
-        Mockito.verify(xsbDataRepository, Mockito.times(0)).deleteAllXsbDataTemp();
-        Mockito.verify(xsbDataRepository, Mockito.times(1)).findTaaCompliantCountries();
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.never()).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.never()).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.never()).moveXsbData_19();
 
     }
 
@@ -1717,7 +1805,7 @@ class AnalysisDataProcessingServiceTest {
 
         when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -1804,7 +1892,7 @@ class AnalysisDataProcessingServiceTest {
         when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -1892,7 +1980,7 @@ class AnalysisDataProcessingServiceTest {
         when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -1980,7 +2068,7 @@ class AnalysisDataProcessingServiceTest {
         when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
         when(xsbDataRepository.xsbDataTempCount()).thenReturn(Mono.just(10));
 
 
@@ -2053,7 +2141,7 @@ class AnalysisDataProcessingServiceTest {
         when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
         when(xsbDataRepository.xsbDataTempCount()).thenThrow(new RuntimeException("Dummy"));
 
 
@@ -2148,7 +2236,7 @@ class AnalysisDataProcessingServiceTest {
 
         when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
         when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")));
 
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -2282,7 +2370,7 @@ class AnalysisDataProcessingServiceTest {
         doCallRealMethod().when(errorHandler).getForceQuit();
         doCallRealMethod().when(errorHandler).getErrorFiles();
         when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
-        when(xsbDataRepository.findTaaCompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AF", "AG", "AM", "AO", "AT")).delayElements(Duration.ofSeconds(5)));
         when(xsbSourceS3Files.getAnalyzedCatalogs(anyString(), anySet(), anyString())).thenReturn(Flux.just(Path.of("dummy")));
         errorHandler.setErrorDirectory(errorDirectory);
 
@@ -2323,7 +2411,183 @@ class AnalysisDataProcessingServiceTest {
                 .verify();
     }
 
+    @Test
+    void testTriggerTAACompliance() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("TS-21F-00015-taa_1234567_20250506123456_123456789_report_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
 
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW")));
+
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(10);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(10)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
+
+        Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
+        Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
+
+    }
+
+    @Test
+    void testTriggerMIACompliance() {
+        Trigger trigger = new Trigger();
+        trigger.setSourceType(Trigger.AnalysisSourceType.LOCAL);
+        trigger.setSourceFolder("junitTestData");
+        trigger.setPurgeOldData(Boolean.TRUE);
+        Set<String> uniqueFileNames = new HashSet<>();
+        uniqueFileNames.add("TS-21F-00015-mia_1234567_20250506123456_123456789_report_1.gsa");
+        trigger.setUniqueFileNames(uniqueFileNames);
+        trigger.setGsaFeedDate(LocalDate.now());
+
+
+        doCallRealMethod().when(errorHandler).setErrorDirectory(anyString());
+        doCallRealMethod().when(errorHandler).getNumDbErrors();
+        doCallRealMethod().when(errorHandler).getNumParsingErrors();
+        doCallRealMethod().when(errorHandler).getNumFileErrors();
+        doCallRealMethod().when(errorHandler).init(anyString());
+        when(errorHandler.getErrorFiles()).thenReturn(Flux.empty());
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+
+        when(xsbDataRepository.saveXSBDataToTemp(anyString(),anyString(), anyString(), any())).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_0()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_1()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_2()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_3()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_4()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_5()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_6()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_7()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_8()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_9()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_10()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_11()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_12()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_13()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_14()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_15()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_16()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_17()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_18()).thenReturn(Mono.empty());
+        when(xsbDataRepository.moveXsbData_19()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAll()).thenReturn(Mono.empty());
+        when(xsbDataRepository.deleteAllXsbDataTemp()).thenReturn(Mono.empty());
+        when(xsbDataRepository.findNonTAACompliantCountries()).thenReturn(Flux.fromIterable(Arrays.asList("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW")));
+
+        errorHandler.setErrorDirectory(errorDirectory);
+
+        DataUploadResults expectedResults = new DataUploadResults();
+        expectedResults.setErrorFileNames(List.of());
+        expectedResults.setNumRecordsSavedInTempDB(26);
+        expectedResults.setNumFileErrors(0);
+        expectedResults.setNumDbErrors(0);
+        expectedResults.setNumParsingErrors(0);
+        expectedResults.setForcedQuit(Boolean.FALSE);
+
+        log.info("Triggering message: " + trigger);
+        StepVerifier.create(analysisDataProcessingService.triggerDataUpload(trigger))
+                .expectNext(expectedResults)
+                .verifyComplete();
+
+        Mockito.verify(xsbDataRepository, Mockito.times(26)).saveXSBDataToTemp(anyString(), anyString(), anyString(), any());
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).deleteAll();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_0();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_1();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_2();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_3();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_4();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_5();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_6();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_7();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_8();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_9();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_10();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_11();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_12();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_13();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_14();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_15();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_16();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_17();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_18();
+        Mockito.verify(xsbDataRepository, Mockito.times(1)).moveXsbData_19();
+
+        Mockito.verify(errorHandler, Mockito.times(0)).handleFileError(anyString(), anyString(), any());
+        Mockito.verify(errorHandler, Mockito.times(0)).handleParsingError(anyString(), anyString(), anyString());
+
+    }
 
 }
 

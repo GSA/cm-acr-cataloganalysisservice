@@ -115,8 +115,8 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
     @Query(value = "DELETE FROM xsb_data_temp")
     Mono<Void> deleteAllXsbDataTemp();
 
-    @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'T'")
-    Flux<String> findTaaCompliantCountries();
+    @Query(value = "SELECT code FROM ppoint p WHERE p.is_ppoint = 'F'")
+    Flux<String> findNonTAACompliantCountries();
 
     @Query(value = "SELECT count(*) FROM xsb_data WHERE (xsb_data -> 'ets')::boolean")
     Mono<Integer> etsCount();
