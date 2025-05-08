@@ -11,8 +11,8 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Data
 @Table("xsb_data")
@@ -44,7 +44,7 @@ public class XsbData {
     private String sourceXsbDataFileName;
 
 
-    public XsbData(Map<String, String> xsbDataAsAMap, List<String> taaCountryCodes) {
+    public XsbData(Map<String, String> xsbDataAsAMap, Set<String> nonTAACountryCodes) {
         // Refer: See https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbDataAsAMap == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
         String ls = System.getProperty("line.separator");
@@ -79,7 +79,7 @@ public class XsbData {
 
         // JSON record
         try {
-            XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap, taaCountryCodes);
+            XsbDataJsonRecord xsbDataJsonRecord = new XsbDataJsonRecord(xsbDataAsAMap, nonTAACountryCodes);
             ObjectMapper objectMapper = new ObjectMapper();
             this.setXsbData(Json.of(objectMapper.writeValueAsString(xsbDataJsonRecord)));
         }

@@ -5,11 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonPropertyOrder({
         "catalogMedianPrice",
         "catalogMedianPriceSupplier",
@@ -258,17 +257,17 @@ public class XsbDataJsonRecord {
     private static final String CATALOG_MEDIAN_PRICE = "catalogMedianPrice";
     private static final String COUNTRY_ORIGIN_INFERENCE = "countryOriginInference";
     private static final String COUNTRY_ORIGIN_INFERENCES = "countryOriginInferences";
-
-    private static final String COUNTRY_DELIM = "<*>";
-    private static final String COUNTRY_DELIM_REGEX = "<\\*>";
+    private static final String ABILITY_ONE = "AbilityOne";
+    private static final String VENDOR_POOL = "Vendor Pool";
+    private static final String COUNTRY_DELIM_REGEX = ",";
 
     /**
      * Creates an object that will be saved as a JSON in the database.
      *
-     * @param xsbData               XSB Data as a Hashmap
-     * @param taaCountryCodes List of countries that do not violate trade agreement
+     * @param xsbData            XSB Data as a Hashmap
+     * @param nonTAACountryCodes List of countries that do not violate trade agreement
      */
-    public XsbDataJsonRecord(Map<String, String> xsbData, List<String> taaCountryCodes) {
+    public XsbDataJsonRecord(Map<String, String> xsbData, Set<String> nonTAACountryCodes) {
         // Refer:https://docs.google.com/spreadsheets/d/1YuZpJOBl9jkHgciPDsEkNmGiG5NBcuauSDU76lQvbEU/view#gid=173420408
         if (xsbData == null) throw new NullPointerException("Cannot convert a NULL Map to XSB Data");
         String ls = System.lineSeparator();
@@ -346,9 +345,6 @@ public class XsbDataJsonRecord {
         this.setSalesLikelihood(xsbData.get("salesLikelihood"));
         this.setDemandWeightedIndexScore(xsbData, sb, ls);
 
-        //Calculated fields.
-        calculatedFields(xsbData, taaCountryCodes, sb, ls);
-
         //Start ACREPO-4144
         this.setBioPreferred(Boolean.valueOf(xsbData.get("bioPreferred")));
         this.setComprehensiveProcurementGuidelineCompliant(Boolean.valueOf(xsbData.get("comprehensiveProcurementGuidelineCompliant")));
@@ -370,58 +366,70 @@ public class XsbDataJsonRecord {
         this.setMdfGroupId(xsbData.get("mdfGroupId"));
         //End ACREPO-4207
 
+        // Calculated fields. Make the calculations only at the end of setting all the values as the calculations
+        // depend on the other values in this object.
+        calculatedFields(xsbData, nonTAACountryCodes, sb, ls);
+
         if (!sb.isEmpty()) throw new IllegalArgumentException(sb.toString());
     }
 
-    private void calculatedFields(Map<String, String> xsbData, List<String> taaCountryCodes, StringBuilder sb, String ls) {
+    private void calculatedFields(Map<String, String> xsbData, Set<String> nonTAACountryCodes, StringBuilder sb, String ls) {
         String val = xsbData.get("finalPrice") ; // temporary value holder from the map passed in as the argument
         this.setEnrichmentLowerBound(xsbData, val, sb, ls);
         this.setEnrichmentUpperBound(xsbData, val, sb, ls);
         this.setExceedsMarketThreshold(xsbData, val, sb, ls);
-        this.setIsTaaRisk(isTradeAgreementViolated(xsbData.get(COUNTRY_ORIGIN_INFERENCE), taaCountryCodes)); //ACREPO-2143
-        this.setIsMiaRisk(isMiaMisrepresented(xsbData.get(COUNTRY_ORIGIN_INFERENCE), xsbData.get("countryOrigin")));
+        this.setIsTaaRisk(isTradeAgreementViolated(nonTAACountryCodes)); //ACREPO-2143
+        this.setIsMiaRisk(isMiaMisrepresented());
         this.setIsLowOutlier(xsbData, val, sb, ls);
     }
 
-    private Boolean isTradeAgreementViolated(String countryOriginInference, List<String> taaCompliantCountryCodes){
-        if (countryOriginInference != null && !countryOriginInference.isEmpty())
-            return !taaCompliantCountryCodes.contains(countryOriginInference);
-        return Boolean.FALSE;
+    private Boolean isTradeAgreementViolated(Set<String> nonTAACompliantCountryCodes){
+        // Per logic defined in https://docs.google.com/document/d/1kL7cFLZbX8MH-AHvyPkkZK4pcfXjwhwB5wOScGsLU7s/edit?tab=t.0
+        return !(ABILITY_ONE.equalsIgnoreCase(this.standardizedManufacturerName))
+               && (this.countryOriginInferences != null)
+               && (nonTAACompliantCountryCodes  != null)
+               && nonTAACompliantCountryCodes.containsAll(this.countryOriginInferences);
     }
 
-    private Boolean isMiaMisrepresented(String countryOriginInference, String countryOfOrigin){
-        if (countryOriginInference == null || countryOriginInference.isEmpty()) return Boolean.FALSE;
-        else return countryOfOrigin != null && countryOfOrigin.equals("US") && !countryOriginInference.equals("US");
+    private Boolean isMiaMisrepresented(){
+        // Per logic defined in https://docs.google.com/document/d/1kL7cFLZbX8MH-AHvyPkkZK4pcfXjwhwB5wOScGsLU7s/edit?tab=t.0
+        if (this.countryOriginInferences == null
+            || this.countryOriginInferencesSource == null
+            || this.countryOriginInferencesSource.isEmpty()
+            || !("US".equalsIgnoreCase(this.countryOfOrigin)))
+            return Boolean.FALSE;
+        if (VENDOR_POOL.equalsIgnoreCase(this.countryOriginInferencesSource))
+            return (this.hits >= 5 && !("US".equalsIgnoreCase(this.countryOriginInferences.get(0))));
+        else return !this.countryOriginInferences.contains("US");
     }
 
     private void setSingleUsePlasticsFree(Map<String, String> xsbData) {
         String stringVal = xsbData.get("singleUsePlasticsFree");
-        if (stringVal == null) {
+        if (stringVal == null || stringVal.isEmpty()) {
             this.singleUsePlasticsFree = null;
             return;
         }
-        if (stringVal.isEmpty()) {
-            this.singleUsePlasticsFree = null;
-            return;
-        }
+
         this.singleUsePlasticsFree = Boolean.valueOf(stringVal);
     }
 
     private void setCountryOriginInferences(Map<String, String> xsbData) {
         String countryListString = xsbData.get(COUNTRY_ORIGIN_INFERENCES);
 
-        if (countryListString == null) {
+        if (countryListString == null || countryListString.isEmpty()) {
             this.countryOriginInferences = null;
             return;
         }
 
-        if (countryListString.isEmpty()) {
-            this.countryOriginInferences = List.of();
-            return;
-        }
+        countryListString = countryListString.startsWith("\"") ? countryListString.substring(1, countryListString.length() -1) : countryListString;
 
         String[] countryArray = countryListString.split(COUNTRY_DELIM_REGEX, -1);
-        this.countryOriginInferences = Arrays.asList(countryArray);
+        // Filter out any duplicates or empty strings,  but keep the order, which is important.
+        this.countryOriginInferences = Arrays.asList(countryArray).stream()
+                .filter(e->!e.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new)) // LinkedHashSet to maintain the order byt remove duplicates
+                .stream().collect(Collectors.collectingAndThen(
+                        Collectors.toUnmodifiableList(), list -> list.isEmpty()?null:list));
     }
 
     private void setQuantityOfUnit(Map<String, String> xsbData, StringBuilder sb, String ls){

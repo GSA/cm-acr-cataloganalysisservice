@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,8 +49,7 @@ class AnalysisDataProcessingService4Test {
     @Autowired
     private AnalysisDataProcessingService analysisDataProcessingService;
 
-    List<String> taaCountryCodes = Arrays.asList("AF", "AG", "AM", "AO", "AT", "AU", "AW", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BQ", "BS", "BT", "BZ", "CA", "CD", "CF", "CH", "CL", "CO", "CR", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "EE", "ER", "ES", "ET", "FI", "FR", "GB", "GD", "GM", "GN", "GQ", "GR", "GS", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "IE", "IL", "IS", "IT", "JM", "JP", "KH", "KI", "KM", "KN", "KR", "LA", "LC", "LI", "LR", "LS", "LT", "LU", "LV", "MA", "MD", "ME", "MG", "ML", "MR", "MS", "MT", "MW", "MX", "MZ", "NE", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PL", "PT", "RO", "RW", "SB", "SE", "SG", "SI", "SK", "SL", "SN", "SO", "SS", "ST", "SV", "SX", "TD", "TG", "TP", "TT", "TV", "TW", "TZ", "UA", "UG", "US", "VC", "VG", "VU", "WS", "YE", "ZM", "XX");
-
+    Set<String> nonTAACountryCodes = Set.of("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW");
 
     @BeforeEach
     void setUp() throws IOException {
@@ -68,14 +68,14 @@ class AnalysisDataProcessingService4Test {
         when(xsbDataParser.parseXsbData(any(), any(), any(), any())).thenThrow(new IllegalArgumentException("Dummy"));
 
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        assertThrows(IllegalArgumentException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "dummy");
+        assertThrows(IllegalArgumentException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "dummy");
 
 
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path validFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -92,13 +92,13 @@ class AnalysisDataProcessingService4Test {
         when(xsbDataParser.parseXsbData(any(), any(), any(), any())).thenThrow(new IllegalArgumentException("ignore"));
 
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        assertThrows(IllegalArgumentException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
+        assertThrows(IllegalArgumentException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "ignore");
 
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path validFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -115,13 +115,13 @@ class AnalysisDataProcessingService4Test {
         when(xsbDataParser.parseXsbData(any(), any(), any(), any())).thenThrow(new NullPointerException("Do not ignore"));
 
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "Do not ignore");
+        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "Do not ignore");
 
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path validFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
@@ -138,13 +138,13 @@ class AnalysisDataProcessingService4Test {
         when(xsbDataParser.parseXsbData(any(), any(), any(), any())).thenThrow(new NullPointerException("ignore"));
 
         String xsbDataString = "47QSMA21D08R6~|~~|~AMERICAN SIGNAL COMPANY~|~~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~~|~~|~612764845~|~NEW~|~NEW~|~true~|~AMERICAN SIGNAL COMPANY~|~OPT30125380~|~~|~1~|~EA~|~AMERICAN SIGNAL~|~OPT30125380~|~EA~|~~|~~|~~|~~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~~|~VERIZON VPN WITH ITS CLOUD MANAGER PER Y~|~Verizon VPN with ITS Cloud Manager per year subscription, available for all models~|~91580958~|~1~|~1~|~1~|~~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~false~|~PP~|~~|~344.58~|~344.58~|~390.93~|~437.27~|~344.58~|~344.58~|~344.58~|~344.58~|~0.0~|~0.0~|~0.0~|~0.0~|~0.0~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~AMERICAN SIGNAL COMPANY 47QSMA21D08R6~|~0.0~|~0.0~|~0.0~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~0.00~|~Unknown~|~Unknown~|~gsa~|~gsa~|~gsa~|~9~|~false~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~~|~100.00~|~~|~US~|~false~|~false~|~~|~~|~~|~~|~";
-        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", taaCountryCodes, null), "ignore");
+        assertThrows(NullPointerException.class, ()->xsbDataParser.parseXsbData(xsbDataString, "testFile.gsa", nonTAACountryCodes, null), "ignore");
 
         Path srcFile = Path.of("junitTestData/testValidFile.gsa");
         Path validFile = Path.of("tmp/testValidFile.gsa");
         Files.copy(srcFile, validFile);
         assertTrue(Files.exists(validFile));
-        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, taaCountryCodes, true, null))
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
                 .expectNextCount(0)
                 .expectComplete()
                 .verify();
