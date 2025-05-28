@@ -10,7 +10,7 @@ RUN mvn -B -DskipTests clean install verify
 
 # --- copy jar file from previous stage
 ARG image_version
-FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_openjdk17:${image_version}
+FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_ubuntu24_openjdk17:${image_version}
 
 RUN mkdir -p ./external-libs/datadogjar/
 ADD --chown=gsa-user:gsa-user 'https://dtdg.co/latest-java-tracer' ./external-libs/datadogjar/dd-java-agent.jar
