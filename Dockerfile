@@ -1,4 +1,4 @@
-ARG image_version="20250623"
+ARG image_version="20250722"
 
 FROM 752281881774.dkr.ecr.us-east-1.amazonaws.com/odp_ubuntu24_openjdk17:${image_version} AS builder
 
