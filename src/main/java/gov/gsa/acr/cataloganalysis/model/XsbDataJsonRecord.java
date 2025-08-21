@@ -529,7 +529,7 @@ public class XsbDataJsonRecord {
     private void setIsMarketResearchFound(Map<String, String> xsbData, StringBuilder sb, String ls){
         String val = null;
         try {
-            val = xsbData.get(CATALOG_MEDIAN_PRICE);
+            val = xsbData.get("highPriceTarget");
             if (val != null && !val.isBlank())
                 this.setIsMarketResearchFound((Double.parseDouble(val)) > 0.0);
             else this.setIsMarketResearchFound(false);
