@@ -60,7 +60,7 @@ public class AnalysisDataProcessingService {
      */
     public Mono<DataUploadResults> triggerDataUpload(Trigger trigger) {
         // Already executing? Exit if it is already executing.
-        if (executing.get()) {
+        if (isExecuting()) {
             // This is to be used only in special circumstances to force quit the process. Mainly to be used during the
             // development/bug fixing phase where the process has to be killed before it completes, specially if it is
             // taking a long time to complete.
@@ -172,6 +172,12 @@ public class AnalysisDataProcessingService {
                     deleteDir(tmpDir);
                 });
     }
+
+    /**
+     *
+     * @return True if a previous bimonthly load is still running. False otherwise.
+     */
+    public boolean isExecuting(){return executing.get();}
 
 
     /**

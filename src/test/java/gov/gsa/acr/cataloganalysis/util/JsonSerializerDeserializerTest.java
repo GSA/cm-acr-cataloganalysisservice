@@ -4,15 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.scheduler.ScheduledTasks;
+import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 @Slf4j
+@MockBeans({@MockBean(ScheduledTasks.class), @MockBean(XsbPpApiService.class)})
 @TestPropertySource(locations="classpath:application-test.properties")
 class JsonSerializerDeserializerTest {
 

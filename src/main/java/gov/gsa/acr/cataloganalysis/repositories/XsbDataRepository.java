@@ -153,4 +153,12 @@ public interface XsbDataRepository extends ReactiveCrudRepository<XsbData, Integ
 
     @Query(value = "SELECT * FROM xsb_data WHERE (xsb_data -> 'is_taa_risk')::boolean")
     Flux<XsbData> findAllTAARisk();
+
+    @Query("""
+            SELECT MAX(X.XSB_DATA ->> 'gsaFeedDate')
+            FROM XSB_DATA_0 X
+            WHERE X.CONTRACT_NUMBER IN (SELECT * FROM (SELECT DISTINCT CONTRACT_NUMBER FROM XSB_DATA_0) AS DISTINCT_CTR_NUM ORDER BY RANDOM() LIMIT 5)
+            AND X.IS_SOURCE_BIMONTHLY_FILE
+            """)
+    Mono<String> getAcrFeedDate();
 }
