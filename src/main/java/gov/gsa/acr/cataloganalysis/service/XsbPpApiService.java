@@ -20,10 +20,15 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 public class XsbPpApiService {
+    private static final Pattern VALID_DATE_PATTERN = Pattern.compile(
+            "^(?:19|20)\\d\\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])$"
+    );
+
     private WebClient webClient;
     private final PpApiConfig apiConfig;
 
@@ -69,11 +74,12 @@ public class XsbPpApiService {
      * @return A Flux of Post objects representing the posts from the API
      */
     public Flux<Stats> getLatestXsbStats(String acrFeedDate) {
-        if (acrFeedDate == null) throw new IllegalArgumentException("ACR Feed date cannot be null");
+        if (acrFeedDate == null || acrFeedDate.isEmpty() || !VALID_DATE_PATTERN.matcher(acrFeedDate).matches())
+            throw new IllegalArgumentException("Invalid ACR Feed Date: "+acrFeedDate+". Cannot proceed further.");
         return getAuthToken()
                 .flatMapMany(token -> getWebClient().get()
                         .uri(uriBuilder -> uriBuilder
-                                .path("/api/catalog/stats")
+                                .path(apiConfig.getStatsUrl())
                                 .queryParam("sort-by", "gsaFeedDate")
                                 .queryParam("sort-order", "DESC")
                                 .queryParam("filters", "{filters}")
@@ -98,7 +104,9 @@ public class XsbPpApiService {
      */
     public Mono<String> getGsaFeedDate(String acrFeedDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        if (acrFeedDate == null || acrFeedDate.isEmpty()) throw new IllegalArgumentException("Invalid argument, acrFeedDate: " + acrFeedDate);
+
+        if (acrFeedDate == null || acrFeedDate.isEmpty() || !VALID_DATE_PATTERN.matcher(acrFeedDate).matches())
+            throw new IllegalArgumentException("Invalid ACR Feed Date: "+acrFeedDate+". Cannot proceed further.");
 
         return getLatestXsbStats(acrFeedDate)
                 .reduce((stat1, stat2) -> {
@@ -110,22 +118,6 @@ public class XsbPpApiService {
                             .toLocalDate();
                     return localDate.format(formatter);
                 });
-
-        /*return getLatestXsbStats(acrFeedDate)
-                .collectList()
-                .map(stats -> stats.stream()
-                        .filter(stat -> stat.getGsaFeedDate() != null)
-                        .max((p1, p2) -> p1.getGsaFeedDate().compareTo(p2.getGsaFeedDate()))
-                        .map(stat -> {
-                            LocalDate localDate = stat.getGsaFeedDate().toInstant()
-                                    .atZone(java.time.ZoneId.systemDefault())
-                                    .toLocalDate();
-                            return localDate.format(formatter);
-                        })
-                        .orElse(null)
-                );
-
-         */
     }
 
 
@@ -164,15 +156,8 @@ public class XsbPpApiService {
                 log.debug("HTTP error {} - retryable: {}", statusCode, isServerError);
                 return isServerError;
             }
-
             // Retry on connection-related errors
-            boolean isConnectionError = throwable instanceof java.net.ConnectException ||
-                                        throwable instanceof java.net.SocketTimeoutException ||
-                                        throwable instanceof java.io.IOException ||
-                                        throwable.getMessage() != null &&
-                                        (throwable.getMessage().contains("Connection refused") ||
-                                         throwable.getMessage().contains("timeout") ||
-                                         throwable.getMessage().contains("connection"));
+            boolean isConnectionError = throwable instanceof org.springframework.web.reactive.function.client.WebClientRequestException;
 
             log.debug("Connection error - retryable: {}", isConnectionError);
             return isConnectionError;
@@ -182,8 +167,8 @@ public class XsbPpApiService {
     private WebClient getWebClient(){
         if (this.webClient == null)
             this.webClient = WebClient.builder()
-                .baseUrl(apiConfig.getHostport())
-                .build();
+                    .baseUrl(apiConfig.getHostport())
+                    .build();
         return this.webClient;
     }
 }

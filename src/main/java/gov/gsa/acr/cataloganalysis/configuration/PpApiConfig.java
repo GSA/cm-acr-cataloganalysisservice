@@ -12,4 +12,5 @@ public class PpApiConfig {
     private String authUrl;
     private String username;
     private String password;
+    private String statsUrl;
 }

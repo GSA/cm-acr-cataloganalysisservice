@@ -67,21 +67,30 @@ public class ScheduledTasks {
                 throw new RuntimeException("Invalid ACR Feed Date: "+acrFeedDate+". Cannot proceed further.");
 
             String gsaFeedDate = xsbPpApiService.getGsaFeedDate(acrFeedDate).block();
+            if (gsaFeedDate == null || gsaFeedDate.isEmpty() ){
+                log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
+            }
 
-            if (gsaFeedDate == null || gsaFeedDate.isEmpty() || !VALID_DATE_PATTERN.matcher(gsaFeedDate).matches())
+            if (!VALID_DATE_PATTERN.matcher(gsaFeedDate).matches())
                 throw new RuntimeException("Invalid GSA Feed Date: "+gsaFeedDate+". Cannot proceed further.");
 
-            String triggerPayload = null;
+            String triggerPayload;
             if (isGsaFeedDateLaterThanAcrFeedDate(acrFeedDate, gsaFeedDate)){
                 List<String> qualifyingReports = getNewSftpReportsName(gsaFeedDate);
                 if (qualifyingReports != null && !qualifyingReports.isEmpty()){
                     triggerPayload = generateTriggerPayload(gsaFeedDate, qualifyingReports);
+                    // TBD: Trigger the process
+                    log.info("Checking SFTP for new bimonthly reports at {}. AcrFeedDate: {}, GsaFeedDate: {}, newGsaFeedDate? {}, triggerPayload: {}",
+                            dateTimeFormatter.format(LocalDateTime.now()), acrFeedDate, gsaFeedDate,
+                            isGsaFeedDateLaterThanAcrFeedDate(acrFeedDate, gsaFeedDate), triggerPayload);
+                }
+                else {
+                    log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
                 }
             }
-
-            log.info("Checking SFTP for new bimonthly reports at {}. AcrFeedDate: {}, GsaFeedDate: {}, newGsaFeedDate? {}, triggerPayload: {}",
-                    dateTimeFormatter.format(LocalDateTime.now()), acrFeedDate, gsaFeedDate,
-                    isGsaFeedDateLaterThanAcrFeedDate(acrFeedDate, gsaFeedDate), triggerPayload);
+            else {
+                log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
+            }
         } catch (Exception e) {
             log.error("Scheduled job to check and process new bimonthly reports failed.", e);
         }

@@ -772,6 +772,7 @@ class ScheduledTasksTest {
         filenames.add("gsa_advantage_quarterly_job_20250801132422_7538039951446300136_report_20.gsa");
         filenames.add("gsa_advantage_quarterly_job_invalid_pattern_report_15.gsa");
         filenames.add("gsa_advantage_quarterly_job_20250731132422_7538039951446300136_report_20.gsa");
+        filenames.add("47QSWA18D000C-3008711_20230907134812_7055515986367968069_report_1.gsa");
 
         return filenames;
     }
