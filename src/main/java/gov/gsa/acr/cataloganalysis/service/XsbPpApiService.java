@@ -5,6 +5,7 @@ import gov.gsa.acr.cataloganalysis.model.AuthRequest;
 import gov.gsa.acr.cataloganalysis.model.AuthResponse;
 import gov.gsa.acr.cataloganalysis.model.Stats;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -23,14 +24,20 @@ import java.util.function.Predicate;
 @Slf4j
 @Service
 public class XsbPpApiService {
-    private final WebClient webClient;
+    private WebClient webClient;
     private final PpApiConfig apiConfig;
+
+    @Value("${xsb.ppapi.retry.maxattempts:6}")
+    private Long maxAttempts;
+
+    @Value("${xsb.ppapi.retry.minbackoff.seconds:300}")
+    private Long minBackOffSeconds;
+
+    @Value("${xsb.ppapi.retry.maxbackoff.seconds:600}")
+    private Long maxBackOffSeconds;
 
     public XsbPpApiService(PpApiConfig apiConfig) {
         this.apiConfig = apiConfig;
-        this.webClient = WebClient.builder()
-                .baseUrl(apiConfig.getHostport())
-                .build();
     }
 
     /**
@@ -40,7 +47,7 @@ public class XsbPpApiService {
      * @return Mono<String> containing the JWT token
      */
     public Mono<String> getAuthToken() {
-        return webClient.post()
+        return getWebClient().post()
                 .uri(apiConfig.getAuthUrl())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AuthRequest(apiConfig.getUsername(), apiConfig.getPassword()))
@@ -64,7 +71,7 @@ public class XsbPpApiService {
     public Flux<Stats> getLatestXsbStats(String acrFeedDate) {
         if (acrFeedDate == null) throw new IllegalArgumentException("ACR Feed date cannot be null");
         return getAuthToken()
-                .flatMapMany(token -> webClient.get()
+                .flatMapMany(token -> getWebClient().get()
                         .uri(uriBuilder -> uriBuilder
                                 .path("/api/catalog/stats")
                                 .queryParam("sort-by", "gsaFeedDate")
@@ -129,7 +136,8 @@ public class XsbPpApiService {
      * @return RetryBackoffSpec configured for auth token retries
      */
     private RetryBackoffSpec createRetrySpec() {
-        return Retry.backoff(6, Duration.ofMinutes(10))
+        return Retry.backoff(maxAttempts, Duration.ofSeconds(minBackOffSeconds))
+                .maxBackoff(Duration.ofSeconds(maxBackOffSeconds))
                 .filter(isRetryableError())
                 .doBeforeRetry(retrySignal -> {
                     log.warn("Retrying auth token request (attempt {}/6) due to: {}",
@@ -169,5 +177,13 @@ public class XsbPpApiService {
             log.debug("Connection error - retryable: {}", isConnectionError);
             return isConnectionError;
         };
+    }
+
+    private WebClient getWebClient(){
+        if (this.webClient == null)
+            this.webClient = WebClient.builder()
+                .baseUrl(apiConfig.getHostport())
+                .build();
+        return this.webClient;
     }
 }
