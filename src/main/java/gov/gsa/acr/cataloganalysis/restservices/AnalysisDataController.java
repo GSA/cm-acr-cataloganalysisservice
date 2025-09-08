@@ -1,12 +1,16 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.scheduler.ScheduledTasks;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
+import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,16 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Comparator;
 import java.util.ConcurrentModificationException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -34,9 +38,17 @@ public class AnalysisDataController extends BaseController{
     private final XsbDataRepository xsbDataRepository;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService, XsbDataRepository xsbDataRepository) {
+    // TBD delete this after the demo. Not needed.
+    private final XsbPpApiService xsbPpApiService;
+    private final AnalysisSourceXsb analysisSourceXsb;
+    private final ScheduledTasks scheduledTasks;
+
+    public AnalysisDataController(AnalysisDataProcessingService analysisDataProcessingService, XsbDataRepository xsbDataRepository, XsbPpApiService xsbPpApiService, AnalysisSourceXsb analysisSourceXsb, ScheduledTasks scheduledTasks) {
         this.analysisDataProcessingService = analysisDataProcessingService;
         this.xsbDataRepository = xsbDataRepository;
+        this.xsbPpApiService = xsbPpApiService;
+        this.analysisSourceXsb = analysisSourceXsb;
+        this.scheduledTasks = scheduledTasks;
     }
 
     @Operation(summary = "Trigger (start) the XSB data upload process.",
@@ -267,6 +279,48 @@ public class AnalysisDataController extends BaseController{
     @Hidden
     public Flux<XsbData> getTaaRiskProducts(){
         return xsbDataRepository.findAllTAARisk();
+    }
+
+    // TBD All the methods below this comment should be deleted after the demp. These are temporary for demo purpose only.
+    @GetMapping(value ="/acr-feed-date", produces = MediaType.TEXT_PLAIN_VALUE)
+    public Mono<String> getLatestAcrFeedDate()
+    {
+        log.debug("Get latest ACR Feed Date enter");
+        return this.xsbDataRepository.getAcrFeedDate();
+    }
+
+    @GetMapping(value ="/gsa-feed-date/{acrFeedDate}", produces = MediaType.TEXT_PLAIN_VALUE)
+    public Mono<String> getLatestGsaFeedDate(
+            @Parameter(description = "The ACR Feed Date")
+            @PathVariable String acrFeedDate
+    )
+    {
+        log.debug("Get latest GSA Feed date enter");
+        return this.xsbPpApiService.getGsaFeedDate(acrFeedDate);
+    }
+
+    @GetMapping(value ="/report-names/{gsaFeedDate}")
+    public List<String> getLatestBimonthlyFileNames(
+            @Parameter(description = "The latest GSA Feed Date")
+            @PathVariable String gsaFeedDate
+    )
+    {
+        log.debug("Get latest GSA Feed date enter");
+        return scheduledTasks.getNewSftpReportsName(gsaFeedDate)
+                .stream().sorted(Comparator.reverseOrder())
+                .collect(Collectors.toUnmodifiableList());
+
+    }
+
+
+    @GetMapping(value ="/report-names")
+    public List<String> getAllBimonthlyFileNames()
+    {
+        log.debug("Get latest GSA Feed date enter");
+        return analysisSourceXsb.getBimonthlyReportNames(null)
+                .stream().sorted(Comparator.reverseOrder())
+                .collect(Collectors.toUnmodifiableList());
+
     }
 
 

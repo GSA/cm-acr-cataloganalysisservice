@@ -5,7 +5,6 @@ import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -53,7 +52,7 @@ public class ScheduledTasks {
      * Note: To disable this task, set the cron property to "0 0 0 31 2 ?"
      * which schedules it for February 31st (which never occurs)
      */
-    @Scheduled(cron = "${app.scheduler.bimonthly-check-cron}")
+    //@Scheduled(cron = "${app.scheduler.bimonthly-check-cron}")
     public void checkAndProcessNewBimonthlyReports() {
         try {
             if (analysisDataProcessingService.isExecuting()) {
@@ -130,7 +129,7 @@ public class ScheduledTasks {
      * @param dateString Date string in "YYYY-MM-dd" format to compare against
      * @return List of qualifying filenames with the latest date
      */
-    private List<String> getNewSftpReportsName(String dateString) {
+    public List<String> getNewSftpReportsName(String dateString) {
         // Initialize the list of all available filenames
         List<String> allFilenames = xsb.getBimonthlyReportNames(null);
         if (allFilenames == null || allFilenames.isEmpty()) return null;

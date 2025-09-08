@@ -91,7 +91,7 @@ public class XsbPpApiService {
                         .bodyToFlux(Stats.class))
                 .retryWhen(createRetrySpec())
                 .doOnError(error -> log.error("Error fetching stats: {}", error.getMessage()))
-                .doOnComplete(() -> log.info("Completed fetching stats"));
+                .doOnComplete(() -> log.debug("Completed fetching stats from the XSB PPApi server"));
     }
 
 
