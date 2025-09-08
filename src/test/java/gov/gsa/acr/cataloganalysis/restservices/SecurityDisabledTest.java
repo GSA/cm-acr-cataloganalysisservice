@@ -1,5 +1,7 @@
 package gov.gsa.acr.cataloganalysis.restservices;
 
+import gov.gsa.acr.cataloganalysis.scheduler.ScheduledTasks;
+import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import gov.gsa.acr.cataloganalysis.util.TokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
-@MockBeans(@MockBean(TokenService.class))
+@MockBeans({@MockBean(TokenService.class), @MockBean(ScheduledTasks.class), @MockBean(XsbPpApiService.class)})
 @TestPropertySource(locations="classpath:application-disabledsecurity.properties")
 @AutoConfigureWebTestClient
 class SecurityDisabledTest {

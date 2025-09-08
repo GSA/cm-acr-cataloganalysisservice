@@ -15,10 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -46,6 +44,9 @@ public class AnalysisSourceXsb implements AnalysisSource {
 
     @Value("${progress.reporting.interval.seconds:30}")
     private int progressReportingIntervalSeconds;
+
+    @Value("${xsb.report.file.name.pattern:gsa_advantage_quarterly_job*}")
+    private String reportFileNamePattern;
 
     public AnalysisSourceXsb(ErrorHandler errHandler) {
         this.errHandler = errHandler;
@@ -218,6 +219,37 @@ public class AnalysisSourceXsb implements AnalysisSource {
         final String srcDir = (sourceFolder != null && !sourceFolder.isBlank()) ? sourceFolder : defaultSftpGsaFileReportDir;
         if (invalidNumberOfFiles(fileNamePatterns, log)) return Flux.empty();
         return Flux.fromIterable(fileNamePatterns).flatMap(f -> this.getAnalyzedCatalogs(srcDir, f, destinationFolder), 4);
+    }
+
+
+    /**
+     * Get the listing of all the bimonthly report file names from the XSB SFTP server. The file names follow a pattern
+     * and they all start with the string "gsa_advantage_quarterly_job"
+     * @param channel: this is needed just so the method can be tested properly
+     * @return a list of bimonthly report file names.
+     */
+    public List<String> getBimonthlyReportNames(ChannelSftp channel){
+        final String MN = "getBimonthlyReportFileNames: ";
+        ChannelSftp channelSftp = null;
+        try{
+            if (channel == null)
+                channelSftp = createDownloadChannelSftp(defaultSftpGsaFileReportDir);
+            else
+                channelSftp = channel;
+            List<ChannelSftp.LsEntry> lsEntries = (Vector<ChannelSftp.LsEntry>) channelSftp.ls(reportFileNamePattern);
+            if (lsEntries != null && !lsEntries.isEmpty())
+                return lsEntries.stream()
+                        .map(lsEntry -> lsEntry.getFilename())
+                        .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error(MN + "SFTP failed. Could not get a listing of bimonthly report file names. " + e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+        finally {
+            log.debug(MN + "Disconnecting from SFTP server.");
+            disconnectChannelSftp(channelSftp);
+        }
+        return null;
     }
 
 }

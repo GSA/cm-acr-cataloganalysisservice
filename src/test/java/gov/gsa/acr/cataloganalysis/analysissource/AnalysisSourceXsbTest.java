@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j
@@ -277,7 +278,95 @@ class AnalysisSourceXsbTest {
 
     }
 
+    @Test
+    void testGetBimonthlyReportNames_NullChannel() throws SftpException {
+        assertDoesNotThrow(() -> {
+            xsbSourceSftpFiles.getBimonthlyReportNames(null);
+        });
 
+    }
+
+
+
+    @Test
+    void testGetBimonthlyReportNames_Empty() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        Vector<ChannelSftp.LsEntry> entries = new Vector<>();
+        Mockito.when(channelSftp.ls(Mockito.anyString())).thenReturn(entries);
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        List<String> filenames = xsbSourceSftpFiles.getBimonthlyReportNames(channelSftp);
+        assertNull(filenames);
+    }
+
+    @Test
+    void testGetBimonthlyReportNames_Null() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        Mockito.when(channelSftp.ls(Mockito.anyString())).thenReturn(null);
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        List<String> filenames = xsbSourceSftpFiles.getBimonthlyReportNames(channelSftp);
+        assertNull(filenames);
+    }
+
+    @Test
+    void testGetBimonthlyReportNames_Normal() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+        ChannelSftp.LsEntry entry1 = Mockito.mock(ChannelSftp.LsEntry.class);
+        ChannelSftp.LsEntry entry2 = Mockito.mock(ChannelSftp.LsEntry.class);
+
+        Vector<ChannelSftp.LsEntry> entries = new Vector<>();
+        entries.add(entry1);
+        entries.add(entry2);
+        Mockito.when(channelSftp.ls(Mockito.anyString())).thenReturn(entries);
+        Mockito.when(entry1.getFilename()).thenReturn("aDummyFile1");
+        Mockito.when(entry2.getFilename()).thenReturn("aDummyFile2");
+
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        List<String> filenames = xsbSourceSftpFiles.getBimonthlyReportNames(channelSftp);
+        assertNotNull(filenames);
+
+        assertEquals(2, filenames.size());
+        assertTrue(filenames.contains("aDummyFile1"));
+        assertTrue(filenames.contains("aDummyFile2"));
+
+    }
+
+    @Test
+    void testGetBimonthlyReportNames_GenericException() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        RuntimeException r = new RuntimeException("Dummy");
+        doThrow(r).when(channelSftp).ls(Mockito.anyString());
+
+        assertThrows(RuntimeException.class, () -> {xsbSourceSftpFiles.getBimonthlyReportNames(channelSftp);},
+                "should throw a Runtime exception");
+
+    }
+
+
+
+    @Test
+    void testGetBimonthlyReportNames_SftpException() throws SftpException, JSchException {
+        ChannelSftp channelSftp = Mockito.mock(ChannelSftp.class);
+
+        Mockito.when(channelSftp.isConnected()).thenReturn(false);
+        Mockito.when(channelSftp.getSession()).thenReturn(null);
+
+        SftpException r = Mockito.mock(SftpException.class);
+        doThrow(r).when(channelSftp).ls(Mockito.anyString());
+
+        assertThrows(RuntimeException.class, () -> {xsbSourceSftpFiles.getBimonthlyReportNames(channelSftp);},
+                "should throw a Runtime exception");
+
+    }
 
 
 }
