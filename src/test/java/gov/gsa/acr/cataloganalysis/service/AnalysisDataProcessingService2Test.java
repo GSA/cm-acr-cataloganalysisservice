@@ -19,6 +19,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
@@ -44,6 +45,12 @@ class AnalysisDataProcessingService2Test {
 
     @Autowired
     private AnalysisDataProcessingService analysisDataProcessingService;
+
+    @Autowired
+    private ErrorHandler errorHandler;
+
+    Set<String> nonTAACountryCodes = Set.of("AD", "AE", "AL", "AR", "AZ", "BA", "BN", "BO", "BR", "BW", "BY", "CG", "CI", "CM", "CN", "DZ", "EC", "EG", "EH", "FJ", "GE", "GH", "GP", "ID", "IN", "IQ", "JO", "KE", "KG", "KW", "KZ", "LB", "LK", "LY", "MC", "MH", "MK", "MN", "MO", "MU", "MV", "MY", "NA", "NG", "NR", "NU", "PG", "PH", "PK", "PW", "PY", "QA", "RS", "RU", "SA", "SC", "SM", "SR", "SY", "SZ", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "UY", "UZ", "VE", "VN", "ZA", "ZW");
+
 
     @BeforeEach
     void setUp() {mockedSettings = mockStatic(Files.class);}
@@ -133,5 +140,15 @@ class AnalysisDataProcessingService2Test {
         assertTrue(analysisDataProcessingService.deleteDir(tmpDir));
     }
 
+    @Test
+    void testParseXsbFiles_FilesLinesThrowsException() throws IOException {
+        Path validFile = Path.of("tmp/testValidFile.gsa");
+        when(errorHandler.totalErrorsWithinAcceptableThreshold()).thenReturn(true);
+        when(errorHandler.getForceQuit()).thenReturn(false);
+        when(Files.lines(any())).thenThrow(new IOException("testParseXsbFiles_FilesLinesThrowsException Dummy exception"));
+        StepVerifier.create(analysisDataProcessingService.parseXsbFile(validFile, nonTAACountryCodes, true, null))
+                .expectComplete()
+                .verify();
+    }
 
 }
