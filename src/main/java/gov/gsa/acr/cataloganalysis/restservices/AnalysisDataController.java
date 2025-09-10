@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -283,12 +284,14 @@ public class AnalysisDataController extends BaseController{
 
     // TBD All the methods below this comment should be deleted after the demp. These are temporary for demo purpose only.
     @GetMapping(value ="/acr-feed-date", produces = MediaType.TEXT_PLAIN_VALUE)
+    @Generated
     public Mono<String> getLatestAcrFeedDate()
     {
         log.debug("Get latest ACR Feed Date enter");
         return this.xsbDataRepository.getAcrFeedDate();
     }
 
+    @Generated
     @GetMapping(value ="/gsa-feed-date/{acrFeedDate}", produces = MediaType.TEXT_PLAIN_VALUE)
     public Mono<String> getLatestGsaFeedDate(
             @Parameter(description = "The ACR Feed Date")
@@ -299,6 +302,7 @@ public class AnalysisDataController extends BaseController{
         return this.xsbPpApiService.getGsaFeedDate(acrFeedDate);
     }
 
+    @Generated
     @GetMapping(value ="/report-names/{gsaFeedDate}")
     public List<String> getLatestBimonthlyFileNames(
             @Parameter(description = "The latest GSA Feed Date")
@@ -312,7 +316,7 @@ public class AnalysisDataController extends BaseController{
 
     }
 
-
+    @Generated
     @GetMapping(value ="/report-names")
     public List<String> getAllBimonthlyFileNames()
     {

@@ -5,6 +5,7 @@ import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -52,7 +53,7 @@ public class ScheduledTasks {
      * Note: To disable this task, set the cron property to "0 0 0 31 2 ?"
      * which schedules it for February 31st (which never occurs)
      */
-    //@Scheduled(cron = "${app.scheduler.bimonthly-check-cron}")
+    @Scheduled(cron = "${app.scheduler.bimonthly-check-cron}")
     public void checkAndProcessNewBimonthlyReports() {
         try {
             if (analysisDataProcessingService.isExecuting()) {
