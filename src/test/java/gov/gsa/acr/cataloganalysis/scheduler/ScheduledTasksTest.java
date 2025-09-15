@@ -1,7 +1,9 @@
 package gov.gsa.acr.cataloganalysis.scheduler;
 
+import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSource;
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
 import gov.gsa.acr.cataloganalysis.model.Stats;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
@@ -23,12 +25,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -592,7 +593,7 @@ class ScheduledTasksTest {
             java.lang.reflect.Method generateMethod = ScheduledTasks.class.getDeclaredMethod("generateTriggerPayload", String.class, List.class);
             assertNotNull(generateMethod, "generateTriggerPayload method should exist");
             assertEquals(2, generateMethod.getParameterCount(), "Method should take no parameters");
-            assertEquals(String.class, generateMethod.getReturnType(), "Method should return String");
+            assertEquals(Trigger.class, generateMethod.getReturnType(), "Method should return String");
         } catch (NoSuchMethodException e) {
             fail("generateTriggerPayload method not found: " + e.getMessage());
         }
@@ -615,22 +616,20 @@ class ScheduledTasksTest {
             filenames.add("gsa_advantage_quarterly_job_20250801132422_17596505155975732618_report_3.gsa");
 
             // Test the method
-            String result = (String) generateMethod.invoke(scheduledTasks, "2025-07-02", filenames);
+            Trigger result = (Trigger) generateMethod.invoke(scheduledTasks, "2025-07-02", filenames);
 
             log.info("Payload: {}", result);
             assertNotNull(result, "generateTriggerPayload should return non-null result");
-            assertTrue(result.contains("\"sourceType\": \"XSB\""), "Result should contain sourceType XSB");
-            assertTrue(result.contains("\"purgeOldData\": false"), "Result should contain purgeOldData false");
-            assertTrue(result.contains("\"gsaFeedDate\""), "Result should contain gsaFeedDate field");
-            assertTrue(result.contains("\"2025-07-02\""), "Result should contain gsaFeedDate value 2025-07-02");
-            assertTrue(result.contains("\"files\""), "Result should contain files field");
-            assertTrue(result.contains("["), "Result should contain files array");
-
-            assertTrue(result.contains("\"gsa_advantage_quarterly_job_20250801132422_11900656518300561534_report_1.gsa\""), "Result should contain files array");
-            assertTrue(result.contains("\"gsa_advantage_quarterly_job_20250801132422_3131086686144655982_report_2.gsa\""), "Result should contain files array");
-            assertTrue(result.contains("\"gsa_advantage_quarterly_job_20250801132422_17596505155975732618_report_3.gsa\""), "Result should contain files array");
-
-            assertTrue(result.contains("]"), "Result should contain files array");
+            assertEquals(Trigger.AnalysisSourceType.XSB, result.getSourceType());
+            assertFalse(result.getPurgeOldData());
+            assertEquals(LocalDate.parse("2025-07-02", DateTimeFormatter.ofPattern("yyyy-MM-dd")), result.getGsaFeedDate() );
+            Set<String> uniqueFileNames = result.getUniqueFileNames();
+            assertNotNull(uniqueFileNames);
+            assertEquals(3, uniqueFileNames.size());
+            assertEquals(3, result.getFiles().length);
+            assertTrue(uniqueFileNames.contains("gsa_advantage_quarterly_job_20250801132422_11900656518300561534_report_1.gsa"));
+            assertTrue(uniqueFileNames.contains("gsa_advantage_quarterly_job_20250801132422_3131086686144655982_report_2.gsa"));
+            assertTrue(uniqueFileNames.contains("gsa_advantage_quarterly_job_20250801132422_17596505155975732618_report_3.gsa"));
 
         } catch (Exception e) {
             fail("Failed to test generateTriggerPayload: " + e.getMessage());
@@ -715,6 +714,101 @@ class ScheduledTasksTest {
         }
     }
 
+
+    @Test
+    void testTriggerNewBimonthlyDataUpload() {
+        try {
+            Trigger trigger= new Trigger();
+            Mockito.when(bimonthlyLoadService.triggerDataUpload(any())).thenReturn(Mono.empty());
+            java.lang.reflect.Method generateMethod = ScheduledTasks.class.getDeclaredMethod("triggerNewBimonthlyDataUpload", Trigger.class);
+            generateMethod.setAccessible(true);
+            assertDoesNotThrow(() -> generateMethod.invoke(scheduledTasks, trigger));
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Test
+    void testTriggerNewBimonthlyDataUpload_ThrowsConcurrentModificationError() {
+        try {
+            Trigger trigger= new Trigger();
+            Mockito.when(bimonthlyLoadService.triggerDataUpload(any())).thenThrow(new ConcurrentModificationException("testTriggerNewBimonthlyDataUpload_ThrowsConcurrentModificationError: Working"));
+            java.lang.reflect.Method generateMethod = ScheduledTasks.class.getDeclaredMethod("triggerNewBimonthlyDataUpload", Trigger.class);
+            generateMethod.setAccessible(true);
+            assertThrows(ConcurrentModificationException.class, () -> {
+                try {
+                    generateMethod.invoke(scheduledTasks, trigger);
+                } catch (Exception e) {
+                    if (e.getCause() instanceof RuntimeException) {
+                        assertEquals(e.getCause().getMessage(), "Process already executing");
+                        ConcurrentModificationException cause = (ConcurrentModificationException) e.getCause().getCause();
+                        assertEquals(cause.getMessage(), "testTriggerNewBimonthlyDataUpload_ThrowsConcurrentModificationError: Working");
+                        throw cause;
+                    }
+                    throw new RuntimeException(e);
+                }
+            }, "Should throw ConcurrentModificationException");
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Test
+    void testTriggerNewBimonthlyDataUpload_ThrowsIllegalArgumentError() {
+        try {
+            Trigger trigger= new Trigger();
+            Mockito.when(bimonthlyLoadService.triggerDataUpload(any())).thenThrow(new IllegalArgumentException("testTriggerNewBimonthlyDataUpload_ThrowsIllegalArgumentError: illegal argument"));
+            java.lang.reflect.Method generateMethod = ScheduledTasks.class.getDeclaredMethod("triggerNewBimonthlyDataUpload", Trigger.class);
+            generateMethod.setAccessible(true);
+            assertThrows(IllegalArgumentException.class, () -> {
+                try {
+                    generateMethod.invoke(scheduledTasks, trigger);
+                } catch (Exception e) {
+                    if (e.getCause() instanceof RuntimeException) {
+                        assertEquals(e.getCause().getMessage(), "The request is illegal.");
+                        IllegalArgumentException cause = (IllegalArgumentException) e.getCause().getCause();
+                        assertEquals(cause.getMessage(), "testTriggerNewBimonthlyDataUpload_ThrowsIllegalArgumentError: illegal argument");
+                        throw cause;
+                    }
+                    throw new RuntimeException(e);
+                }
+            }, "Should throw IllegalArgumentException");
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Test
+    void testTriggerNewBimonthlyDataUpload_ThrowsGenericException() {
+        try {
+            Trigger trigger= new Trigger();
+            Mockito.when(bimonthlyLoadService.triggerDataUpload(any())).thenThrow(new NullPointerException("testTriggerNewBimonthlyDataUpload_ThrowsGenericException"));
+            java.lang.reflect.Method generateMethod = ScheduledTasks.class.getDeclaredMethod("triggerNewBimonthlyDataUpload", Trigger.class);
+            generateMethod.setAccessible(true);
+            assertThrows(NullPointerException.class, () -> {
+                try {
+                    generateMethod.invoke(scheduledTasks, trigger);
+                } catch (Exception e) {
+                    if (e.getCause() instanceof RuntimeException) {
+                        assertEquals(e.getCause().getMessage(), "Unexpected error");
+                        NullPointerException cause = (NullPointerException) e.getCause().getCause();
+                        assertEquals(cause.getMessage(), "testTriggerNewBimonthlyDataUpload_ThrowsGenericException");
+                        throw cause;
+                    }
+                    throw new RuntimeException(e);
+                }
+            }, "Should throw NullPointerException");
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 
     /**

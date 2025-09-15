@@ -1,26 +1,33 @@
 package gov.gsa.acr.cataloganalysis.scheduler;
 
 import gov.gsa.acr.cataloganalysis.analysissource.AnalysisSourceXsb;
+import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
+import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 public class ScheduledTasks {
+    private final String PN = "CRON: ";
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter yyyyMmDdFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // Regex pattern to extract date from GSA filenames
     private static final Pattern GSA_FILENAME_PATTERN = Pattern.compile(
@@ -35,7 +42,7 @@ public class ScheduledTasks {
     private final AnalysisSourceXsb xsb;
     private final XsbPpApiService xsbPpApiService;
     private final AnalysisDataProcessingService analysisDataProcessingService;
-
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     public ScheduledTasks(XsbDataRepository xsbDataRepository, AnalysisSourceXsb xsb, XsbPpApiService xsbPpApiService, AnalysisDataProcessingService analysisDataProcessingService) {
         this.xsbDataRepository = xsbDataRepository;
@@ -55,45 +62,43 @@ public class ScheduledTasks {
      */
     @Scheduled(cron = "${app.scheduler.bimonthly-check-cron}")
     public void checkAndProcessNewBimonthlyReports() {
+        log.info("{} Starting the scheduled task to check for new Bi-monthly reports on the XSB's SFTP server.", PN);
         try {
             if (analysisDataProcessingService.isExecuting()) {
-                log.warn("Bimonthly Data Upload Task could not proceed, as a previous execution to load the bimonthly data is still runnin.");
+                log.warn("{} Bimonthly Data Upload Task could not proceed, as a previous execution to load the bimonthly data is still running.", PN);
                 return;
             }
 
             String acrFeedDate = xsbDataRepository.getAcrFeedDate().block();
-
             if (acrFeedDate == null || acrFeedDate.isEmpty() || !VALID_DATE_PATTERN.matcher(acrFeedDate).matches())
-                throw new RuntimeException("Invalid ACR Feed Date: "+acrFeedDate+". Cannot proceed further.");
+                throw new RuntimeException(PN + " Invalid ACR Feed Date: " + acrFeedDate + ". Cannot proceed further.");
 
             String gsaFeedDate = xsbPpApiService.getGsaFeedDate(acrFeedDate).block();
             if (gsaFeedDate == null || gsaFeedDate.isEmpty() ){
-                log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
+                log.info("{} No new bimonthly reports to process yet. We have the latest bi-monthly data (ACR Feed Date: {}). We will check again later.", PN, acrFeedDate);
                 return;
             }
 
             if (!VALID_DATE_PATTERN.matcher(gsaFeedDate).matches())
-                throw new RuntimeException("Invalid GSA Feed Date: "+gsaFeedDate+". Cannot proceed further.");
+                throw new RuntimeException(PN + " Invalid GSA Feed Date: " + gsaFeedDate + ". Cannot proceed further.");
 
-            String triggerPayload;
+            Trigger triggerPayload;
             if (isGsaFeedDateLaterThanAcrFeedDate(acrFeedDate, gsaFeedDate)){
                 List<String> qualifyingReports = getNewSftpReportsName(gsaFeedDate);
                 if (qualifyingReports != null && !qualifyingReports.isEmpty()){
+                    log.info("{} Triggering loading new Bimonthly files. New GSA Feed Date: {}, Current ACR Feed Date: {}", PN, gsaFeedDate, acrFeedDate);
                     triggerPayload = generateTriggerPayload(gsaFeedDate, qualifyingReports);
-                    // TBD: Trigger the process
-                    log.info("Checking SFTP for new bimonthly reports at {}. AcrFeedDate: {}, GsaFeedDate: {}, newGsaFeedDate? {}, triggerPayload: {}",
-                            dateTimeFormatter.format(LocalDateTime.now()), acrFeedDate, gsaFeedDate,
-                            isGsaFeedDateLaterThanAcrFeedDate(acrFeedDate, gsaFeedDate), triggerPayload);
+                    triggerNewBimonthlyDataUpload(triggerPayload);
                 }
                 else {
-                    log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
+                    log.error("{} Found a new GSA Feed Date: {}, which is later than the current ACR Feed Date: {}, but there are no biMonthly report files on the XSB SFTP Server.", PN, gsaFeedDate, acrFeedDate);
                 }
             }
             else {
-                log.info("checkAndProcessNewBimonthlyReports: No new bimonthly reports to process yet, we will check again later.");
+                log.info("{} No new bimonthly reports to process yet. The latest GSA Feed date: {}, is same as the ACR feed date: {}. We will check again later.", PN, gsaFeedDate, acrFeedDate);
             }
         } catch (Exception e) {
-            log.error("Scheduled job to check and process new bimonthly reports failed.", e);
+            log.error(PN + " Scheduled job to check and process new bimonthly reports failed.", e);
         }
     }
 
@@ -113,9 +118,8 @@ public class ScheduledTasks {
         }
 
         try {
-            LocalDate acrDate = LocalDate.parse(acrFeedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            LocalDate gsaDate = LocalDate.parse(gsaFeedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
+            LocalDate acrDate = LocalDate.parse(acrFeedDate, yyyyMmDdFormatter);
+            LocalDate gsaDate = LocalDate.parse(gsaFeedDate, yyyyMmDdFormatter);
             return gsaDate.isAfter(acrDate);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd", e);
@@ -137,7 +141,7 @@ public class ScheduledTasks {
         if (allFilenames == null || allFilenames.isEmpty()) return null;
 
         // Parse the input date
-        LocalDate inputDate = LocalDate.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate inputDate = LocalDate.parse(dateString, yyyyMmDdFormatter);
 
         // Extract dates from filenames and find the latest qualifying date
         LocalDate latestQualifyingDate = null;
@@ -165,9 +169,9 @@ public class ScheduledTasks {
             }
         }
 
-        log.info("Found {} qualifying files with date {} for input date {}",
+        log.info("{} Found {} qualifying files with date {} for input date {}", PN,
                 qualifyingFilenames.size(),
-                latestQualifyingDate != null ? latestQualifyingDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "none",
+                latestQualifyingDate != null ? latestQualifyingDate.format(yyyyMmDdFormatter) : "none",
                 dateString);
 
         return qualifyingFilenames;
@@ -180,34 +184,31 @@ public class ScheduledTasks {
      *
      * @return JSON string representing the trigger payload
      */
-    private String generateTriggerPayload(String gsaFeedDate, List<String> qualifyingFiles) {
+    private Trigger generateTriggerPayload(String gsaFeedDate, List<String> qualifyingFiles) {
         if (gsaFeedDate == null || gsaFeedDate.isEmpty() || !VALID_DATE_PATTERN.matcher(gsaFeedDate).matches())
             throw new IllegalArgumentException("Invalid GSA Feed Date: "+gsaFeedDate+". Cannot proceed further.");
-
-        // Build the JSON payload
-        StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{\n");
-        jsonBuilder.append("    \"sourceType\": \"XSB\",\n");
-        jsonBuilder.append("    \"purgeOldData\": false,\n");
-        jsonBuilder.append("    \"gsaFeedDate\": \"").append(gsaFeedDate).append("\",\n");
-        jsonBuilder.append("    \"files\": [\n");
-
-        // Add each file to the JSON array
-        for (int i = 0; i < qualifyingFiles.size(); i++) {
-            jsonBuilder.append("        \"").append(qualifyingFiles.get(i)).append("\"");
-            if (i < qualifyingFiles.size() - 1) {
-                jsonBuilder.append(",");
-            }
-            jsonBuilder.append("\n");
-        }
-
-        jsonBuilder.append("    ]\n");
-        jsonBuilder.append("}");
-
-        String result = jsonBuilder.toString();
-        log.info("Generated trigger payload with {} files and GSA feed date: {}", qualifyingFiles.size(), gsaFeedDate);
-
+        // Build the Trigger object
+        Trigger result = new Trigger();
+        result.setSourceType(Trigger.AnalysisSourceType.XSB);
+        result.setGsaFeedDate(LocalDate.parse(gsaFeedDate, yyyyMmDdFormatter));
+        result.setFiles(qualifyingFiles.toArray(new String[0]));
         return result;
+    }
+
+
+    /**
+     * Trigger the data upload process from the latest Bi-monthly report files.
+     * @param trigger
+     */
+    private void triggerNewBimonthlyDataUpload(Trigger trigger){
+        log.info("{} {}", PN, trigger);
+        try {
+            Mono<DataUploadResults> dataUploadResultsMono =  analysisDataProcessingService.triggerDataUpload(trigger);
+            executorService.submit(() -> dataUploadResultsMono.subscribe(null, e -> log.error("Unexpected Error", e)));
+        }
+        catch (ConcurrentModificationException e) {throw new RuntimeException("Process already executing", e);}
+        catch (IllegalArgumentException e){throw new RuntimeException("The request is illegal.", e);}
+        catch (Exception e) {throw new RuntimeException("Unexpected error", e);}
     }
 
 
