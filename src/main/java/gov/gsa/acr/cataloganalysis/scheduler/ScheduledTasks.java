@@ -204,15 +204,6 @@ public class ScheduledTasks {
         result.setSourceType(Trigger.AnalysisSourceType.XSB);
         result.setGsaFeedDate(LocalDate.parse(gsaFeedDate, yyyyMmDdFormatter));
         result.setFiles(qualifyingFiles.toArray(new String[0]));
-        // TBD  Delete before final test for integration testing only.
-        // 47QSEA18D0085-3019226_20250911150955_12538777721979333949_report_1.gsa
-        // 47QSMA19D08P6-BPA-3019234_20250911150957_4365051109545396637_report_1.gsa
-
-        //String[] dummy = {"47QSEA18D0085-3019226_20250911150955_12538777721979333949_report_1.gsa",
-        //        "47QSMA19D08P6-BPA-3019234_20250911150957_4365051109545396637_report_1.gsa"};
-        //result.setFiles(dummy);
-
-
         return result;
     }
 
