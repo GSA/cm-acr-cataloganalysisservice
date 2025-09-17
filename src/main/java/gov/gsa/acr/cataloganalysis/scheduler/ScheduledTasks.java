@@ -6,7 +6,10 @@ import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
+import gov.gsa.acr.cataloganalysis.util.EmailUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -42,13 +45,21 @@ public class ScheduledTasks {
     private final AnalysisSourceXsb xsb;
     private final XsbPpApiService xsbPpApiService;
     private final AnalysisDataProcessingService analysisDataProcessingService;
+    private final EmailUtil emailUtil;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    public ScheduledTasks(XsbDataRepository xsbDataRepository, AnalysisSourceXsb xsb, XsbPpApiService xsbPpApiService, AnalysisDataProcessingService analysisDataProcessingService) {
+    @Value("${env.profile}")
+    private String envProfile;
+
+    @Value("${env.name:undefined environment}")
+    private String envName;
+
+    public ScheduledTasks(XsbDataRepository xsbDataRepository, AnalysisSourceXsb xsb, XsbPpApiService xsbPpApiService, AnalysisDataProcessingService analysisDataProcessingService, EmailUtil emailUtil) {
         this.xsbDataRepository = xsbDataRepository;
         this.xsb = xsb;
         this.xsbPpApiService = xsbPpApiService;
         this.analysisDataProcessingService = analysisDataProcessingService;
+        this.emailUtil = emailUtil;
     }
 
     /**
@@ -75,7 +86,7 @@ public class ScheduledTasks {
 
             String gsaFeedDate = xsbPpApiService.getGsaFeedDate(acrFeedDate).block();
             if (gsaFeedDate == null || gsaFeedDate.isEmpty() ){
-                log.info("{} No new bimonthly reports to process yet. We have the latest bi-monthly data (ACR Feed Date: {}). We will check again later.", PN, acrFeedDate);
+                log.info("{} No new bimonthly reports to process yet. We have the latest bi-monthly data. (Latest ACR Feed Date: {}, matches latest GSA Feed Date from XSB). We will check again at the next scheduled execution.", PN, acrFeedDate);
                 return;
             }
 
@@ -89,6 +100,7 @@ public class ScheduledTasks {
                     log.info("{} Triggering loading new Bimonthly files. New GSA Feed Date: {}, Current ACR Feed Date: {}", PN, gsaFeedDate, acrFeedDate);
                     triggerPayload = generateTriggerPayload(gsaFeedDate, qualifyingReports);
                     triggerNewBimonthlyDataUpload(triggerPayload);
+                    emailUtil.sendEmail(composeEmailSubject(this.envProfile, this.envName), composeEmailMessage(acrFeedDate,gsaFeedDate,qualifyingReports ));
                 }
                 else {
                     log.error("{} Found a new GSA Feed Date: {}, which is later than the current ACR Feed Date: {}, but there are no biMonthly report files on the XSB SFTP Server.", PN, gsaFeedDate, acrFeedDate);
@@ -192,6 +204,15 @@ public class ScheduledTasks {
         result.setSourceType(Trigger.AnalysisSourceType.XSB);
         result.setGsaFeedDate(LocalDate.parse(gsaFeedDate, yyyyMmDdFormatter));
         result.setFiles(qualifyingFiles.toArray(new String[0]));
+        // TBD  Delete before final test for integration testing only.
+        // 47QSEA18D0085-3019226_20250911150955_12538777721979333949_report_1.gsa
+        // 47QSMA19D08P6-BPA-3019234_20250911150957_4365051109545396637_report_1.gsa
+
+        //String[] dummy = {"47QSEA18D0085-3019226_20250911150955_12538777721979333949_report_1.gsa",
+        //        "47QSMA19D08P6-BPA-3019234_20250911150957_4365051109545396637_report_1.gsa"};
+        //result.setFiles(dummy);
+
+
         return result;
     }
 
@@ -212,4 +233,36 @@ public class ScheduledTasks {
     }
 
 
+    /**
+     * Generates the body of the email to be sent when the process is triggerd.
+     * @param acrFeedDate
+     * @param gsaFeedDate
+     * @param qualifyingReports
+     * @return
+     */
+    private String composeEmailMessage(String acrFeedDate, String gsaFeedDate, List<String> qualifyingReports){
+        StringBuilder sb = new StringBuilder();
+        sb.append("ACR's Catalog Analysis Service discovered new Bi-monthly reports on the XSB's SFTP server. It automatically initiated a load process. Please monitor the logs on DataDog for CAS for any updates or issues.");
+        sb.append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append("Current ACR Feed Date: " + acrFeedDate);
+        sb.append(System.lineSeparator());
+        sb.append("New GSA Feed Date: " + gsaFeedDate);
+        sb.append(System.lineSeparator()).append(System.lineSeparator());;
+        sb.append("List of Bimonthly reports: ").append(System.lineSeparator());
+        sb.append(String.join(System.lineSeparator(), qualifyingReports));
+        return sb.toString();
+    }
+
+    /**
+     * Generates subject for the email.
+     * @return
+     */
+    private String composeEmailSubject(String envProfile, String envName){
+        StringBuilder sb = new StringBuilder();
+        sb.append("ACR CAS: ");
+        sb.append("Cron job automatically triggered bimonthly data upload in the ");
+        if (envProfile != null && !envProfile.isEmpty()) sb.append(envProfile + "-");
+        sb.append(envName + " env.");
+        return sb.toString();
+    }
 }

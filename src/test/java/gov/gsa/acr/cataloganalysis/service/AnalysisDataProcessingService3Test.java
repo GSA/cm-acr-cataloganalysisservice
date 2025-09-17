@@ -9,6 +9,8 @@ import gov.gsa.acr.cataloganalysis.error.ErrorHandler;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.scheduler.ScheduledTasks;
+import gov.gsa.acr.cataloganalysis.util.EmailUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import reactor.core.publisher.SignalType;
@@ -26,11 +29,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class) })
+@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class), @MockBean(EmailUtil.class), @MockBean(JavaMailSender.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class, ErrorHandler.class})
 class AnalysisDataProcessingService3Test {
     @Value("${error.file.directory}")
@@ -300,6 +304,35 @@ class AnalysisDataProcessingService3Test {
         assertEquals("INFO:========================================================", report.get(cntr++));
 
 
+    }
+
+    @Test
+    void testComposeEmailSubject(){
+        try {
+            java.lang.reflect.Method emailSubject = AnalysisDataProcessingService.class.getDeclaredMethod("composeEmailSubject", String.class, String.class);
+            emailSubject.setAccessible(true);
+
+            String result = (String) emailSubject.invoke(analysisDataProcessingService, "Junit", "testing");
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the Junit-testing env.", result);
+
+            result = (String) emailSubject.invoke(analysisDataProcessingService, "", "testing");
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the testing env.", result);
+
+            result = (String) emailSubject.invoke(analysisDataProcessingService, null, "testing");
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the testing env.", result);
+
+            result = (String) emailSubject.invoke(analysisDataProcessingService, null, "");
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the  env.", result);
+
+            result = (String) emailSubject.invoke(analysisDataProcessingService, null, null);
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the null env.", result);
+
+            result = (String) emailSubject.invoke(analysisDataProcessingService, "Junit", "");
+            assertEquals("ACR CAS: Bi-monthly data load process completed in the Junit- env.", result);
+
+        } catch (Exception e) {
+            fail("Failed to test composeEmailSubject: " + e.getMessage());
+        }
     }
 
 

@@ -7,20 +7,25 @@ import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
 import gov.gsa.acr.cataloganalysis.service.AnalysisDataProcessingService;
 import gov.gsa.acr.cataloganalysis.service.XsbPpApiService;
+import gov.gsa.acr.cataloganalysis.util.EmailUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -30,14 +35,13 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.refEq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
-@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(XsbPpApiService.class), @MockBean(AnalysisDataProcessingService.class)})
-@ContextConfiguration(classes = {ScheduledTasks.class})
+@MockBeans({@MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(XsbPpApiService.class), @MockBean(AnalysisDataProcessingService.class), @MockBean(JavaMailSender.class)})
+@ContextConfiguration(classes = {ScheduledTasks.class, EmailUtil.class})
 class ScheduledTasksTest {
 
     @Autowired
@@ -59,33 +63,33 @@ class ScheduledTasksTest {
         // null ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenReturn(Mono.empty());
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
 
         // Error while getting ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenReturn(Mono.error(new RuntimeException("testCheckAndProcessNewBimonthlyReports_InvalidACRFeedDate: Error getting ACR Date")));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
 
         // Empty ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenReturn(Mono.just(""));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
 
         // Empty ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenReturn(Mono.just("invalid date format"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
 
         // Empty ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenReturn(Mono.just("2024-00-01"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
 
         // IMPORTANT: This has to be the last case, otherwise it throws exceptions for anything after this
         // Error while getting ACR Feed Date
         when(xsbDataRepository.getAcrFeedDate()).thenThrow(new RuntimeException("testCheckAndProcessNewBimonthlyReports_InvalidACRFeedDate: Exception Thrown while getting ACR Date"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
+        verify(xsbPpApiService, Mockito.never()).getGsaFeedDate(Mockito.anyString());
     }
 
     @Test
@@ -96,29 +100,29 @@ class ScheduledTasksTest {
         // Null GSA Feed Date
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.empty());
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
         // Error GSA Feed Date
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.error(new RuntimeException("testCheckAndProcessNewBimonthlyReports_InvalidGSAFeedDate: Error getting GSA Date")));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just(""));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("invalid"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("2024-13-01"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
         // IMPORTANT: This has to be the last case, otherwise it throws exceptions for anything after this
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenThrow(new RuntimeException("testCheckAndProcessNewBimonthlyReports_InvalidGSAFeedDate: Exception Thrown while getting GSA Date"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
 
     }
 
@@ -129,7 +133,7 @@ class ScheduledTasksTest {
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("2025-06-02"));
         when(analysisSourceXsb.getBimonthlyReportNames(null)).thenReturn(initializeGsaFilenames());
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
     }
 
     @Test
@@ -139,7 +143,7 @@ class ScheduledTasksTest {
         when(analysisSourceXsb.getBimonthlyReportNames(null)).thenReturn(initializeGsaFilenames());
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("2025-04-02"));
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.never()).getBimonthlyReportNames(null);
     }
 
     @Test
@@ -149,7 +153,7 @@ class ScheduledTasksTest {
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("2025-06-02"));
         when(analysisSourceXsb.getBimonthlyReportNames(null)).thenReturn(null);
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
     }
 
     @Test
@@ -159,7 +163,7 @@ class ScheduledTasksTest {
         when(xsbPpApiService.getGsaFeedDate(Mockito.anyString())).thenReturn(Mono.just("2025-09-02"));
         when(analysisSourceXsb.getBimonthlyReportNames(null)).thenReturn(initializeGsaFilenames());
         assertDoesNotThrow(() -> scheduledTasks.checkAndProcessNewBimonthlyReports());
-        Mockito.verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
+        verify(analysisSourceXsb, Mockito.times(1)).getBimonthlyReportNames(null);
     }
 
 
@@ -189,7 +193,7 @@ class ScheduledTasksTest {
         assertDoesNotThrow(() -> {
             scheduledTasks.checkAndProcessNewBimonthlyReports();
         });
-        Mockito.verify(xsbDataRepository, Mockito.never()).getAcrFeedDate();
+        verify(xsbDataRepository, Mockito.never()).getAcrFeedDate();
     }
 
 
@@ -809,6 +813,79 @@ class ScheduledTasksTest {
             throw new RuntimeException(e);
         }
     }
+
+    @Test
+    void testComposeEmailBody(){
+        try {
+            Method emailMessage = ScheduledTasks.class.getDeclaredMethod("composeEmailMessage", String.class, String.class, List.class);
+            emailMessage.setAccessible(true);
+
+            assertThrows(NullPointerException.class, () -> {
+                try {
+                    emailMessage.invoke(scheduledTasks, "2025-13-01", "2025-02-01", null);
+                } catch (Exception e) {
+                    if (e.getCause() instanceof NullPointerException) {
+                        throw e.getCause();
+                    }
+                    throw new RuntimeException(e);
+                }
+            }, "Should thrown a NullPointerException for null list of files");
+
+            List<String> dummyRports = new ArrayList<>();
+            String result = (String) emailMessage.invoke(scheduledTasks, "1900-04-02", "2000-01-02", dummyRports);
+            StringBuilder expected = new StringBuilder();
+            expected.append("ACR's Catalog Analysis Service discovered new Bi-monthly reports on the XSB's SFTP server. It automatically initiated a load process. Please monitor the logs on DataDog for CAS for any updates or issues.");
+            expected.append(System.lineSeparator()).append(System.lineSeparator());
+            expected.append("Current ACR Feed Date: 1900-04-02");
+            expected.append(System.lineSeparator());
+            expected.append("New GSA Feed Date: 2000-01-02");
+            expected.append(System.lineSeparator()).append(System.lineSeparator());;
+            expected.append("List of Bimonthly reports: ").append(System.lineSeparator());
+            assertEquals(expected.toString(), result);
+
+            dummyRports.add("file1.gsa");
+            dummyRports.add("file2.gsa");
+            result = (String) emailMessage.invoke(scheduledTasks, "1900-04-02", "2000-01-02", dummyRports);
+            expected.append("file1.gsa").append(System.lineSeparator());
+            expected.append("file2.gsa");
+            assertEquals(expected.toString(), result);
+
+
+        }
+        catch (Exception e) {
+            fail("Failed to test composeEmailSubject: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testComposeEmailSubject(){
+        try {
+            java.lang.reflect.Method emailSubject = ScheduledTasks.class.getDeclaredMethod("composeEmailSubject", String.class, String.class);
+            emailSubject.setAccessible(true);
+
+            String result = (String) emailSubject.invoke(scheduledTasks, "Junit", "testing");
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the Junit-testing env.", result);
+
+            result = (String) emailSubject.invoke(scheduledTasks, "", "testing");
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the testing env.", result);
+
+            result = (String) emailSubject.invoke(scheduledTasks, null, "testing");
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the testing env.", result);
+
+            result = (String) emailSubject.invoke(scheduledTasks, null, "");
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the  env.", result);
+
+            result = (String) emailSubject.invoke(scheduledTasks, null, null);
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the null env.", result);
+
+            result = (String) emailSubject.invoke(scheduledTasks, "Junit", "");
+            assertEquals("ACR CAS: Cron job automatically triggered bimonthly data upload in the Junit- env.", result);
+
+        } catch (Exception e) {
+            fail("Failed to test composeEmailSubject: " + e.getMessage());
+        }
+    }
+
 
 
     /**

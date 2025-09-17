@@ -7,6 +7,7 @@ import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.util.EmailUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,15 @@ public class AnalysisDataProcessingService {
     private final AnalysisSourceS3 xsbSourceS3Files;
     private final XsbDataParser xsbDataParser;
     private final TransactionalDataService transactionalDataService;
+    private final EmailUtil emailUtil;
 
     private static final String TERMINATION_MSG = "Terminating: The process is being forced to exit!";
+
+    @Value("${env.profile}")
+    private String envProfile;
+
+    @Value("${env.name:undefined environment}")
+    private String envName;
 
     /**
      * Main entry point, that triggers the application to download and process the bi-monthly XSB files.
@@ -528,7 +536,22 @@ public class AnalysisDataProcessingService {
         else log("Finished without any issues!!", Level.INFO, report);
         if (executionDuration != null) log("Total Time Taken: " + executionDuration, Level.INFO, report);
         log("========================================================", Level.INFO, report);
+        emailUtil.sendEmail(composeEmailSubject(envProfile, envName), String.join(System.lineSeparator(), report));
         return report;
+    }
+
+
+    /**
+     * Generates subject for the email.
+     * @return
+     */
+    private String composeEmailSubject(String envProfile, String envName){
+        StringBuilder sb = new StringBuilder();
+        sb.append("ACR CAS: ");
+        sb.append("Bi-monthly data load process completed in the ");
+        if (envProfile != null && !envProfile.isEmpty()) sb.append(envProfile + "-");
+        sb.append(envName + " env.");
+        return sb.toString();
     }
 
 }

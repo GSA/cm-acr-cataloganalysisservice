@@ -10,6 +10,7 @@ import gov.gsa.acr.cataloganalysis.model.DataUploadResults;
 import gov.gsa.acr.cataloganalysis.model.Trigger;
 import gov.gsa.acr.cataloganalysis.model.XsbData;
 import gov.gsa.acr.cataloganalysis.repositories.XsbDataRepository;
+import gov.gsa.acr.cataloganalysis.util.EmailUtil;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.MockBeans;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import reactor.core.publisher.Flux;
@@ -47,7 +49,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("junit")
 @Slf4j
-@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class) })
+@MockBeans({@MockBean(ErrorHandler.class), @MockBean(XsbDataRepository.class), @MockBean(AnalysisSourceXsb.class), @MockBean(AnalysisSourceS3.class), @MockBean(EmailUtil.class), @MockBean(JavaMailSender.class) })
 @ContextConfiguration(classes = {S3ClientConfiguration.class,  AnalysisDataProcessingService.class, XsbDataParser.class, AnalysisSourceLocal.class, AnalysisSourceFactory.class, TransactionalDataService.class})
 class AnalysisDataProcessingServiceTest {
 
