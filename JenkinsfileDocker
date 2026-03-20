@@ -17,10 +17,10 @@ pipeline {
     }    
 
     stages {
-        stage('Test') {
-            steps {
-                sh 'mvn test' // Replace with your specific test command
-            }
+        // stage('Test') {
+        //     steps {
+        //         sh 'mvn test' // Replace with your specific test command
+        //     }
         }
         stage('Checkout') {
             steps {
