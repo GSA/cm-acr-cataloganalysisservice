@@ -7,36 +7,228 @@ pipeline {
         mcaas_registry='752281881774.dkr.ecr.us-east-1.amazonaws.com'
     }
 
+    tools {
+        // Use the EXACT name you gave it in Global Tool Configuration
+        maven 'Maven3' 
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+    }    
+
     stages {
-        stage('Build Docker image') {
+        stage('Test') {
             steps {
+                sh 'mvn test' // Replace with your specific test command
+            }
+        }
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    echo "=== Build Information ==="
+                    echo "Build Type: ${env.CHANGE_ID ? 'Pull Request' : 'Branch Build'}"
+                    if (env.CHANGE_ID) {
+                        echo "PR #${env.CHANGE_ID}: ${env.CHANGE_BRANCH} → ${env.CHANGE_TARGET}"
+                    } else {
+                        echo "Branch Build: ${env.BRANCH_NAME}"
+                    }
+                    echo "========================"
+                }
+            }
+        }
+        
+        stage('PR Validation') {
+            when {
+                changeRequest target: 'master'
+            }
+            stages {
+                stage('Validate Branch') {
+                    steps {
+                        script {
+                            if (!env.CHANGE_BRANCH.startsWith('feature/')) {
+                                error("❌ PRs to master must come from feature/* branches. Current branch: ${env.CHANGE_BRANCH}")
+                            }
+                            echo "✅ Branch naming validation passed"
+                        }
+                    }
+                }
+                
+                
+                stage('Build Docker Image (Validation)') {
+                    steps {
+                        echo "🐳 Building Docker image for validation..."
+                        sh """
+                            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $mcaas_registry
+                            docker build -t $image_name:pr-${env.CHANGE_ID}-validation .
+                            echo "✅ Docker build successful"
+                        """
+                    }
+                }
+                
+                stage('Test Docker Image') {
+                    steps {
+                        echo "🔍 Testing Docker image..."
+                        sh """
+                            # Just verify the image exists and has correct size
+                            docker images $image_name:pr-${env.CHANGE_ID}-validation
+                            
+                            # Optionally inspect the image
+                            docker inspect $image_name:pr-${env.CHANGE_ID}-validation > /dev/null
+                            
+                            echo "✅ Docker image verified"
+                        """
+                    }
+                }
+                
+                stage('Cleanup PR Validation') {
+                    steps {
+                        echo "🧹 Cleaning up PR validation artifacts..."
+                        sh """
+                            docker rmi $image_name:pr-${env.CHANGE_ID}-validation || true
+                            rm -rf .pytest_cache __pycache__ || true
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Validate Master Build') {
+            when {
+                allOf {
+                    branch 'master'
+                    not { changeRequest() }
+                }
+            }
+            steps {
+                script {
+                    def commitMessage = sh(
+                        script: "git log -1 --pretty=%B",
+                        returnStdout: true
+                    ).trim()
+                    
+                    def authorEmail = sh(
+                        script: "git log -1 --pretty=%ae",
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "=== Master Build Validation ==="
+                    echo "Commit message: ${commitMessage}"
+                    echo "Author email: ${authorEmail}"
+                    
+                    // Check for GitHub merge commit patterns
+                    def isValidMerge = false
+                    
+                    if (commitMessage.contains("Merge pull request #") ||
+                        commitMessage.matches("(?s).*\\(#\\d+\\).*") ||
+                        commitMessage.startsWith("Merge branch 'feature/") ||
+                        authorEmail.contains("noreply.github.com")) {
+                        isValidMerge = true
+                    }
+                    
+                    if (!isValidMerge) {
+                        error("❌ Direct pushes to master are not allowed! All changes must come through PR from feature/* branches.")
+                    }
+                    
+                    echo "✅ Valid GitHub merge detected - proceeding with deployment"
+                }
+            }
+        }
+        
+        stage('Build Docker image') {
+            when {
+                allOf {
+                    branch 'master'
+                    not { changeRequest() }
+                }
+            }
+            steps {
+                echo "🐳 Building Docker image for production..."
                 sh """
                     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $mcaas_registry
                     docker build -t $image_name:$GIT_COMMIT .
                 """
             }
         }
+        
         stage('Tagging docker image') {
+            when {
+                allOf {
+                    branch 'master'
+                    not { changeRequest() }
+                }
+            }
             steps {
+                echo "🏷️ Tagging Docker image..."
                 sh "docker tag $image_name:$GIT_COMMIT $vpc_registry/$image_name:$GIT_COMMIT"
             }
         }
+        
         stage('Pushing to ECR') {
+            when {
+                allOf {
+                    branch 'master'
+                    not { changeRequest() }
+                }
+            }
             steps {
+                echo "📤 Pushing to ECR..."
                 sh """
                     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $vpc_registry
                     docker push $vpc_registry/$image_name:$GIT_COMMIT
                 """
             }
         }
+        
         stage('Update flux') {
+            when {
+                allOf {
+                    branch 'master'
+                    not { changeRequest() }
+                }
+            }
             steps {
-                build job: 'flux-update', parameters: [
+                echo "🔄 Updating Flux deployment..."
+                build job: 'flux-update-v2', parameters: [
                     [$class: 'StringParameterValue', name: 'FLUX_HASH', value: env.GIT_COMMIT], 
                     [$class: 'StringParameterValue', name: 'FLUX_FILENAME', value: "${service_name}.yaml"]
                 ]
             }
         }
-
+    }
+    
+    post {
+        always {
+            script {
+                if (env.BRANCH_NAME == 'master' && !env.CHANGE_ID) {
+                    echo "🧹 Cleaning up production Docker images..."
+                    sh "docker rmi $image_name:$GIT_COMMIT || true"
+                    sh "docker rmi $vpc_registry/$image_name:$GIT_COMMIT || true"
+                }
+            }
+        }
+        success {
+            script {
+                if (env.CHANGE_ID) {
+                    echo "✅ PR validation completed successfully for PR #${env.CHANGE_ID}"
+                } else {
+                    echo "✅ Pipeline completed successfully for commit ${env.GIT_COMMIT}"
+                }
+            }
+        }
+        failure {
+            script {
+                if (env.CHANGE_ID) {
+                    echo "❌ PR validation failed for PR #${env.CHANGE_ID}"
+                    if (env.CHANGE_ID) {
+                        githubNotify context: 'Unit Tests', 
+                                    description: 'Tests or build failed', 
+                                    status: 'FAILURE'
+                    }
+                } else {
+                    echo "❌ Pipeline failed for commit ${env.GIT_COMMIT}"
+                }
+            }
+        }
     }
 }
