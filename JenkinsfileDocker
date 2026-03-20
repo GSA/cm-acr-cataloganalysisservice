@@ -21,7 +21,7 @@ pipeline {
         //     steps {
         //         sh 'mvn test' // Replace with your specific test command
         //     }
-        }
+        // }
         stage('Checkout') {
             steps {
                 checkout scm
